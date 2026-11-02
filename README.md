@@ -6,9 +6,9 @@ Each turn moves loose cargo, changes the light bridges, and briefly stills the s
 
 ## Play
 
+[Play Palewheel in your browser](https://chaosmos.studio/palewheel/).
+Turn a phone sideways for touch controls.
 Run `./play.sh` from this directory to play locally with Godot 4.7.
-The browser version is published from this repository's `gh-pages` branch.
-Use a landscape phone screen for touch controls.
 
 On desktop, use A and D to move, Space to jump, Q and E to turn gravity, R to restart the chamber, and P to pause.
 
