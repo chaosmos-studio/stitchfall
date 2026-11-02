@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b38vt63u3bkd4"
-path="res://.godot/imported/courier_jump.png-5d8b6eb5770771193b20ed309d2e09ec.ctex"
+uid="uid://3pxnheqa26si"
+path="res://.godot/imported/courier_jump_04.png-15c52e4c820d5ac6ada79a6723f91f3b.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/art/courier_jump.png"
-dest_files=["res://.godot/imported/courier_jump.png-5d8b6eb5770771193b20ed309d2e09ec.ctex"]
+source_file="res://assets/art/courier_jump_04.png"
+dest_files=["res://.godot/imported/courier_jump_04.png-15c52e4c820d5ac6ada79a6723f91f3b.ctex"]
 
 [params]
 

@@ -1,6 +1,7 @@
 """Synthesize Palewheel's original short game sounds."""
 
 import math
+import random
 import struct
 import wave
 from pathlib import Path
@@ -29,8 +30,23 @@ def chirp(t, duration, start, end):
     return math.sin(math.tau * frequency * t)
 
 
+def step_tone(seed):
+    noise = random.Random(seed)
+
+    def tone(t, duration):
+        attack = min(1.0, t * 500.0)
+        decay = (1.0 - t / duration) ** 2
+        thud = math.sin(math.tau * (110.0 - 35.0 * t / duration) * t) * math.exp(-t * 39.0)
+        cloth = noise.uniform(-1.0, 1.0) * math.exp(-t * 43.0)
+        return attack * decay * (thud * 0.34 + cloth * 0.09)
+
+    return tone
+
+
 save("jump", 0.23, lambda t, d: chirp(t, d, 310, 680) * (1 - t / d) ** 1.4 * 0.45)
 save("shift", 0.31, lambda t, d: (chirp(t, d, 170, 570) + 0.4 * chirp(t, d, 350, 800)) * (1 - t / d) ** 1.5 * 0.46)
 save("spark", 0.46, lambda t, d: (math.sin(math.tau * 780 * t) + math.sin(math.tau * 1170 * t) * 0.5) * (1 - t / d) ** 2 * 0.4)
 save("hit", 0.25, lambda t, d: (chirp(t, d, 280, 70) + math.sin(math.tau * 45 * t) * 0.3) * (1 - t / d) ** 1.8 * 0.5)
 save("door", 0.75, lambda t, d: sum(math.sin(math.tau * f * t) for f in (392, 494, 587)) * (1 - t / d) ** 1.2 * 0.18)
+for index, seed in enumerate((13, 29, 47)):
+    save(f"step_{index}", 0.14, step_tone(seed))

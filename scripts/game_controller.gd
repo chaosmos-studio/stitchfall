@@ -30,7 +30,13 @@ var sentries: Array[PalewheelWatcher] = []
 var camera: Camera2D
 var hud: PalewheelHud
 var sound: AudioStreamPlayer
+var step_sound: AudioStreamPlayer
 var audio_enabled: bool = true
+var step_streams: Array[AudioStream] = [
+	preload("res://assets/audio/sfx/step_0.wav"),
+	preload("res://assets/audio/sfx/step_1.wav"),
+	preload("res://assets/audio/sfx/step_2.wav"),
+]
 var sound_paths: Dictionary = {
 	"shift": "res://assets/audio/sfx/shift.wav",
 	"jump": "res://assets/audio/sfx/jump.wav",
@@ -45,10 +51,13 @@ func _ready() -> void:
 	add_child(world)
 	camera = Camera2D.new()
 	camera.position = Vector2(960, 540)
+	camera.zoom = Vector2(1.6, 1.6)
 	add_child(camera)
 	camera.make_current()
 	sound = AudioStreamPlayer.new()
 	add_child(sound)
+	step_sound = AudioStreamPlayer.new()
+	add_child(step_sound)
 	hud = HUD_SCRIPT.new() as PalewheelHud
 	add_child(hud)
 	hud.begin_pressed.connect(_on_begin)
@@ -65,7 +74,7 @@ func _process(delta: float) -> void:
 		run_time += delta
 		_update_hud()
 	if is_instance_valid(pilot):
-		var target: Vector2 = Vector2(960, 540) + (pilot.position - Vector2(960, 540)) * 0.1
+		var target: Vector2 = Vector2(960, 540) + (pilot.position - Vector2(960, 540)) * 0.34
 		camera.position = camera.position.lerp(target, minf(delta * 3.0, 1.0))
 
 
@@ -141,6 +150,8 @@ func _load_level(index: int) -> void:
 	room.add_child(pilot)
 	pilot.control_enabled = playing
 	pilot.jumped.connect(_on_pilot_jumped)
+	pilot.stepped.connect(func() -> void: _play_step(-17.0))
+	pilot.landed.connect(func() -> void: _play_step(-11.0))
 	world.level = level
 	world.phase = phase
 	world.collected = collected.duplicate()
@@ -366,6 +377,15 @@ func _play_sound(name: String) -> void:
 func _on_pilot_jumped() -> void:
 	print("PALEWHEEL_JUMP")
 	_play_sound("jump")
+
+
+func _play_step(volume: float) -> void:
+	if not audio_enabled or not playing:
+		return
+	step_sound.stream = step_streams.pick_random()
+	step_sound.volume_db = volume
+	step_sound.pitch_scale = randf_range(0.94, 1.06)
+	step_sound.play()
 
 
 func _format_time(value: float) -> String:

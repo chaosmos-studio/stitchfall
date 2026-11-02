@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bla8mtrt0l54y"
-path="res://.godot/imported/courier_idle.png-412e9025208766ce4d33ddd9b116b4cb.ctex"
+uid="uid://q71w485gfh2g"
+path="res://.godot/imported/drone_01.png-132d088fc6a1db6e85d15af200b08950.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/art/courier_idle.png"
-dest_files=["res://.godot/imported/courier_idle.png-412e9025208766ce4d33ddd9b116b4cb.ctex"]
+source_file="res://assets/art/drone_01.png"
+dest_files=["res://.godot/imported/drone_01.png-132d088fc6a1db6e85d15af200b08950.ctex"]
 
 [params]
 

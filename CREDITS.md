@@ -1,6 +1,6 @@
 # Credits
 
-The engine background, gravity mechanic pose sprites, and security drone were made for Palewheel with the help of AI tools and edited for the game.
+The painted engine backgrounds, gravity mechanic animation cels, and security drone animation cels were made for Palewheel with the help of AI tools and edited for the game.
 The chamber art and interface are drawn in Godot for this project.
 The sound effects were synthesized for this project with `tools/make_sound.py`.
 

@@ -1,8 +1,6 @@
 class_name PalewheelWatcher
 extends Area2D
 
-const SPRITE: Texture2D = preload("res://assets/art/drone.png")
-
 var start_point: Vector2
 var end_point: Vector2
 var period: float = 3.0
@@ -10,7 +8,7 @@ var phase_offset: float = 0.0
 var elapsed: float = 0.0
 var freeze_remaining: float = 0.0
 var active: bool = false
-var sprite: Sprite2D
+var sprite: AnimatedSprite2D
 
 
 func configure(data: Dictionary) -> void:
@@ -29,15 +27,24 @@ func _ready() -> void:
 	circle.radius = 39.0
 	shape.shape = circle
 	add_child(shape)
-	sprite = Sprite2D.new()
-	sprite.texture = SPRITE
-	sprite.scale = Vector2(0.45, 0.45)
+	sprite = AnimatedSprite2D.new()
+	var frames: SpriteFrames = SpriteFrames.new()
+	frames.remove_animation("default")
+	frames.add_animation("scan")
+	frames.set_animation_loop("scan", true)
+	frames.set_animation_speed("scan", 8.0)
+	for index: int in range(4):
+		frames.add_frame("scan", load("res://assets/art/drone_%02d.png" % index) as Texture2D)
+	sprite.sprite_frames = frames
+	sprite.scale = Vector2(0.18, 0.18)
 	add_child(sprite)
+	sprite.play("scan")
 	queue_redraw()
 
 
 func _physics_process(delta: float) -> void:
 	if not active:
+		sprite.speed_scale = 0.0
 		return
 	if freeze_remaining > 0.0:
 		freeze_remaining = maxf(0.0, freeze_remaining - delta)
@@ -46,7 +53,7 @@ func _physics_process(delta: float) -> void:
 	else:
 		elapsed += delta
 		position = start_point.lerp(end_point, 0.5 + 0.5 * sin(elapsed * TAU / period + phase_offset))
-	sprite.rotation += delta * (0.6 if freeze_remaining > 0.0 else 1.8)
+	sprite.speed_scale = 0.0 if freeze_remaining > 0.0 else 1.0
 	sprite.modulate = Color("bde9dc") if freeze_remaining > 0.0 else Color.WHITE
 	queue_redraw()
 

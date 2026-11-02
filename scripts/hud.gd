@@ -37,18 +37,18 @@ func _ready() -> void:
 	root.size = Vector2(1920, 1080)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(root)
-	var status: Panel = _panel(Rect2(98, 25, 930, 111), PAPER, 0, 4)
+	var status: Panel = _panel(Rect2(54, 25, 760, 96), PAPER, 0, 4)
 	status.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	title_label = _label(Vector2(136, 35), Vector2(850, 52), 39, INK, true)
-	progress_label = _label(Vector2(138, 88), Vector2(840, 38), 31, Color("43575d"))
-	var gravity_panel: Panel = _panel(Rect2(1410, 25, 367, 92), PAPER, 0, 4)
+	title_label = _label(Vector2(82, 30), Vector2(700, 49), 33, INK, true)
+	progress_label = _label(Vector2(84, 76), Vector2(685, 34), 26, Color("43575d"))
+	var gravity_panel: Panel = _panel(Rect2(1480, 25, 290, 82), PAPER, 0, 4)
 	gravity_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	gravity_label = _label(Vector2(1432, 39), Vector2(325, 64), 30, INK, true)
+	gravity_label = _label(Vector2(1498, 34), Vector2(254, 60), 27, INK, true)
 	gravity_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_art_button("res://assets/ui/pause.svg", Rect2(1801, 28, 78, 78), func() -> void: pause_pressed.emit(), Callable())
-	hint_back = _panel(Rect2(385, 158, 1150, 63), INK, 7, 0)
+	hint_back = _panel(Rect2(515, 143, 890, 56), INK, 7, 0)
 	hint_back.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hint_label = _label(Vector2(404, 159), Vector2(1110, 61), 34, PAPER, true)
+	hint_label = _label(Vector2(535, 142), Vector2(850, 58), 30, PAPER, true)
 	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	if DisplayServer.is_touchscreen_available():
 		_art_button("res://assets/ui/move_left.svg", Rect2(54, 906, 150, 130), func() -> void: move_pressed.emit(-1.0), func() -> void: move_pressed.emit(0.0))
@@ -249,7 +249,7 @@ func _build_panel() -> void:
 	art_panel.add_theme_stylebox_override("panel", _style(CYAN, 0, 8))
 	panel.add_child(art_panel)
 	var portrait: TextureRect = TextureRect.new()
-	portrait.texture = preload("res://assets/art/courier_jump.png")
+	portrait.texture = preload("res://assets/art/courier_jump_03.png")
 	portrait.position = Vector2(1240, 196)
 	portrait.size = Vector2(500, 680)
 	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE

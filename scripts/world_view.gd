@@ -1,7 +1,12 @@
 class_name PalewheelWorldView
 extends Node2D
 
-const BACKDROP: Texture2D = preload("res://assets/art/station.webp")
+const BACKDROPS: Array = [
+	preload("res://assets/art/station.webp"),
+	preload("res://assets/art/station_sensor.webp"),
+	preload("res://assets/art/station_freight.webp"),
+	preload("res://assets/art/station_core.webp"),
+]
 const INK: Color = Color("18262c")
 const BRASS: Color = Color("ef6a3d")
 const PORCELAIN: Color = Color("f7f8f5")
@@ -25,7 +30,8 @@ func _process(delta: float) -> void:
 
 
 func _draw() -> void:
-	draw_texture_rect(BACKDROP, Rect2(-330, -180, 2580, 1440), false)
+	var backdrop_index: int = clampi(int(level.get("backdrop", 0)), 0, BACKDROPS.size() - 1)
+	draw_texture_rect(BACKDROPS[backdrop_index] as Texture2D, Rect2(-330, -180, 2580, 1440), false)
 	draw_rect(Rect2(-330, -180, 2580, 1440), Color("f5f7f4", 0.04))
 	if level.is_empty():
 		return
@@ -54,38 +60,32 @@ func _draw() -> void:
 
 
 func _draw_chamber() -> void:
-	var accent: Color = level.get("accent", Color("04bfd4"))
-	draw_rect(Rect2(103, 160, 1714, 774), Color("f8f9f5", 0.62))
-	draw_rect(Rect2(103, 160, 1714, 774), Color(accent, 0.025))
-	draw_rect(Rect2(103, 160, 1714, 774), INK, false, 10.0)
-	draw_rect(Rect2(118, 175, 1684, 744), Color("ffffff", 0.7), false, 2.0)
-	for index: int in range(8):
-		var x: float = 250.0 + index * 203.0
-		draw_line(Vector2(x, 168), Vector2(x, 923), Color("273f43", 0.05), 2.0)
-	for index: int in range(3):
-		var y: float = 350.0 + index * 190.0
-		draw_line(Vector2(111, y), Vector2(1809, y), Color("273f43", 0.05), 2.0)
-	for corner: Vector2 in [Vector2(134, 190), Vector2(1786, 190), Vector2(134, 904), Vector2(1786, 904)]:
-		draw_circle(corner, 5.0, BRASS)
+	draw_rect(Rect2(110, 168, 1700, 760), Color("f5f8f6", 0.15))
 
 
 func _draw_wall(wall: Rect2) -> void:
-	draw_rect(wall.grow(6.0), Color("17252b", 0.22))
+	draw_rect(wall.grow(6.0), Color("17252b", 0.3))
 	draw_rect(wall.grow(2.0), INK)
-	draw_rect(wall.grow(-3.0), Color("596b70"))
+	draw_rect(wall.grow(-3.0), Color("53646b"))
 	var inset: Rect2 = wall.grow(-8.0)
 	if inset.size.x > 0.0 and inset.size.y > 0.0:
-		draw_rect(inset, Color("bdcacc"))
+		draw_rect(inset, Color("bdc8c8"))
 		if wall.size.x >= wall.size.y:
 			draw_line(inset.position + Vector2(5, 4), Vector2(inset.end.x - 5, inset.position.y + 4), PORCELAIN, 3.0)
+			draw_line(Vector2(inset.position.x, inset.end.y - 4), Vector2(inset.end.x, inset.end.y - 4), Color("28393f"), 3.0)
 		else:
 			draw_line(inset.position + Vector2(4, 5), Vector2(inset.position.x + 4, inset.end.y - 5), PORCELAIN, 3.0)
 	if wall.size.x > wall.size.y:
-		for x: float in range(int(wall.position.x + 26), int(wall.end.x - 8), 72):
-			draw_circle(Vector2(x, wall.get_center().y), 3.5, BRASS)
+		for x: float in range(int(wall.position.x + 24), int(wall.end.x - 8), 78):
+			draw_line(Vector2(x, inset.position.y + 4), Vector2(x - 7, inset.end.y - 4), Color("4b5c60", 0.7), 2.0)
+			draw_circle(Vector2(x + 22, wall.get_center().y), 4.0, INK)
+			draw_circle(Vector2(x + 22, wall.get_center().y), 2.0, BRASS)
+			draw_line(Vector2(x + 37, wall.position.y + 6), Vector2(x + 51, wall.position.y + 6), Color("ef6a3d", 0.85), 3.0)
 	else:
-		for y: float in range(int(wall.position.y + 26), int(wall.end.y - 8), 72):
-			draw_circle(Vector2(wall.get_center().x, y), 3.5, BRASS)
+		for y: float in range(int(wall.position.y + 26), int(wall.end.y - 8), 78):
+			draw_line(Vector2(inset.position.x + 4, y), Vector2(inset.end.x - 4, y - 7), Color("4b5c60", 0.7), 2.0)
+			draw_circle(Vector2(wall.get_center().x, y + 22), 4.0, INK)
+			draw_circle(Vector2(wall.get_center().x, y + 22), 2.0, BRASS)
 
 
 func _draw_bridge(bridge: Rect2) -> void:

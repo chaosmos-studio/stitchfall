@@ -15,6 +15,7 @@ static func count() -> int:
 
 static func get_level(index: int) -> Dictionary:
 	var base: Dictionary = {
+		"backdrop": index,
 		"start": Vector2(270, 822),
 		"exit": Vector2(1705, 815),
 		"walls": FRAME.duplicate(),

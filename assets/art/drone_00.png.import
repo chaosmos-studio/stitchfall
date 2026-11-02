@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dujeapn5xwbx3"
-path="res://.godot/imported/courier_float.png-5d9dec28f50aec7ef8607aeab6f8d3df.ctex"
+uid="uid://bqqvk1sull0xk"
+path="res://.godot/imported/drone_00.png-c6d2dcc60300028972f8ed0b02b8606a.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/art/courier_float.png"
-dest_files=["res://.godot/imported/courier_float.png-5d9dec28f50aec7ef8607aeab6f8d3df.ctex"]
+source_file="res://assets/art/drone_00.png"
+dest_files=["res://.godot/imported/drone_00.png-c6d2dcc60300028972f8ed0b02b8606a.ctex"]
 
 [params]
 
