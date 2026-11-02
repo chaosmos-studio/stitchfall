@@ -1,7 +1,7 @@
 # Credits
 
-The painted engine backgrounds, gravity mechanic animation cels, and security drone animation cels were made for Palewheel with the help of AI tools and edited for the game.
-The chamber art and interface are drawn in Godot for this project.
+The painted engine backgrounds, character and drone animation cels, airlocks, light cells, beacons, and cargo art were made for Palewheel with the help of AI tools and edited for the game.
+The chamber structures and interface artwork were authored for this project.
 The sound effects were synthesized for this project with `tools/make_sound.py`.
 
 Outfit is by The Outfit Project Authors and is distributed under the SIL Open Font License 1.1, included in `assets/fonts/`.

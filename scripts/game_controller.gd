@@ -158,6 +158,8 @@ func _load_level(index: int) -> void:
 	world.pad_armed = false
 	world.checkpoint_active = false
 	world.door_open = false
+	world.door_progress = 0.0
+	world.spark_bursts.clear()
 	world.gravity_direction = gravity_direction
 	hud.set_hint(level["hint"])
 	_update_hud()
@@ -263,6 +265,7 @@ func _on_spark_body(body: Node2D, index: int, area: Area2D) -> void:
 	collected[index] = true
 	print("PALEWHEEL_SPARK ", level_index, " ", index)
 	world.collected = collected.duplicate()
+	world.collect_spark(level["shards"][index])
 	area.set_deferred("monitoring", false)
 	_play_sound("spark")
 	_update_door()

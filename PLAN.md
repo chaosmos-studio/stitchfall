@@ -14,6 +14,7 @@ The first art pass was too ornate and felt like fantasy, so Shravan redirected t
 The working assumptions are a light default palette, crisp sci-fi machinery, a limited ink/cyan/coral palette, and an expressive gravity mechanic as the visual anchor.
 The current pass uses held drawings for idle, running, takeoff, flight, landing, and gravity turns.
 The camera follows the mechanic through a full-screen room, with the touch controls over the playfield.
+The airlocks, light cells, beacons, and cargo use painted sprite art, and the touch controls use compact station hardware styling.
 The touch UI has left and right movement, Jump, and Turn.
 Rooms now continue without an interstitial menu.
 

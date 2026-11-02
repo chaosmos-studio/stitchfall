@@ -1,6 +1,8 @@
 class_name PalewheelCargo
 extends RigidBody2D
 
+const CASE_TEXTURE: Texture2D = preload("res://assets/art/cargo_case.png")
+
 var gravity_direction: Vector2 = Vector2.DOWN
 var glow_time: float = 0.0
 
@@ -29,11 +31,5 @@ func _physics_process(delta: float) -> void:
 
 
 func _draw() -> void:
-	var box: Rect2 = Rect2(-35, -35, 70, 70)
-	draw_rect(box.grow(9), Color(0.96, 0.63, 0.18, 0.18 + 0.12 * sin(glow_time * 4.0)), true)
-	draw_rect(box, Color("1f6671"), true)
-	draw_rect(box, Color("eebf66"), false, 7.0)
-	draw_circle(Vector2.ZERO, 18, Color("eebf66"))
-	draw_circle(Vector2.ZERO, 10, Color("154651"))
-	for corner: Vector2 in [Vector2(-25, -25), Vector2(25, -25), Vector2(-25, 25), Vector2(25, 25)]:
-		draw_circle(corner, 3.5, Color("fff4d7"))
+	draw_circle(Vector2.ZERO, 47.0, Color(0.96, 0.63, 0.18, 0.12 + 0.08 * sin(glow_time * 4.0)))
+	draw_texture_rect(CASE_TEXTURE, Rect2(-43, -41, 86, 82), false)

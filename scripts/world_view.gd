@@ -7,6 +7,11 @@ const BACKDROPS: Array = [
 	preload("res://assets/art/station_freight.webp"),
 	preload("res://assets/art/station_core.webp"),
 ]
+const AIRLOCK_CLOSED: Texture2D = preload("res://assets/art/airlock_closed.png")
+const AIRLOCK_OPEN: Texture2D = preload("res://assets/art/airlock_open.png")
+const LIGHT_CELL: Texture2D = preload("res://assets/art/light_cell.png")
+const BEACON: Texture2D = preload("res://assets/art/beacon.png")
+const CELL_OFFSETS: Array[float] = [0.0, -1.0, -2.0, -3.0, -3.0, -2.0, -1.0, 0.0]
 const INK: Color = Color("18262c")
 const BRASS: Color = Color("ef6a3d")
 const PORCELAIN: Color = Color("f7f8f5")
@@ -21,11 +26,18 @@ var time: float = 0.0
 var gravity_direction: Vector2 = Vector2.DOWN
 var shift_origin: Vector2 = Vector2.ZERO
 var shift_age: float = 1.0
+var door_progress: float = 0.0
+var spark_bursts: Array[Dictionary] = []
 
 
 func _process(delta: float) -> void:
 	time += delta
 	shift_age += delta
+	door_progress = move_toward(door_progress, 1.0 if door_open else 0.0, delta * 3.5)
+	for index: int in range(spark_bursts.size() - 1, -1, -1):
+		spark_bursts[index]["age"] += delta
+		if spark_bursts[index]["age"] > 0.48:
+			spark_bursts.remove_at(index)
 	queue_redraw()
 
 
@@ -52,6 +64,7 @@ func _draw() -> void:
 		_draw_checkpoint(level["checkpoint"])
 	_draw_door(level["exit"])
 	_draw_motes()
+	_draw_spark_bursts()
 	if shift_age < 0.62:
 		var radius: float = 36.0 + shift_age * 710.0
 		var opacity: float = (0.62 - shift_age) / 0.62
@@ -121,32 +134,17 @@ func _draw_sentry_tracks() -> void:
 
 
 func _draw_checkpoint(pos: Vector2) -> void:
-	var pulse: float = sin(time * 4.0) * 3.0
-	var color: Color = Color("28cce4") if checkpoint_active else Color("84979a")
-	draw_line(pos + Vector2(0, 24), pos + Vector2(0, 73), INK, 14.0)
-	draw_rect(Rect2(pos.x - 34, pos.y + 65, 68, 11), BRASS)
-	draw_circle(pos, 45.0 + pulse, Color(color, 0.18))
-	draw_arc(pos, 32.0, 0.0, TAU, 40, INK, 8.0, true)
-	draw_circle(pos, 25.0, Color("23464a"))
-	var crystal: PackedVector2Array = PackedVector2Array([
-		pos + Vector2(0, -23), pos + Vector2(15, 0), pos + Vector2(0, 23), pos + Vector2(-15, 0),
-	])
-	draw_colored_polygon(crystal, color)
-	if checkpoint_active:
-		draw_circle(pos, 8.0 + pulse * 0.3, Color("ffffff"))
+	var color: Color = Color("28cce4", 0.22) if checkpoint_active else Color("17262d", 0.14)
+	draw_circle(pos + Vector2(0, 6), 53.0, color)
+	draw_texture_rect(BEACON, Rect2(pos + Vector2(-49, -65), Vector2(98, 140)), false, Color.WHITE if checkpoint_active else Color("77858a"))
 
 
 func _draw_shard(point: Vector2, index: int) -> void:
-	var bob: float = sin(time * 2.8 + index * 2.1) * 8.0
-	var pos: Vector2 = point + Vector2(0, bob)
-	draw_circle(pos, 46.0, Color("20cce4", 0.13))
-	draw_circle(pos, 33.0, Color("20cce4", 0.19))
-	var star: PackedVector2Array = PackedVector2Array([
-		pos + Vector2(0, -28), pos + Vector2(9, -9), pos + Vector2(25, 0), pos + Vector2(9, 9),
-		pos + Vector2(0, 28), pos + Vector2(-9, 9), pos + Vector2(-25, 0), pos + Vector2(-9, -9),
-	])
-	draw_colored_polygon(star, Color("13b8d0"))
-	draw_colored_polygon(PackedVector2Array([pos + Vector2(0, -19), pos + Vector2(9, 0), pos, pos + Vector2(-9, 0)]), Color("ffffff"))
+	var frame: int = int(time * 6.0 + float(index) * 2.0) % 8
+	var offset: float = CELL_OFFSETS[frame]
+	var pos: Vector2 = point + Vector2(0, offset)
+	draw_circle(pos, 49.0, Color("20cce4", 0.11))
+	draw_texture_rect(LIGHT_CELL, Rect2(pos - Vector2(39, 43), Vector2(78, 86)), false)
 
 
 func _draw_pad(pos: Vector2) -> void:
@@ -159,22 +157,27 @@ func _draw_pad(pos: Vector2) -> void:
 
 
 func _draw_door(pos: Vector2) -> void:
-	var aperture: Color = Color("bdf8ff") if door_open else Color("56686c")
-	var pulse: float = 4.0 * sin(time * 3.0)
-	draw_circle(pos, 83.0 + pulse, Color(aperture, 0.18))
-	draw_arc(pos, 66.0, 0.0, TAU, 64, INK, 17.0, true)
-	draw_arc(pos, 55.0, 0.0, TAU, 64, Color("20cce4"), 9.0, true)
-	draw_arc(pos, 47.0, 0.0, TAU, 64, Color("ffffff"), 2.5, true)
-	for index: int in range(8):
-		var angle: float = time * (0.4 if door_open else 0.08) + float(index) * TAU / 8.0
-		var vector: Vector2 = Vector2.RIGHT.rotated(angle)
-		draw_circle(pos + vector * 56.0, 4.0, Color("ef6a3d"))
-	draw_circle(pos, 39.0, aperture)
-	if door_open:
-		draw_circle(pos, 25.0 + pulse, Color("ffffff"))
-	else:
-		draw_line(pos + Vector2(-14, -14), pos + Vector2(14, 14), Color("d6e6e8"), 6.0)
-		draw_line(pos + Vector2(14, -14), pos + Vector2(-14, 14), Color("d6e6e8"), 6.0)
+	var rect: Rect2 = Rect2(pos - Vector2(93, 93), Vector2(186, 186))
+	if door_progress > 0.0:
+		draw_circle(pos, 88.0, Color("20cce4", door_progress * 0.18))
+	draw_texture_rect(AIRLOCK_CLOSED, rect, false, Color(1.0, 1.0, 1.0, 1.0 - door_progress))
+	if door_progress > 0.0:
+		draw_texture_rect(AIRLOCK_OPEN, rect, false, Color(1.0, 1.0, 1.0, door_progress))
+
+
+func collect_spark(pos: Vector2) -> void:
+	spark_bursts.append({"position": pos, "age": 0.0})
+
+
+func _draw_spark_bursts() -> void:
+	for burst: Dictionary in spark_bursts:
+		var age: float = burst["age"]
+		var center: Vector2 = burst["position"]
+		var reach: float = 20.0 + age * 170.0
+		var fade: float = 1.0 - age / 0.48
+		for index: int in range(10):
+			var ray: Vector2 = Vector2.RIGHT.rotated(float(index) * TAU / 10.0)
+			draw_line(center + ray * (reach - 13.0), center + ray * reach, Color(0.89, 1.0, 1.0, fade), 3.0 * fade)
 
 
 func _draw_motes() -> void:
