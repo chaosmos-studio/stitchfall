@@ -25,6 +25,9 @@ async function main() {
     await page.goto('http://127.0.0.1:8769/', { timeout: 180000 });
     await page.waitForFunction(() => document.getElementById('loading')?.hidden, null, { timeout: 90000 });
     if (await page.locator('#error').textContent()) throw new Error(await page.locator('#error').textContent());
+    const results = path.join(project, 'test-results');
+    await mkdir(results, { recursive: true });
+    await page.screenshot({ path: path.join(results, 'intro.png') });
     let marker = page.waitForEvent('console', { predicate: message => message.text().includes('PALEWHEEL_START 0'), timeout: 10000 });
     await page.touchscreen.tap(240, 292);
     await marker;
@@ -42,8 +45,6 @@ async function main() {
     await page.touchscreen.tap(640, 350);
     await marker;
     if (errors.length) throw new Error(errors.join('\n'));
-    const results = path.join(project, 'test-results');
-    await mkdir(results, { recursive: true });
     await page.screenshot({ path: path.join(results, 'mobile.png') });
     console.log('MOBILE_WEB_OK palewheel');
   } finally {

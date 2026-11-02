@@ -22,7 +22,8 @@ var hint_back: Panel
 var panel: ColorRect
 var panel_title: Label
 var panel_body: Label
-var panel_button: Button
+var panel_button: TextureButton
+var panel_button_label: Label
 var extra_touches: Dictionary[int, String] = {}
 var regular_font: FontVariation
 var heavy_font: FontVariation
@@ -219,17 +220,29 @@ func _build_panel() -> void:
 	panel_body.add_theme_font_size_override("font_size", 33)
 	panel_body.add_theme_color_override("font_color", INK)
 	card.add_child(panel_body)
-	panel_button = Button.new()
+	panel_button = TextureButton.new()
 	panel_button.position = Vector2(72, 604)
 	panel_button.size = Vector2(500, 100)
-	panel_button.add_theme_font_override("font", heavy_font)
-	panel_button.add_theme_font_size_override("font_size", 37)
-	panel_button.add_theme_color_override("font_color", INK)
-	panel_button.add_theme_stylebox_override("normal", _style(CORAL, 0, 5))
-	panel_button.add_theme_stylebox_override("hover", _style(CORAL.lightened(0.1), 0, 5))
-	panel_button.add_theme_stylebox_override("pressed", _style(CORAL.darkened(0.1), 0, 5))
+	panel_button.texture_normal = preload("res://assets/ui/panel_action.svg")
+	panel_button.texture_hover = panel_button.texture_normal
+	panel_button.texture_pressed = panel_button.texture_normal
+	panel_button.ignore_texture_size = true
+	panel_button.stretch_mode = TextureButton.STRETCH_SCALE
+	panel_button.pivot_offset = panel_button.size * 0.5
+	panel_button.focus_mode = Control.FOCUS_ALL
 	panel_button.pressed.connect(func() -> void: begin_pressed.emit())
+	panel_button.button_down.connect(func() -> void: _animate_button(panel_button, Vector2(0.96, 0.96), 0.06))
+	panel_button.button_up.connect(func() -> void: _animate_button(panel_button, Vector2.ONE, 0.12))
 	card.add_child(panel_button)
+	panel_button_label = Label.new()
+	panel_button_label.position = Vector2(48, 26)
+	panel_button_label.size = Vector2(340, 57)
+	panel_button_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	panel_button_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel_button_label.add_theme_font_override("font", heavy_font)
+	panel_button_label.add_theme_font_size_override("font_size", 38)
+	panel_button_label.add_theme_color_override("font_color", INK)
+	panel_button.add_child(panel_button_label)
 	var art_panel: Panel = Panel.new()
 	art_panel.position = Vector2(1210, 180)
 	art_panel.size = Vector2(560, 720)
@@ -249,7 +262,7 @@ func show_panel(title: String, body: String, button: String) -> void:
 	panel.visible = true
 	panel_title.text = title
 	panel_body.text = body
-	panel_button.text = button
+	panel_button_label.text = button
 	panel_button.grab_focus()
 
 
