@@ -37,13 +37,13 @@ func _ready() -> void:
 	root.size = Vector2(1920, 1080)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(root)
-	var status: Panel = _panel(Rect2(54, 25, 760, 96), PAPER, 0, 4)
+	var status: Panel = _panel(Rect2(54, 25, 760, 96), Color("13242b", 0.87), 8, 2)
 	status.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	title_label = _label(Vector2(82, 30), Vector2(700, 49), 33, INK, true)
-	progress_label = _label(Vector2(84, 76), Vector2(685, 34), 26, Color("43575d"))
-	var gravity_panel: Panel = _panel(Rect2(1480, 25, 290, 82), PAPER, 0, 4)
+	title_label = _label(Vector2(82, 30), Vector2(700, 49), 33, PAPER, true)
+	progress_label = _label(Vector2(84, 76), Vector2(685, 34), 26, Color("a5e8e9"))
+	var gravity_panel: Panel = _panel(Rect2(1480, 25, 290, 82), Color("13242b", 0.87), 8, 2)
 	gravity_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	gravity_label = _label(Vector2(1498, 34), Vector2(254, 60), 27, INK, true)
+	gravity_label = _label(Vector2(1498, 34), Vector2(254, 60), 27, PAPER, true)
 	gravity_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_art_button("res://assets/ui/pause.svg", Rect2(1801, 28, 78, 78), func() -> void: pause_pressed.emit(), Callable())
 	hint_back = _panel(Rect2(515, 143, 890, 56), INK, 7, 0)
@@ -167,7 +167,7 @@ func _art_button(path: String, rect: Rect2, down: Callable, up: Callable) -> voi
 
 
 func _action_label(text_value: String, rect: Rect2) -> void:
-	var label: Label = _label(rect.position, rect.size, 25, INK, true)
+	var label: Label = _label(rect.position, rect.size, 25, PAPER, true)
 	label.text = text_value
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 
