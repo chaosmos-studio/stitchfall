@@ -25,6 +25,8 @@ async function main() {
     await page.goto('http://127.0.0.1:8769/', { timeout: 180000 });
     await page.waitForFunction(() => document.getElementById('loading')?.hidden, null, { timeout: 90000 });
     if (await page.locator('#error').textContent()) throw new Error(await page.locator('#error').textContent());
+    await page.waitForTimeout(800);
+    if (errors.length) throw new Error(errors.join('\n'));
     const results = path.join(project, 'test-results');
     await mkdir(results, { recursive: true });
     await page.screenshot({ path: path.join(results, 'intro.png') });
@@ -34,6 +36,8 @@ async function main() {
     await page.waitForTimeout(600);
     const cdp = await page.context().newCDPSession(page);
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 105, y: 353, id: 0 }] });
+    await page.waitForTimeout(240);
+    await page.screenshot({ path: path.join(results, 'run.png') });
     marker = page.waitForEvent('console', { predicate: message => message.text().includes('PALEWHEEL_JUMP'), timeout: 10000 });
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [
       { x: 105, y: 353, id: 0 }, { x: 573, y: 350, id: 1 }
@@ -41,11 +45,21 @@ async function main() {
     await marker;
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [{ x: 105, y: 353, id: 0 }] });
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await page.waitForTimeout(120);
+    await page.screenshot({ path: path.join(results, 'jump.png') });
     marker = page.waitForEvent('console', { predicate: message => message.text().includes('PALEWHEEL_SHIFT'), timeout: 10000 });
     await page.touchscreen.tap(640, 350);
     await marker;
     if (errors.length) throw new Error(errors.join('\n'));
     await page.screenshot({ path: path.join(results, 'mobile.png') });
+    const desktop = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+    await desktop.goto('http://127.0.0.1:8769/', { timeout: 180000 });
+    await desktop.waitForFunction(() => document.getElementById('loading')?.hidden, null, { timeout: 90000 });
+    await desktop.waitForTimeout(800);
+    const desktopStart = desktop.waitForEvent('console', { predicate: message => message.text().includes('PALEWHEEL_START 0'), timeout: 10000 });
+    await desktop.mouse.click(200, 545);
+    await desktopStart;
+    await desktop.screenshot({ path: path.join(results, 'desktop.png') });
     console.log('MOBILE_WEB_OK palewheel');
   } finally {
     if (browser) await browser.close();
