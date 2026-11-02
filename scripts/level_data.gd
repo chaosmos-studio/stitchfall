@@ -1,4 +1,4 @@
-class_name CompassLevels
+class_name PalewheelLevels
 extends RefCounted
 
 const FRAME: Array[Rect2] = [
@@ -29,18 +29,18 @@ static func get_level(index: int) -> Dictionary:
 	match index:
 		0:
 			base.merge({
-				"name": "THE ARRIVAL",
-				"hint": "Run, jump, then turn gravity to climb the lift shaft.",
-				"accent": Color("25b7b3"),
+				"name": "DOCK 01",
+				"hint": "Run and jump. Turn gravity to clear the shaft.",
+				"accent": Color("18c9df"),
 				"walls": FRAME + [Rect2(810, 628, 34, 270), Rect2(1030, 478, 330, 28)],
 				"checkpoint": Vector2(1180, 815),
 				"shards": [Vector2(525, 760), Vector2(976, 370), Vector2(1488, 728)],
 			}, true)
 		1:
 			base.merge({
-				"name": "THE PRISM WORKS",
-				"hint": "Shift to trade light bridges and pause the clock eye.",
-				"accent": Color("ed815f"),
+				"name": "SENSOR ARRAY",
+				"hint": "A turn changes the bridges and pauses the drone.",
+				"accent": Color("f46b42"),
 				"walls": FRAME + [Rect2(545, 680, 28, 218), Rect2(1170, 560, 28, 338)],
 				"phase_walls": [Rect2(620, 568, 310, 26), Rect2(1250, 430, 260, 26)],
 				"hazards": [Rect2(884, 870, 200, 28)],
@@ -50,9 +50,9 @@ static func get_level(index: int) -> Dictionary:
 			}, true)
 		2:
 			base.merge({
-				"name": "CARGO CLOCK",
-				"hint": "Turn gravity to guide cargo onto the plate, then reach the door.",
-				"accent": Color("dba23d"),
+				"name": "MASS TRANSFER",
+				"hint": "Move the cargo onto its plate by turning gravity.",
+				"accent": Color("e9ab34"),
 				"crate": Vector2(488, 835),
 				"pad": Vector2(764, 876),
 				"walls": FRAME + [Rect2(1070, 548, 32, 350), Rect2(1290, 455, 270, 28)],
@@ -63,9 +63,9 @@ static func get_level(index: int) -> Dictionary:
 			}, true)
 		3:
 			base.merge({
-				"name": "THE DAWN ENGINE",
-				"hint": "Use each shift to slip past the clock eyes and wake the engine.",
-				"accent": Color("945dc4"),
+				"name": "THE CORE",
+				"hint": "Time each turn to pass the drones and restart the core.",
+				"accent": Color("8e7ae8"),
 				"walls": FRAME + [Rect2(610, 550, 32, 348), Rect2(975, 285, 32, 360), Rect2(1345, 540, 32, 358)],
 				"phase_walls": [Rect2(675, 485, 260, 26), Rect2(1040, 712, 260, 26)],
 				"hazards": [Rect2(745, 870, 130, 28), Rect2(1465, 870, 120, 28)],

@@ -1,0 +1,58 @@
+name: Test and publish Palewheel
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: palewheel-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install Godot 4.7
+        run: |
+          set -euo pipefail
+          curl -fLsS https://github.com/godotengine/godot/releases/download/4.7-stable/Godot_v4.7-stable_linux.x86_64.zip -o "$RUNNER_TEMP/godot.zip"
+          echo '0b1a6c54c2c619c12e169fe9241edda4b81080b519451cec2984bf0d2c6cb73c  '"$RUNNER_TEMP/godot.zip" | sha256sum --check --quiet
+          unzip -q "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP"
+          install -m 755 "$RUNNER_TEMP/Godot_v4.7-stable_linux.x86_64" "$RUNNER_TEMP/godot"
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+      - name: Import, play through, and export
+        run: |
+          set -euo pipefail
+          mkdir -p build/web
+          touch build/.gdignore
+          godot --headless --editor --path . --import --quit 2>&1 | tee "$RUNNER_TEMP/palewheel-import.log"
+          ! grep -E 'SCRIPT ERROR|Parse Error|ERROR:' "$RUNNER_TEMP/palewheel-import.log"
+          godot --headless --path . -s res://tests/run_tests.gd 2>&1 | tee "$RUNNER_TEMP/palewheel-tests.log"
+          ! grep -E 'SCRIPT ERROR|Parse Error|ERROR:' "$RUNNER_TEMP/palewheel-tests.log"
+          grep -q '41 passed, 0 failed' "$RUNNER_TEMP/palewheel-tests.log"
+          godot --headless --path . --export-release Web build/web/index.html 2>&1 | tee "$RUNNER_TEMP/palewheel-export.log"
+          ! grep -E 'SCRIPT ERROR|Parse Error|ERROR:' "$RUNNER_TEMP/palewheel-export.log"
+          grep -aq ECFG build/web/index.pck
+          python3 tools/prepare_web.py
+          test -s build/web/wasm-loader.js
+      - name: Check phone loading and touch controls
+        run: |
+          set -euo pipefail
+          npm ci
+          export CHROME_PATH="$(command -v google-chrome)"
+          npm run test:web
+      - name: Publish browser build
+        if: github.event_name != 'pull_request'
+        uses: JamesIves/github-pages-deploy-action@fa24774553152dd7873cd16ebd8d959b010c5445 # v4.9.0
+        with:
+          branch: gh-pages
+          folder: build/web
+          force: false
+          commit-message: Publish Palewheel

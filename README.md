@@ -1,21 +1,20 @@
-# Compassfall
+# Palewheel
 
-Run and jump through a clockwork station, turn gravity to cross its rooms, pause moving sentries, move cargo and collect the sparks that open each door.
+Palewheel is a 2D action puzzle game set inside a failing orbital gravity engine.
+Carry light through each chamber by running, jumping, and turning gravity in quarter turns.
+Each turn moves loose cargo, changes the light bridges, and briefly stills the security drones.
 
-[Play Compassfall in a landscape phone browser](https://chaosmos.studio/experiments/compassfall/).
+## Play
 
-## Controls
+Run `./play.sh` from this directory to play locally with Godot 4.7.
+The browser version is published from this repository's `gh-pages` branch.
+Use a landscape phone screen for touch controls.
 
-On desktop, use A and D to move, Space to jump, Q and E to turn gravity, R to restart and P to pause.
-On a phone, turn the screen sideways and use the on-screen controls.
+On desktop, use A and D to move, Space to jump, Q and E to turn gravity, R to restart the chamber, and P to pause.
 
 ## Development
 
-This is a standalone Godot 4.7 project using the GL Compatibility renderer.
-Run `./play.sh` from this directory to play locally.
-Run `godot --headless --path . -s res://tests/run_tests.gd` to check the gameplay loop.
-The web build is exported and published by `.github/workflows/compassfall-web.yml` in the experiments repository.
-
-The pilot and sentry sprites come from `tools/render_pilot.py` and `tools/render_sentry.py`, and the sound effects come from `tools/make_sound.py`.
-`tools/fetch_web_template.py` can retrieve the exact official Godot web template used by the committed export preset.
-See [the design notes](PLAN.md) and [credits](CREDITS.md).
+The project uses GDScript and the GL Compatibility renderer.
+Run `godot --headless --path . -s res://tests/run_tests.gd` for the gameplay checks.
+Run `godot --headless --path . --export-release Web build/web/index.html` after importing the project to make a browser build.
+See [PLAN.md](PLAN.md), [MATH.md](MATH.md), and [CREDITS.md](CREDITS.md).

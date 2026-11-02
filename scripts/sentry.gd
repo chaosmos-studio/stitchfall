@@ -1,7 +1,7 @@
-class_name CompassSentry
+class_name PalewheelWatcher
 extends Area2D
 
-const SPRITE: Texture2D = preload("res://assets/sprites/sentry.png")
+const SPRITE: Texture2D = preload("res://assets/art/drone.png")
 
 var start_point: Vector2
 var end_point: Vector2
@@ -31,7 +31,7 @@ func _ready() -> void:
 	add_child(shape)
 	sprite = Sprite2D.new()
 	sprite.texture = SPRITE
-	sprite.scale = Vector2(0.43, 0.43)
+	sprite.scale = Vector2(0.45, 0.45)
 	add_child(sprite)
 	queue_redraw()
 

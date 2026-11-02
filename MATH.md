@@ -1,4 +1,4 @@
-# Compassfall mechanics
+# Palewheel mechanics
 
 The pilot's gravity is a unit vector that points down, left, up or right.
 Each shift rotates it by ninety degrees and rounds the result to a cardinal direction.

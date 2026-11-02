@@ -8,6 +8,7 @@ __pycache__/
 
 /build/
 /test-results/
+/node_modules/
 
 # Raw third-party downloads live in the private game-assets repo (faceplant/assets_incoming)
 assets_incoming/

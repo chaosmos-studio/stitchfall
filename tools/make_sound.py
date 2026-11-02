@@ -1,4 +1,4 @@
-"""Synthesize Compassfall's original short game sounds."""
+"""Synthesize Palewheel's original short game sounds."""
 
 import math
 import struct

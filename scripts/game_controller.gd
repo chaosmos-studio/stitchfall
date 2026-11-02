@@ -22,13 +22,13 @@ var deaths: int = 0
 var shifts: int = 0
 var last_shift: float = -1.0
 var room: Node2D
-var world: CompassWorldView
-var pilot: CompassPilot
-var cargo: CompassCargo
+var world: PalewheelWorldView
+var pilot: PalewheelCourier
+var cargo: PalewheelCargo
 var bridges: Array[CollisionShape2D] = []
-var sentries: Array[CompassSentry] = []
+var sentries: Array[PalewheelWatcher] = []
 var camera: Camera2D
-var hud: CompassHud
+var hud: PalewheelHud
 var sound: AudioStreamPlayer
 var audio_enabled: bool = true
 var sound_paths: Dictionary = {
@@ -41,7 +41,7 @@ var sound_paths: Dictionary = {
 
 
 func _ready() -> void:
-	world = WORLD_SCRIPT.new() as CompassWorldView
+	world = WORLD_SCRIPT.new() as PalewheelWorldView
 	add_child(world)
 	camera = Camera2D.new()
 	camera.position = Vector2(960, 540)
@@ -49,7 +49,7 @@ func _ready() -> void:
 	camera.make_current()
 	sound = AudioStreamPlayer.new()
 	add_child(sound)
-	hud = HUD_SCRIPT.new() as CompassHud
+	hud = HUD_SCRIPT.new() as PalewheelHud
 	add_child(hud)
 	hud.begin_pressed.connect(_on_begin)
 	hud.pause_pressed.connect(_on_pause)
@@ -57,7 +57,7 @@ func _ready() -> void:
 	hud.move_pressed.connect(func(axis: float) -> void: if is_instance_valid(pilot): pilot.touch_axis = axis)
 	hud.shift_pressed.connect(_shift)
 	_load_level(0)
-	hud.show_panel("COMPASSFALL", "A little pilot. A station losing its light.\n\nRun and jump through the clockwork. Turn gravity to move yourself and cargo. A shift changes light bridges and briefly pauses clock eyes. Touch a beacon to keep your sparks after a hit.", "START SHIFT")
+	hud.show_panel("PALEWHEEL", "The gravity engine is failing. Run through its chambers, recover the light, and turn gravity to change the route.\n\nA / D move. Space jumps. E turns. On a phone, use the touch controls.", "PLAY")
 
 
 func _process(delta: float) -> void:
@@ -93,7 +93,7 @@ func _physics_process(_delta: float) -> void:
 
 func _load_level(index: int) -> void:
 	level_index = index
-	level = CompassLevels.get_level(index)
+	level = PalewheelLevels.get_level(index)
 	gravity_direction = Vector2.DOWN
 	phase = 0
 	pad_armed = false
@@ -119,7 +119,7 @@ func _load_level(index: int) -> void:
 		_add_hazard(hazard)
 	sentries.clear()
 	for sentry_data: Dictionary in level["sentries"]:
-		var sentry: CompassSentry = SENTRY_SCRIPT.new() as CompassSentry
+		var sentry: PalewheelWatcher = SENTRY_SCRIPT.new() as PalewheelWatcher
 		sentry.configure(sentry_data)
 		room.add_child(sentry)
 		sentry.body_entered.connect(_on_hazard_body)
@@ -131,12 +131,12 @@ func _load_level(index: int) -> void:
 		checkpoint.body_entered.connect(_on_checkpoint_body)
 	if level["pad"] != Vector2.ZERO:
 		_add_pad(level["pad"])
-		cargo = CARGO_SCRIPT.new() as CompassCargo
+		cargo = CARGO_SCRIPT.new() as PalewheelCargo
 		cargo.position = level["crate"]
 		room.add_child(cargo)
 	else:
 		cargo = null
-	pilot = PILOT_SCRIPT.new() as CompassPilot
+	pilot = PILOT_SCRIPT.new() as PalewheelCourier
 	pilot.position = level["start"]
 	room.add_child(pilot)
 	pilot.control_enabled = playing
@@ -150,7 +150,7 @@ func _load_level(index: int) -> void:
 	world.gravity_direction = gravity_direction
 	hud.set_hint(level["hint"])
 	_update_hud()
-	print("COMPASSFALL_ROOM ", index)
+	print("PALEWHEEL_ROOM ", index)
 
 
 func _add_wall(rect: Rect2, is_bridge: bool) -> void:
@@ -216,7 +216,7 @@ func _on_checkpoint_body(body: Node2D) -> void:
 	world.checkpoint_active = true
 	hud.set_hint("Beacon lit. Collected sparks are safe after a hit.")
 	_play_sound("spark")
-	print("COMPASSFALL_BEACON ", level_index)
+	print("PALEWHEEL_BEACON ", level_index)
 
 
 func _respawn() -> void:
@@ -240,7 +240,7 @@ func _respawn() -> void:
 	world.gravity_direction = gravity_direction
 	world.shift_origin = respawn_position
 	world.shift_age = 0.0
-	for sentry: CompassSentry in sentries:
+	for sentry: PalewheelWatcher in sentries:
 		sentry.freeze_for(0.7)
 	respawning = false
 	_update_hud()
@@ -250,7 +250,7 @@ func _on_spark_body(body: Node2D, index: int, area: Area2D) -> void:
 	if body != pilot or not playing or collected[index]:
 		return
 	collected[index] = true
-	print("COMPASSFALL_SPARK ", level_index, " ", index)
+	print("PALEWHEEL_SPARK ", level_index, " ", index)
 	world.collected = collected.duplicate()
 	area.set_deferred("monitoring", false)
 	_play_sound("spark")
@@ -286,7 +286,7 @@ func _shift(step: int) -> void:
 	if is_instance_valid(cargo):
 		cargo.gravity_direction = gravity_direction
 		cargo.sleeping = false
-	for sentry: CompassSentry in sentries:
+	for sentry: PalewheelWatcher in sentries:
 		sentry.freeze_for(0.55)
 	for bridge: CollisionShape2D in bridges:
 		bridge.set_deferred("disabled", phase == 0)
@@ -294,7 +294,7 @@ func _shift(step: int) -> void:
 	world.gravity_direction = gravity_direction
 	world.shift_origin = pilot.position
 	world.shift_age = 0.0
-	print("COMPASSFALL_SHIFT ", gravity_direction)
+	print("PALEWHEEL_SHIFT ", gravity_direction)
 	_play_sound("shift")
 	_update_hud()
 
@@ -303,25 +303,28 @@ func _advance() -> void:
 	_play_sound("door")
 	playing = false
 	pilot.control_enabled = false
-	for sentry: CompassSentry in sentries:
+	for sentry: PalewheelWatcher in sentries:
 		sentry.active = false
-	if level_index + 1 >= CompassLevels.count():
+	if level_index + 1 >= PalewheelLevels.count():
 		finished = true
-		print("COMPASSFALL_WIN")
-		hud.show_panel("THE STATION WAKES", "You carried the light through every shift.\n\nTime %s  •  Turns %d  •  Hits %d\n\nThe dawn shift is yours." % [_format_time(run_time), shifts, deaths], "PLAY AGAIN")
+		print("PALEWHEEL_WIN")
+		hud.show_panel("ENGINE ONLINE", "The station has its gravity back.\n\nTime %s   /   Turns %d   /   Hits %d" % [_format_time(run_time), shifts, deaths], "PLAY AGAIN")
 		return
 	_load_level(level_index + 1)
-	hud.show_panel(level["name"], level["hint"] + "\n\nThree sparks open the door. Cargo plates must be armed too.", "ENTER ROOM")
+	playing = true
+	pilot.control_enabled = true
+	for sentry: PalewheelWatcher in sentries:
+		sentry.active = true
 
 
 func _restart() -> void:
 	_load_level(level_index)
 	playing = true
 	pilot.control_enabled = true
-	for sentry: CompassSentry in sentries:
+	for sentry: PalewheelWatcher in sentries:
 		sentry.active = true
 	hud.hide_panel()
-	print("COMPASSFALL_START ", level_index)
+	print("PALEWHEEL_START ", level_index)
 
 
 func _on_pause() -> void:
@@ -329,9 +332,9 @@ func _on_pause() -> void:
 		return
 	playing = false
 	pilot.control_enabled = false
-	for sentry: CompassSentry in sentries:
+	for sentry: PalewheelWatcher in sentries:
 		sentry.active = false
-	hud.show_panel("SHIFT PAUSED", "The station will wait for you.", "RESUME")
+	hud.show_panel("PAUSED", "The engine will wait.", "RESUME")
 
 
 func _on_begin() -> void:
@@ -343,10 +346,10 @@ func _on_begin() -> void:
 		_load_level(0)
 	playing = true
 	pilot.control_enabled = true
-	for sentry: CompassSentry in sentries:
+	for sentry: PalewheelWatcher in sentries:
 		sentry.active = true
 	hud.hide_panel()
-	print("COMPASSFALL_START ", level_index)
+	print("PALEWHEEL_START ", level_index)
 
 
 func _play_sound(name: String) -> void:
@@ -361,7 +364,7 @@ func _play_sound(name: String) -> void:
 
 
 func _on_pilot_jumped() -> void:
-	print("COMPASSFALL_JUMP")
+	print("PALEWHEEL_JUMP")
 	_play_sound("jump")
 
 

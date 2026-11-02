@@ -1,5 +1,10 @@
-class_name CompassWorldView
+class_name PalewheelWorldView
 extends Node2D
+
+const BACKDROP: Texture2D = preload("res://assets/art/station.webp")
+const INK: Color = Color("18262c")
+const BRASS: Color = Color("ef6a3d")
+const PORCELAIN: Color = Color("f7f8f5")
 
 var level: Dictionary = {}
 var phase: int = 0
@@ -20,14 +25,11 @@ func _process(delta: float) -> void:
 
 
 func _draw() -> void:
-	draw_rect(Rect2(-200, -100, 2320, 1280), Color("f8f4e9"))
-	_draw_sky()
-	_draw_room()
+	draw_texture_rect(BACKDROP, Rect2(-330, -180, 2580, 1440), false)
+	draw_rect(Rect2(-330, -180, 2580, 1440), Color("f5f7f4", 0.04))
 	if level.is_empty():
 		return
-	var accent: Color = level["accent"]
-	_draw_gear(Vector2(960, 538), 176, time * 0.18, Color("d6e4d8").lerp(accent, 0.22))
-	_draw_gear(Vector2(1655, 332), 62, -time * 0.48, Color("e0dfcf").lerp(accent, 0.18))
+	_draw_chamber()
 	for wall: Rect2 in level["walls"]:
 		_draw_wall(wall)
 	for bridge: Rect2 in level["phase_walls"]:
@@ -44,143 +46,139 @@ func _draw() -> void:
 		_draw_checkpoint(level["checkpoint"])
 	_draw_door(level["exit"])
 	_draw_motes()
-	if shift_age < 0.55:
-		var radius: float = 50.0 + shift_age * 340.0
-		draw_arc(shift_origin, radius, 0.0, TAU, 64, Color(0.24, 0.8, 0.75, (0.55 - shift_age) * 0.7), 8.0, true)
+	if shift_age < 0.62:
+		var radius: float = 36.0 + shift_age * 710.0
+		var opacity: float = (0.62 - shift_age) / 0.62
+		draw_arc(shift_origin, radius, 0.0, TAU, 96, Color(0.03, 0.77, 0.88, opacity * 0.8), 10.0, true)
+		draw_arc(shift_origin, radius + 26.0, 0.0, TAU, 96, Color(0.04, 0.12, 0.16, opacity * 0.5), 3.0, true)
 
 
-func _draw_sky() -> void:
-	draw_rect(Rect2(0, 0, 1920, 1080), Color("f5efe1"))
-	for index: int in range(12):
-		var x: float = 80.0 + float(index * 177) + 14.0 * sin(time * 0.3 + index)
-		var y: float = 85.0 + float((index * 89) % 700)
-		draw_circle(Vector2(x, y), 2.0 + float(index % 3), Color("e3c582"))
-	draw_arc(Vector2(1550, 255), 250, -PI * 0.15, PI * 1.55, 48, Color("e4d3a4"), 14.0, true)
-	draw_arc(Vector2(1550, 255), 282, PI * 0.2, PI * 1.77, 48, Color("ebdfbf"), 5.0, true)
-	draw_circle(Vector2(1550, 255), 147, Color("e2e7d9"))
-	draw_circle(Vector2(1520, 225), 86, Color("ecf3e8"))
-
-
-func _draw_room() -> void:
-	var accent: Color = level.get("accent", Color("25b7b3"))
-	draw_rect(Rect2(85, 145, 1750, 800), Color("d2dbcd"), true)
-	draw_rect(Rect2(105, 165, 1710, 760), Color("fcfbf4"), true)
-	draw_rect(Rect2(105, 165, 1710, 760), Color(accent, 0.025), true)
-	for x: int in range(230, 1790, 230):
-		draw_line(Vector2(x, 199), Vector2(x, 898), Color("ebeee4"), 3.0)
-	for y: int in range(293, 900, 125):
-		draw_line(Vector2(140, y), Vector2(1780, y), Color("eef0e7"), 3.0)
-	for index: int in range(6):
-		var cx: float = 250.0 + index * 280.0
-		draw_circle(Vector2(cx, 540), 98, Color("e3eee9").lerp(accent, 0.12))
-		draw_circle(Vector2(cx, 540), 80, Color("e7f5f1").lerp(accent, 0.07))
-		draw_circle(Vector2(cx + 24, 528), 35, Color("f6f8ed"))
-	draw_rect(Rect2(110, 168, 1700, 760), Color("b9c9bd"), false, 7.0)
+func _draw_chamber() -> void:
+	var accent: Color = level.get("accent", Color("04bfd4"))
+	draw_rect(Rect2(103, 160, 1714, 774), Color("f8f9f5", 0.62))
+	draw_rect(Rect2(103, 160, 1714, 774), Color(accent, 0.025))
+	draw_rect(Rect2(103, 160, 1714, 774), INK, false, 10.0)
+	draw_rect(Rect2(118, 175, 1684, 744), Color("ffffff", 0.7), false, 2.0)
+	for index: int in range(8):
+		var x: float = 250.0 + index * 203.0
+		draw_line(Vector2(x, 168), Vector2(x, 923), Color("273f43", 0.05), 2.0)
+	for index: int in range(3):
+		var y: float = 350.0 + index * 190.0
+		draw_line(Vector2(111, y), Vector2(1809, y), Color("273f43", 0.05), 2.0)
+	for corner: Vector2 in [Vector2(134, 190), Vector2(1786, 190), Vector2(134, 904), Vector2(1786, 904)]:
+		draw_circle(corner, 5.0, BRASS)
 
 
 func _draw_wall(wall: Rect2) -> void:
-	draw_rect(wall.grow(5), Color("294a52"), true)
-	draw_rect(wall, Color("668487"), true)
-	var inner: Rect2 = wall.grow(-7)
-	if inner.size.x > 0.0 and inner.size.y > 0.0:
-		draw_rect(inner, Color("d2e1d8"), true)
+	draw_rect(wall.grow(6.0), Color("17252b", 0.22))
+	draw_rect(wall.grow(2.0), INK)
+	draw_rect(wall.grow(-3.0), Color("596b70"))
+	var inset: Rect2 = wall.grow(-8.0)
+	if inset.size.x > 0.0 and inset.size.y > 0.0:
+		draw_rect(inset, Color("bdcacc"))
+		if wall.size.x >= wall.size.y:
+			draw_line(inset.position + Vector2(5, 4), Vector2(inset.end.x - 5, inset.position.y + 4), PORCELAIN, 3.0)
+		else:
+			draw_line(inset.position + Vector2(4, 5), Vector2(inset.position.x + 4, inset.end.y - 5), PORCELAIN, 3.0)
 	if wall.size.x > wall.size.y:
-		for x: float in range(int(wall.position.x + 26), int(wall.end.x - 8), 56):
-			draw_circle(Vector2(x, wall.position.y + wall.size.y * 0.5), 3.0, Color("46737a"))
+		for x: float in range(int(wall.position.x + 26), int(wall.end.x - 8), 72):
+			draw_circle(Vector2(x, wall.get_center().y), 3.5, BRASS)
 	else:
-		for y: float in range(int(wall.position.y + 24), int(wall.end.y - 8), 52):
-			draw_circle(Vector2(wall.position.x + wall.size.x * 0.5, y), 3.0, Color("46737a"))
+		for y: float in range(int(wall.position.y + 26), int(wall.end.y - 8), 72):
+			draw_circle(Vector2(wall.get_center().x, y), 3.5, BRASS)
 
 
 func _draw_bridge(bridge: Rect2) -> void:
-	var on: bool = phase == 1
-	var color: Color = Color("4ccac0") if on else Color("88b4b4")
-	color.a = 0.9 if on else 0.27
-	draw_rect(bridge.grow(10), Color(0.3, 0.8, 0.75, 0.12 if on else 0.04), true)
-	draw_rect(bridge, color, true)
-	for x: float in range(int(bridge.position.x + 18), int(bridge.end.x), 34):
-		draw_line(Vector2(x, bridge.position.y + 5), Vector2(x - 9, bridge.end.y - 5), Color("f5fff1", 0.8 if on else 0.2), 3.0)
+	var enabled: bool = phase == 1
+	var opacity: float = 0.9 if enabled else 0.25
+	draw_rect(bridge.grow(11.0), Color(0.02, 0.82, 0.93, 0.2 if enabled else 0.04))
+	draw_rect(bridge.grow(2.0), Color("103e4b", opacity))
+	draw_rect(bridge.grow(-4.0), Color("46d9e8", opacity))
+	for x: float in range(int(bridge.position.x + 13), int(bridge.end.x), 34):
+		draw_line(Vector2(x, bridge.position.y + 4), Vector2(x - 11, bridge.end.y - 4), Color(1.0, 1.0, 1.0, opacity), 3.0)
 
 
 func _draw_hazard(area: Rect2) -> void:
-	draw_rect(area.grow(8), Color(0.98, 0.33, 0.31, 0.13 + 0.08 * sin(time * 7.0)), true)
-	draw_rect(area, Color("8a313f"), true)
-	for x: float in range(int(area.position.x + 14), int(area.end.x), 27):
+	var glow: float = 0.12 + 0.06 * sin(time * 6.0)
+	draw_rect(area.grow(9.0), Color(1.0, 0.31, 0.24, glow))
+	draw_rect(area, Color("692d34"))
+	for x: float in range(int(area.position.x + 15), int(area.end.x), 26):
 		var points: PackedVector2Array = PackedVector2Array([
-			Vector2(x - 11, area.position.y),
-			Vector2(x, area.position.y - 21),
-			Vector2(x + 11, area.position.y),
+			Vector2(x - 12, area.position.y), Vector2(x, area.position.y - 26), Vector2(x + 12, area.position.y),
 		])
-		draw_colored_polygon(points, Color("f16a54"))
+		draw_colored_polygon(points, Color("e96d52"))
+		draw_line(Vector2(x, area.position.y - 20), Vector2(x, area.position.y - 4), Color("ffcf9b"), 2.0)
 
 
 func _draw_sentry_tracks() -> void:
 	for data: Dictionary in level["sentries"]:
 		var from: Vector2 = data["from"]
 		var to: Vector2 = data["to"]
-		draw_line(from, to, Color("c4d4ce", 0.8), 5.0)
-		draw_circle(from, 9, Color("9db9af"))
-		draw_circle(to, 9, Color("9db9af"))
+		draw_line(from, to, Color("f7f8f5", 0.85), 8.0)
+		draw_line(from, to, Color("1b3e47", 0.85), 3.0)
+		draw_circle(from, 8.0, INK)
+		draw_circle(to, 8.0, INK)
 
 
 func _draw_checkpoint(pos: Vector2) -> void:
-	var accent: Color = level["accent"]
-	var glow: float = 0.18 + 0.08 * sin(time * 5.0)
-	draw_line(pos + Vector2(0, 30), pos + Vector2(0, 69), Color("476b70"), 15.0)
-	draw_rect(Rect2(pos.x - 33, pos.y + 65, 66, 12), Color("476b70"), true)
-	draw_circle(pos, 50, Color(accent, glow if checkpoint_active else glow * 0.45))
-	draw_arc(pos, 35, 0.0, TAU, 40, accent if checkpoint_active else Color("93aaa5"), 7.0, true)
+	var pulse: float = sin(time * 4.0) * 3.0
+	var color: Color = Color("28cce4") if checkpoint_active else Color("84979a")
+	draw_line(pos + Vector2(0, 24), pos + Vector2(0, 73), INK, 14.0)
+	draw_rect(Rect2(pos.x - 34, pos.y + 65, 68, 11), BRASS)
+	draw_circle(pos, 45.0 + pulse, Color(color, 0.18))
+	draw_arc(pos, 32.0, 0.0, TAU, 40, INK, 8.0, true)
+	draw_circle(pos, 25.0, Color("23464a"))
 	var crystal: PackedVector2Array = PackedVector2Array([
-		pos + Vector2(0, -27), pos + Vector2(18, 0), pos + Vector2(0, 27), pos + Vector2(-18, 0),
+		pos + Vector2(0, -23), pos + Vector2(15, 0), pos + Vector2(0, 23), pos + Vector2(-15, 0),
 	])
-	draw_colored_polygon(crystal, Color("f8d17e") if checkpoint_active else Color("b8c7bd"))
+	draw_colored_polygon(crystal, color)
 	if checkpoint_active:
-		draw_line(pos + Vector2(0, -19), pos + Vector2(0, 19), Color("fff9d9"), 5.0)
+		draw_circle(pos, 8.0 + pulse * 0.3, Color("ffffff"))
 
 
 func _draw_shard(point: Vector2, index: int) -> void:
-	var bob: float = sin(time * 3.0 + index * 2.0) * 9.0
+	var bob: float = sin(time * 2.8 + index * 2.1) * 8.0
 	var pos: Vector2 = point + Vector2(0, bob)
-	draw_circle(pos, 43, Color(1.0, 0.79, 0.35, 0.12))
-	draw_circle(pos, 30, Color(1.0, 0.79, 0.35, 0.2))
-	var diamond: PackedVector2Array = PackedVector2Array([pos + Vector2(0, -26), pos + Vector2(19, 0), pos + Vector2(0, 26), pos + Vector2(-19, 0)])
-	draw_colored_polygon(diamond, Color("f5bd61"))
-	draw_line(pos + Vector2(0, -20), pos + Vector2(0, 18), Color("fff7cd"), 5.0)
-	draw_line(pos + Vector2(-11, 0), pos + Vector2(11, 0), Color("fff7cd"), 4.0)
+	draw_circle(pos, 46.0, Color("20cce4", 0.13))
+	draw_circle(pos, 33.0, Color("20cce4", 0.19))
+	var star: PackedVector2Array = PackedVector2Array([
+		pos + Vector2(0, -28), pos + Vector2(9, -9), pos + Vector2(25, 0), pos + Vector2(9, 9),
+		pos + Vector2(0, 28), pos + Vector2(-9, 9), pos + Vector2(-25, 0), pos + Vector2(-9, -9),
+	])
+	draw_colored_polygon(star, Color("13b8d0"))
+	draw_colored_polygon(PackedVector2Array([pos + Vector2(0, -19), pos + Vector2(9, 0), pos, pos + Vector2(-9, 0)]), Color("ffffff"))
 
 
 func _draw_pad(pos: Vector2) -> void:
-	var color: Color = Color("23b9b0") if pad_armed else Color("698489")
-	draw_rect(Rect2(pos.x - 58, pos.y - 9, 116, 24), Color("274f5a"), true)
-	draw_rect(Rect2(pos.x - 48, pos.y - 17, 96, 19), color, true)
-	draw_circle(pos + Vector2(0, -8), 7.0 + 2.0 * sin(time * 5.0), Color("e3fff2") if pad_armed else Color("b3c7c7"))
+	var color: Color = Color("28cce4") if pad_armed else Color("a1b0b4")
+	draw_rect(Rect2(pos.x - 58, pos.y - 8, 116, 24), INK)
+	draw_rect(Rect2(pos.x - 48, pos.y - 17, 96, 18), color)
+	draw_line(pos + Vector2(-34, -11), pos + Vector2(34, -11), Color("ffffff"), 3.0)
+	for x: float in [-28.0, 0.0, 28.0]:
+		draw_circle(pos + Vector2(x, -8), 4.0, BRASS)
 
 
 func _draw_door(pos: Vector2) -> void:
-	var color: Color = Color("eeb964") if door_open else Color("8aa4a5")
-	draw_circle(pos, 73, Color(color, 0.18))
-	draw_arc(pos, 58, 0, TAU, 52, Color("2c6268"), 14.0, true)
-	draw_arc(pos, 44, 0, TAU, 52, color, 9.0, true)
-	draw_circle(pos, 30, Color("fff9e2") if door_open else Color("dce6df"))
+	var aperture: Color = Color("bdf8ff") if door_open else Color("56686c")
+	var pulse: float = 4.0 * sin(time * 3.0)
+	draw_circle(pos, 83.0 + pulse, Color(aperture, 0.18))
+	draw_arc(pos, 66.0, 0.0, TAU, 64, INK, 17.0, true)
+	draw_arc(pos, 55.0, 0.0, TAU, 64, Color("20cce4"), 9.0, true)
+	draw_arc(pos, 47.0, 0.0, TAU, 64, Color("ffffff"), 2.5, true)
+	for index: int in range(8):
+		var angle: float = time * (0.4 if door_open else 0.08) + float(index) * TAU / 8.0
+		var vector: Vector2 = Vector2.RIGHT.rotated(angle)
+		draw_circle(pos + vector * 56.0, 4.0, Color("ef6a3d"))
+	draw_circle(pos, 39.0, aperture)
 	if door_open:
-		draw_circle(pos, 18 + sin(time * 6.0) * 3.0, Color("fff1b1"))
+		draw_circle(pos, 25.0 + pulse, Color("ffffff"))
 	else:
-		draw_line(pos + Vector2(-14, -13), pos + Vector2(14, 13), Color("5b777a"), 7.0)
-		draw_line(pos + Vector2(14, -13), pos + Vector2(-14, 13), Color("5b777a"), 7.0)
-
-
-func _draw_gear(center: Vector2, radius: float, angle: float, color: Color) -> void:
-	draw_arc(center, radius, 0, TAU, 64, color, 16.0, true)
-	for tooth: int in range(12):
-		var a: float = angle + tooth * TAU / 12.0
-		var unit: Vector2 = Vector2.RIGHT.rotated(a)
-		draw_line(center + unit * (radius - 24), center + unit * (radius + 20), color, 18.0)
-	draw_circle(center, radius * 0.23, color)
-	draw_circle(center, radius * 0.13, Color("fcfbf4"))
+		draw_line(pos + Vector2(-14, -14), pos + Vector2(14, 14), Color("d6e6e8"), 6.0)
+		draw_line(pos + Vector2(14, -14), pos + Vector2(-14, 14), Color("d6e6e8"), 6.0)
 
 
 func _draw_motes() -> void:
 	for index: int in range(18):
-		var x: float = 180.0 + fposmod(float(index * 197) + time * (9.0 + float(index % 4) * 4.0), 1540.0)
-		var y: float = 215.0 + float((index * 149) % 620) + sin(time * 0.8 + index) * 13.0
-		draw_circle(Vector2(x, y), 2.0 + float(index % 3), Color(0.39, 0.74, 0.65, 0.25))
+		var x: float = 170.0 + fposmod(float(index * 191) + time * (8.0 + float(index % 4) * 3.0), 1570.0)
+		var y: float = 205.0 + float((index * 137) % 660) + sin(time * 0.9 + index) * 15.0
+		draw_line(Vector2(x, y), Vector2(x + 11.0, y - 3.0), Color(0.08, 0.7, 0.78, 0.2), 2.0)

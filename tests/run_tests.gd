@@ -15,7 +15,7 @@ func _initialize() -> void:
 func _run() -> void:
 	_test_input_map_is_wired()
 	_test_orientation_is_an_int()
-	await _test_compassfall_playthrough()
+	await _test_palewheel_playthrough()
 	print("\n==== TESTS: %d passed, %d failed ====" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
 
@@ -41,7 +41,7 @@ func _test_orientation_is_an_int() -> void:
 		typeof(value) == TYPE_INT)
 
 
-func _test_compassfall_playthrough() -> void:
+func _test_palewheel_playthrough() -> void:
 	var game: Node2D = load("res://scenes/game/game.tscn").instantiate() as Node2D
 	game.audio_enabled = false
 	root.add_child(game)
@@ -58,7 +58,7 @@ func _test_compassfall_playthrough() -> void:
 	game._shift(1)
 	_check("a shift turns gravity and changes the light phase", game.gravity_direction == Vector2.LEFT and game.phase == 1)
 	game._restart()
-	for level_number: int in range(CompassLevels.count()):
+	for level_number: int in range(PalewheelLevels.count()):
 		if level_number > 0:
 			game._on_begin()
 		if level_number == 1:
@@ -107,7 +107,7 @@ func _test_compassfall_playthrough() -> void:
 		game.pilot.reset_physics_interpolation()
 		await physics_frame
 		await physics_frame
-		if level_number + 1 < CompassLevels.count():
+		if level_number + 1 < PalewheelLevels.count():
 			_check("the next room opens after room %d" % level_number, game.level_index == level_number + 1)
 	_check("the dawn ending follows the last room", game.finished)
 	game.queue_free()

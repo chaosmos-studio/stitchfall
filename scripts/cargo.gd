@@ -1,4 +1,4 @@
-class_name CompassCargo
+class_name PalewheelCargo
 extends RigidBody2D
 
 var gravity_direction: Vector2 = Vector2.DOWN
