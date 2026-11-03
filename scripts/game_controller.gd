@@ -72,7 +72,7 @@ func _ready() -> void:
 		if requested_room != null:
 			initial_room = clampi(str(requested_room).to_int(), 0, PalewheelLevels.count() - 1)
 	_load_level(initial_room)
-	hud.show_panel("PALEWHEEL", "Collect the light. Turn gravity to find a route.", "START RUN")
+	hud.show_panel("PALEWHEEL", "Collect the buttons. Shift the pull. Find the open seam.", "BEGIN")
 
 
 func _process(delta: float) -> void:
@@ -230,7 +230,7 @@ func _load_level(index: int) -> void:
 	world.door_progress = 0.0
 	world.spark_bursts.clear()
 	world.gravity_direction = gravity_direction
-	hud.set_hint(level["hint"])
+	hud.set_room_intro(level["name"], level["hint"])
 	_update_hud()
 	print("PALEWHEEL_ROOM ", index)
 
@@ -296,7 +296,7 @@ func _on_checkpoint_body(body: Node2D) -> void:
 	checkpoint_active = true
 	respawn_position = level["checkpoint"]
 	world.checkpoint_active = true
-	hud.set_hint("Beacon lit. Collected sparks are safe after a hit.")
+	hud.set_hint("Pin set. Your buttons stay sewn after a hit.")
 	_play_sound("spark")
 	print("PALEWHEEL_BEACON ", level_index)
 
@@ -394,7 +394,7 @@ func _advance() -> void:
 	if level_index + 1 >= PalewheelLevels.count():
 		finished = true
 		print("PALEWHEEL_WIN")
-		hud.show_panel("ENGINE ONLINE", "The station has its gravity back.\n\nTime %s   /   Turns %d   /   Hits %d" % [_format_time(run_time), shifts, deaths], "PLAY AGAIN")
+		hud.show_panel("THE SEAM HOLDS", "Every patch found its place.\n\nTime %s   /   Shifts %d   /   Hits %d" % [_format_time(run_time), shifts, deaths], "PLAY AGAIN")
 		return
 	_load_level(level_index + 1)
 	playing = true
@@ -424,7 +424,7 @@ func _on_pause() -> void:
 	pilot.control_enabled = false
 	for sentry: PalewheelWatcher in sentries:
 		sentry.active = false
-	hud.show_panel("PAUSED", "The engine will wait.", "RESUME")
+	hud.show_panel("PAUSED", "The thread can wait.", "RESUME")
 
 
 func _on_begin() -> void:
@@ -440,6 +440,7 @@ func _on_begin() -> void:
 	for sentry: PalewheelWatcher in sentries:
 		sentry.active = true
 	hud.hide_panel()
+	hud.set_room_intro(level["name"], level["hint"])
 	print("PALEWHEEL_START ", level_index)
 
 
@@ -476,4 +477,4 @@ func _format_time(value: float) -> String:
 func _update_hud() -> void:
 	if level.is_empty():
 		return
-	hud.set_status(level_index, level["name"], collected.count(true), collected.size(), level["pad"] != Vector2.ZERO, pad_armed, _format_time(run_time), gravity_direction)
+	hud.set_status(level_index, level["name"], collected.count(true), collected.size(), level["pad"] != Vector2.ZERO, pad_armed, _format_time(run_time), gravity_direction, level["backdrop"])

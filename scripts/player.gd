@@ -12,6 +12,9 @@ const JUMP_SPEED: float = 590.0
 const GRAVITY: float = 1550.0
 const COYOTE_TIME: float = 0.11
 const JUMP_BUFFER: float = 0.13
+const RUN_SHEET: Texture2D = preload("res://assets/art/seam_runner_run.png")
+const ACTION_SHEET: Texture2D = preload("res://assets/art/seam_runner_actions.png")
+const CLEANUP_SHADER: Shader = preload("res://shaders/runner_cleanup.gdshader")
 
 var gravity_direction: Vector2 = Vector2.DOWN
 var environment: String = ""
@@ -25,12 +28,11 @@ var control_enabled: bool = true
 var coyote: float = 0.0
 var jump_buffer: float = 0.0
 var facing: float = 1.0
-var actor: StitchedActor
+var sprite: AnimatedSprite2D
 var takeoff_time: float = 0.0
 var landing_time: float = 0.0
 var shift_time: float = 0.0
 var step_age: float = 0.0
-var step_cycle: float = 0.0
 var rotation_tween: Tween
 var collision_shape: CollisionShape2D
 var capsule: CapsuleShape2D
@@ -47,10 +49,60 @@ func _ready() -> void:
 	capsule.height = 78.0
 	collision_shape.shape = capsule
 	add_child(collision_shape)
-	actor = StitchedActor.new()
-	actor.z_index = 5
-	add_child(actor)
+	sprite = AnimatedSprite2D.new()
+	sprite.sprite_frames = _build_frames()
+	sprite.scale = Vector2.ONE * 0.32
+	sprite.position = Vector2(0, -18)
+	sprite.z_index = 5
+	var material: ShaderMaterial = ShaderMaterial.new()
+	material.shader = CLEANUP_SHADER
+	sprite.material = material
+	add_child(sprite)
+	sprite.frame_changed.connect(_on_sprite_frame_changed)
+	sprite.play("idle")
 	up_direction = -gravity_direction
+
+
+func _build_frames() -> SpriteFrames:
+	var frames: SpriteFrames = SpriteFrames.new()
+	frames.remove_animation("default")
+	for animation: String in ["idle", "run", "crouch", "takeoff", "rise", "apex", "fall", "land", "shift"]:
+		frames.add_animation(animation)
+		frames.set_animation_loop(animation, animation in ["idle", "run", "crouch"])
+		frames.set_animation_speed(animation, 12.0)
+	frames.set_animation_speed("idle", 1.2)
+	frames.set_animation_speed("run", 24.0)
+	frames.set_animation_speed("crouch", 7.0)
+	frames.set_animation_speed("takeoff", 15.0)
+	frames.set_animation_speed("rise", 9.0)
+	frames.set_animation_speed("fall", 9.0)
+	frames.set_animation_speed("land", 13.0)
+	frames.set_animation_speed("shift", 9.0)
+	for index: int in range(12):
+		frames.add_frame("run", _frame(RUN_SHEET, index))
+	for index: int in [0, 1]:
+		frames.add_frame("idle", _frame(ACTION_SHEET, index))
+	for index: int in [2, 3]:
+		frames.add_frame("crouch", _frame(ACTION_SHEET, index))
+	for index: int in [4, 5]:
+		frames.add_frame("takeoff", _frame(ACTION_SHEET, index))
+	for index: int in [6, 7]:
+		frames.add_frame("rise", _frame(ACTION_SHEET, index))
+	frames.add_frame("apex", _frame(ACTION_SHEET, 7))
+	for index: int in [8, 9]:
+		frames.add_frame("fall", _frame(ACTION_SHEET, index))
+	frames.add_frame("land", _frame(ACTION_SHEET, 10))
+	for index: int in [11, 7]:
+		frames.add_frame("shift", _frame(ACTION_SHEET, index))
+	return frames
+
+
+func _frame(sheet: Texture2D, index: int) -> AtlasTexture:
+	var cell: Vector2 = Vector2(sheet.get_width() / 4.0, sheet.get_height() / 3.0)
+	var texture: AtlasTexture = AtlasTexture.new()
+	texture.atlas = sheet
+	texture.region = Rect2(Vector2(float(index % 4) * cell.x, float(index / 4) * cell.y), cell)
+	return texture
 
 
 func _process(delta: float) -> void:
@@ -58,6 +110,12 @@ func _process(delta: float) -> void:
 	step_age = maxf(0.0, step_age - delta)
 	if had_step:
 		queue_redraw()
+
+
+func _on_sprite_frame_changed() -> void:
+	if sprite.animation == "run" and sprite.frame in [0, 6] and control_enabled and is_on_floor():
+		step_age = 0.2
+		stepped.emit()
 
 
 func _draw() -> void:
@@ -130,7 +188,7 @@ func _physics_process(delta: float) -> void:
 	shift_time = maxf(0.0, shift_time - delta)
 	if absf(axis) > 0.1:
 		facing = signf(axis)
-	actor.facing = facing
+	sprite.flip_h = facing < 0.0
 	var animation: String = "idle"
 	if shift_time > 0.0:
 		animation = "shift"
@@ -145,29 +203,21 @@ func _physics_process(delta: float) -> void:
 		animation = "rise" if vertical_speed < -130.0 else "apex" if vertical_speed < 110.0 else "fall"
 	elif absf(along) > 45.0:
 		animation = "run"
-	actor.action = animation
-	actor.speed = clampf(absf(along) / RUN_SPEED, 0.0, 1.0) if animation == "run" else 0.0
-	if animation == "run" and is_on_floor():
-		step_cycle += delta * (5.0 + actor.speed * 4.0)
-		if step_cycle >= 1.0:
-			step_cycle = 0.0
-			step_age = 0.2
-			stepped.emit()
-	else:
-		step_cycle = 0.0
+	if sprite.animation != animation:
+		sprite.play(animation)
+	sprite.speed_scale = clampf(absf(along) / RUN_SPEED, 0.7, 1.2) if animation == "run" else 1.0
 
 
 func set_gravity_direction(direction: Vector2) -> void:
 	if gravity_direction != direction:
 		shift_time = 0.23
-		var visual_angle: float = actor.global_rotation
+		var visual_angle: float = sprite.global_rotation
 		if rotation_tween and rotation_tween.is_running():
 			rotation_tween.kill()
 		rotation = direction.angle() - PI * 0.5
-		actor.rotation = wrapf(visual_angle - rotation, -PI, PI)
-		actor.shift_age = 0.26
+		sprite.rotation = wrapf(visual_angle - rotation, -PI, PI)
 		rotation_tween = create_tween()
-		rotation_tween.tween_property(actor, "rotation", 0.0, 0.23).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		rotation_tween.tween_property(sprite, "rotation", 0.0, 0.23).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	gravity_direction = direction
 	up_direction = -direction
 	coyote = 0.0

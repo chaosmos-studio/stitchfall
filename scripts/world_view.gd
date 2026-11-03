@@ -2,6 +2,11 @@ class_name PalewheelWorldView
 extends Node2D
 
 const LINEN: Texture2D = preload("res://assets/art/linen_landscape.png")
+const FELT: Texture2D = preload("res://assets/art/felt_tile.png")
+const WATER_CLOTH: Texture2D = preload("res://assets/art/cloth_water.webp")
+const DUNE_CLOTH: Texture2D = preload("res://assets/art/cloth_dunes.webp")
+const FOREST_CLOTH: Texture2D = preload("res://assets/art/cloth_forest.webp")
+const NIGHT_CLOTH: Texture2D = preload("res://assets/art/cloth_night.webp")
 const INK: Color = Color("493a37")
 const THREAD: Color = Color("f9e9ca")
 const RUST: Color = Color("b45d4c")
@@ -21,6 +26,10 @@ var door_progress: float = 0.0
 var spark_bursts: Array[Dictionary] = []
 
 
+func _ready() -> void:
+	texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
+
+
 func _process(delta: float) -> void:
 	time += delta
 	shift_age += delta
@@ -33,7 +42,7 @@ func _process(delta: float) -> void:
 
 
 func _draw() -> void:
-	draw_texture_rect(LINEN, Rect2(-330, -180, 2580, 1440), false)
+	draw_texture_rect(_backdrop_texture(), Rect2(-330, -180, 2580, 1440), false)
 	if level.is_empty():
 		return
 	_draw_chamber()
@@ -57,6 +66,19 @@ func _draw() -> void:
 	_draw_spark_bursts()
 	if shift_age < 0.68:
 		_draw_shift_seam()
+
+
+func _backdrop_texture() -> Texture2D:
+	match int(level.get("backdrop", 0)):
+		4:
+			return WATER_CLOTH
+		5:
+			return DUNE_CLOTH
+		6:
+			return FOREST_CLOTH
+		7:
+			return NIGHT_CLOTH
+	return LINEN
 
 
 func _cloth_color() -> Color:
@@ -116,7 +138,7 @@ func _draw_wall(wall: Rect2) -> void:
 	draw_rect(wall.grow(8.0), Color("635347", 0.2))
 	draw_rect(wall.grow(2.0), INK)
 	draw_rect(wall, fabric)
-	draw_rect(wall.grow(-5.0), fabric.lightened(0.09))
+	draw_texture_rect(FELT, wall.grow(-4.0), true, fabric.lightened(0.25))
 	if wall.size.x > wall.size.y:
 		for x: int in range(int(wall.position.x + 9), int(wall.end.x - 7), 15):
 			draw_line(Vector2(x, wall.position.y + 4), Vector2(x + 7, wall.position.y + 4), THREAD, 2.0, true)
@@ -132,7 +154,7 @@ func _draw_wall(wall: Rect2) -> void:
 func _draw_bridge(bridge: Rect2) -> void:
 	var opacity: float = 1.0 if phase == 1 else 0.33
 	draw_rect(bridge.grow(3.0), Color("385e60", opacity))
-	draw_rect(bridge.grow(-3.0), Color("a1c6be", opacity))
+	draw_texture_rect(FELT, bridge.grow(-3.0), true, Color(0.65, 0.84, 0.77, opacity))
 	for x: int in range(int(bridge.position.x + 8), int(bridge.end.x - 7), 16):
 		draw_line(Vector2(x, bridge.position.y + 5), Vector2(x + 7, bridge.position.y + 5), Color(1.0, 0.96, 0.82, opacity), 2.0, true)
 		draw_line(Vector2(x, bridge.end.y - 5), Vector2(x + 7, bridge.end.y - 5), Color(0.2, 0.35, 0.34, opacity), 2.0, true)

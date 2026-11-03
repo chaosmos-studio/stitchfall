@@ -4,55 +4,52 @@ extends CanvasLayer
 signal begin_pressed
 signal pause_pressed
 
-const INK: Color = Color("17262d")
-const PAPER: Color = Color("f7f8f5")
-const ACCENT: Color = Color("e65e48")
-const MUTED: Color = Color("187f91")
-const FONT: FontFile = preload("res://assets/fonts/Outfit.ttf")
+const INK: Color = Color("493a37")
+const PAPER: Color = Color("f7edda")
+const ACCENT: Color = Color("a85648")
+const FONT: FontFile = preload("res://assets/fonts/Baloo2.ttf")
+const ACTION_SHEET: Texture2D = preload("res://assets/art/seam_runner_actions.png")
+const BORDER_SCRIPT: GDScript = preload("res://scripts/stitch_border.gd")
 
 var root: Control
-var title_label: Label
-var progress_label: Label
-var gravity_label: Label
-var hint_label: Label
+var meter: ButtonMeter
+var pause_button: Button
 var hint_back: Panel
+var hint_title: Label
+var hint_body: Label
 var panel: ColorRect
 var panel_title: Label
 var panel_body: Label
 var guide_label: Label
 var panel_button: Button
+var portrait: TextureRect
 var regular_font: FontVariation
 var heavy_font: FontVariation
-var status_items: Array[Control] = []
-var direction_panel: Panel
-var pause_button: Button
-var portrait: TextureRect
+var intro_tween: Tween
+var current_biome: int = -1
 
 
 func _ready() -> void:
 	layer = 1
-	regular_font = _font(650)
-	heavy_font = _font(850)
+	regular_font = _font(600)
+	heavy_font = _font(800)
 	root = Control.new()
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(root)
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var status: Panel = _panel(Rect2(38, 28, 795, 102), Color("13242b", 0.92))
-	status.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	title_label = _label(root, Vector2(66, 35), Vector2(730, 48), 34, PAPER, true)
-	progress_label = _label(root, Vector2(67, 79), Vector2(720, 39), 25, ACCENT)
-	direction_panel = _panel(Rect2(1460, 28, 298, 82), Color("13242b", 0.92))
-	direction_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	gravity_label = _label(root, Vector2(1470, 36), Vector2(270, 61), 27, PAPER, true)
-	gravity_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	pause_button = _button(root, Rect2(1781, 28, 96, 82), "II", Color("13242b"), PAPER)
+	meter = ButtonMeter.new()
+	meter.position = Vector2(28, 19)
+	meter.size = Vector2(205, 79)
+	root.add_child(meter)
+	pause_button = _button(root, Rect2(1134, 18, 116, 78), "PAUSE", ACCENT, PAPER, 23)
 	pause_button.tooltip_text = "Pause"
 	pause_button.pressed.connect(func() -> void: pause_pressed.emit())
-	hint_back = _panel(Rect2(475, 145, 970, 63), Color("13242b", 0.94))
+	hint_back = _panel(root, Rect2(342, 120, 596, 111), Color("f5e8d1", 0.96))
 	hint_back.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hint_label = _label(root, Vector2(495, 146), Vector2(930, 60), 30, PAPER, true)
-	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	status_items.assign([status, title_label, progress_label, direction_panel, gravity_label, pause_button, hint_back, hint_label])
+	hint_title = _label(hint_back, Vector2(26, 7), Vector2(544, 48), 30, INK, true)
+	hint_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint_body = _label(hint_back, Vector2(24, 52), Vector2(548, 47), 23, INK)
+	hint_body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_build_panel()
 	get_viewport().size_changed.connect(_layout)
 	call_deferred("_layout")
@@ -60,40 +57,43 @@ func _ready() -> void:
 
 func _layout() -> void:
 	var width: float = root.size.x
-	direction_panel.position.x = width - 460.0
-	gravity_label.position.x = width - 450.0
-	pause_button.position.x = width - 139.0
+	pause_button.position.x = width - pause_button.size.x - 28.0
 	hint_back.position.x = (width - hint_back.size.x) * 0.5
-	hint_label.position.x = (width - hint_label.size.x) * 0.5
-	portrait.position.x = width - 857.0
+	portrait.position.x = width - portrait.size.x - 24.0
 
 
 func _font(weight: int) -> FontVariation:
 	var value: FontVariation = FontVariation.new()
 	value.base_font = FONT
 	value.variation_opentype = {TextServerManager.get_primary_interface().name_to_tag("wght"): weight}
-	value.variation_embolden = 0.55
 	return value
 
 
-func _style(color: Color, border: Color = INK, width: int = 3) -> StyleBoxFlat:
+func _style(color: Color, border: Color, width: int) -> StyleBoxFlat:
 	var style: StyleBoxFlat = StyleBoxFlat.new()
 	style.bg_color = color
 	style.border_color = border
 	style.set_border_width_all(width)
-	style.set_corner_radius_all(6)
-	style.shadow_color = Color("090d13", 0.34)
-	style.shadow_size = 0
-	style.shadow_offset = Vector2(5, 5)
+	style.set_corner_radius_all(16)
+	style.shadow_color = Color("45372f", 0.18)
+	style.shadow_size = 5
+	style.shadow_offset = Vector2(4, 6)
 	return style
 
 
-func _panel(rect: Rect2, color: Color) -> Panel:
+func _sew(parent: Control) -> void:
+	var border: Control = BORDER_SCRIPT.new() as Control
+	parent.add_child(border)
+	border.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+
+
+func _panel(parent: Control, rect: Rect2, color: Color) -> Panel:
 	var value: Panel = Panel.new()
 	value.position = rect.position
 	value.size = rect.size
-	value.add_theme_stylebox_override("panel", _style(color, ACCENT, 2))
-	root.add_child(value)
+	value.add_theme_stylebox_override("panel", _style(color, Color("947a65"), 2))
+	parent.add_child(value)
+	_sew(value)
 	return value
 
 
@@ -110,64 +110,75 @@ func _label(parent: Control, pos: Vector2, extent: Vector2, size_px: int, color:
 	return value
 
 
-func _button(parent: Control, rect: Rect2, caption: String, background: Color, foreground: Color) -> Button:
+func _button(parent: Control, rect: Rect2, caption: String, background: Color, foreground: Color, font_size: int) -> Button:
 	var value: Button = Button.new()
 	value.position = rect.position
 	value.size = rect.size
 	value.text = caption
 	value.focus_mode = Control.FOCUS_ALL
 	value.add_theme_font_override("font", heavy_font)
-	value.add_theme_font_size_override("font_size", 37)
-	value.add_theme_color_override("font_color", foreground)
-	value.add_theme_color_override("font_hover_color", foreground)
-	value.add_theme_color_override("font_pressed_color", foreground)
-	value.add_theme_stylebox_override("normal", _style(background, ACCENT, 4))
-	value.add_theme_stylebox_override("hover", _style(background.lightened(0.11), ACCENT, 5))
-	value.add_theme_stylebox_override("pressed", _style(background.darkened(0.14), ACCENT, 5))
-	value.add_theme_stylebox_override("focus", _style(Color.TRANSPARENT, foreground, 3))
+	value.add_theme_font_size_override("font_size", font_size)
+	for state: String in ["font_color", "font_hover_color", "font_pressed_color"]:
+		value.add_theme_color_override(state, foreground)
+	value.add_theme_stylebox_override("normal", _style(background, INK, 3))
+	value.add_theme_stylebox_override("hover", _style(background.lightened(0.1), INK, 3))
+	value.add_theme_stylebox_override("pressed", _style(background.darkened(0.14), INK, 3))
+	value.add_theme_stylebox_override("focus", _style(Color.TRANSPARENT, foreground, 2))
 	parent.add_child(value)
+	_sew(value)
 	return value
 
 
 func _build_panel() -> void:
 	panel = ColorRect.new()
-	panel.color = Color("f4f3ec", 0.91)
+	panel.color = Color("f5ead5", 0.95)
 	root.add_child(panel)
 	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var edition: Label = _label(panel, Vector2(132, 116), Vector2(900, 50), 28, ACCENT, true)
-	edition.text = "FIELD NOTES  /  GRAVITY ENGINE"
-	var rule: ColorRect = ColorRect.new()
-	rule.position = Vector2(132, 188)
-	rule.size = Vector2(155, 8)
-	rule.color = ACCENT
-	panel.add_child(rule)
-	panel_title = _label(panel, Vector2(128, 223), Vector2(900, 146), 116, INK, true)
-	panel_body = _label(panel, Vector2(139, 390), Vector2(805, 100), 37, INK)
+	var fabric: TextureRect = TextureRect.new()
+	fabric.texture = preload("res://assets/art/linen_landscape.png")
+	fabric.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	fabric.stretch_mode = TextureRect.STRETCH_SCALE
+	fabric.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(fabric)
+	fabric.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var cloth_card: Panel = _panel(panel, Rect2(60, 62, 640, 582), Color("f5ead5", 0.96))
+	cloth_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var edition: Label = _label(panel, Vector2(98, 92), Vector2(540, 40), 23, ACCENT, true)
+	edition.text = "A HANDMADE SHIFT ADVENTURE"
+	panel_title = _label(panel, Vector2(93, 149), Vector2(570, 108), 76, INK, true)
+	panel_body = _label(panel, Vector2(101, 266), Vector2(552, 100), 29, INK)
 	panel_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	var guide_rule: ColorRect = ColorRect.new()
-	guide_rule.position = Vector2(140, 534)
-	guide_rule.size = Vector2(748, 3)
-	guide_rule.color = MUTED
+	guide_rule.position = Vector2(101, 384)
+	guide_rule.size = Vector2(507, 2)
+	guide_rule.color = Color("8e7769")
 	panel.add_child(guide_rule)
-	guide_label = _label(panel, Vector2(140, 562), Vector2(830, 245), 29, INK)
+	guide_label = _label(panel, Vector2(101, 404), Vector2(548, 100), 22, INK)
 	guide_label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
-	guide_label.text = "SLIDE LEFT / RIGHT    MOVE\nSWIPE UP    JUMP      SWIPE DOWN    CROUCH\nTAP    SHIFT GRAVITY" if DisplayServer.is_touchscreen_available() else "A / D  OR  LEFT / RIGHT    MOVE\nW / UP / SPACE    JUMP      S / DOWN    CROUCH\nSHIFT  OR  CLICK    SHIFT GRAVITY"
-	panel_button = _button(panel, Rect2(139, 849, 500, 112), "START RUN", INK, PAPER)
+	guide_label.text = "SLIDE  /  WALK      SWIPE UP  /  JUMP\nSWIPE DOWN  /  CROUCH      TAP  /  SHIFT" if DisplayServer.is_touchscreen_available() else "A / D  /  WALK      SPACE  /  JUMP\nS  /  CROUCH      SHIFT  /  TURN GRAVITY"
+	panel_button = _button(panel, Rect2(101, 545, 300, 72), "BEGIN", ACCENT, PAPER, 30)
 	panel_button.pressed.connect(func() -> void: begin_pressed.emit())
 	portrait = TextureRect.new()
-	portrait.texture = preload("res://assets/art/courier_jump_03.png")
-	portrait.position = Vector2(1063, 154)
-	portrait.size = Vector2(770, 830)
+	var sprite_atlas: AtlasTexture = AtlasTexture.new()
+	sprite_atlas.atlas = ACTION_SHEET
+	sprite_atlas.region = Rect2(0, 0, ACTION_SHEET.get_width() / 4.0, ACTION_SHEET.get_height() / 3.0)
+	portrait.texture = sprite_atlas
+	portrait.position = Vector2(736, 78)
+	portrait.size = Vector2(520, 540)
 	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var material: ShaderMaterial = ShaderMaterial.new()
+	material.shader = preload("res://shaders/runner_cleanup.gdshader")
+	portrait.material = material
 	panel.add_child(portrait)
 
 
 func show_panel(title: String, body: String, button: String) -> void:
 	panel.visible = true
-	for item: Control in status_items:
-		item.visible = false
+	meter.visible = false
+	pause_button.visible = false
+	hint_back.visible = false
 	panel_title.text = title
 	panel_body.text = body
 	guide_label.visible = title.begins_with("PALEWHEEL")
@@ -177,29 +188,42 @@ func show_panel(title: String, body: String, button: String) -> void:
 
 func hide_panel() -> void:
 	panel.visible = false
-	for item: Control in status_items:
-		item.visible = true
+	meter.visible = true
+	pause_button.visible = true
 
 
-func set_hint(text: String) -> void:
-	hint_label.text = text
-	hint_label.modulate.a = 1.0
+func set_room_intro(title: String, instruction: String) -> void:
+	_show_intro(title, instruction)
+
+
+func set_hint(instruction: String) -> void:
+	_show_intro("", instruction)
+
+
+func _show_intro(title: String, instruction: String) -> void:
+	if intro_tween and intro_tween.is_running():
+		intro_tween.kill()
+	hint_title.text = title
+	hint_body.text = instruction
+	hint_title.visible = not title.is_empty()
+	hint_body.position.y = 52 if not title.is_empty() else 30
+	hint_back.visible = true
 	hint_back.modulate.a = 1.0
-	var tween: Tween = create_tween()
-	tween.tween_interval(4.0)
-	tween.tween_property(hint_label, "modulate:a", 0.0, 0.6)
-	tween.parallel().tween_property(hint_back, "modulate:a", 0.0, 0.6)
+	intro_tween = create_tween()
+	intro_tween.tween_interval(3.3)
+	intro_tween.tween_property(hint_back, "modulate:a", 0.0, 0.55)
+	intro_tween.tween_callback(func() -> void: hint_back.visible = false)
 
 
-func set_status(index: int, name: String, sparks: int, total_sparks: int, cargo_needed: bool, cargo_armed: bool, _time_text: String, gravity: Vector2) -> void:
-	title_label.text = "%02d  /  %s" % [index + 1, name]
-	var cargo_text: String = "    CARGO %s" % ("READY" if cargo_armed else "WAITING") if cargo_needed else ""
-	progress_label.text = "LIGHT %d / %d%s" % [sparks, total_sparks, cargo_text]
-	var direction_name: String = "DOWN"
-	if gravity == Vector2.LEFT:
-		direction_name = "LEFT"
-	elif gravity == Vector2.UP:
-		direction_name = "UP"
-	elif gravity == Vector2.RIGHT:
-		direction_name = "RIGHT"
-	gravity_label.text = "GRAVITY  /  " + direction_name
+func set_status(_index: int, _name: String, sparks: int, total_sparks: int, _cargo_needed: bool, _cargo_armed: bool, _time_text: String, _gravity: Vector2, biome: int) -> void:
+	meter.collected = sparks
+	meter.total = total_sparks
+	meter.biome = biome
+	if current_biome == biome:
+		return
+	current_biome = biome
+	var palette: Array[Color] = meter._palette()
+	pause_button.add_theme_stylebox_override("normal", _style(palette[2], INK, 3))
+	pause_button.add_theme_stylebox_override("hover", _style(palette[2].lightened(0.1), INK, 3))
+	pause_button.add_theme_stylebox_override("pressed", _style(palette[2].darkened(0.14), INK, 3))
+	hint_back.add_theme_stylebox_override("panel", _style(palette[0], palette[1], 2))

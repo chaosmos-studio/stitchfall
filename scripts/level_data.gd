@@ -32,8 +32,8 @@ static func get_level(index: int) -> Dictionary:
 	match index:
 		0:
 			base.merge({
-				"name": "DOCK 01",
-				"hint": "Run and jump. Turn gravity to clear the shaft.",
+				"name": "The First Stitch",
+				"hint": "Run, leap, and shift the pull to cross the gap.",
 				"accent": Color("18c9df"),
 				"walls": FRAME + [Rect2(810, 628, 34, 270), Rect2(1030, 478, 330, 28)],
 				"checkpoint": Vector2(1180, 815),
@@ -41,8 +41,8 @@ static func get_level(index: int) -> Dictionary:
 			}, true)
 		1:
 			base.merge({
-				"name": "SENSOR ARRAY",
-				"hint": "A turn changes the bridges and pauses the drone.",
+				"name": "Moth Run",
+				"hint": "A shift sews the bridge solid and stills the moth.",
 				"accent": Color("f46b42"),
 				"walls": FRAME + [Rect2(545, 680, 28, 218), Rect2(1170, 560, 28, 338)],
 				"phase_walls": [Rect2(620, 568, 310, 26), Rect2(1250, 430, 260, 26)],
@@ -53,8 +53,8 @@ static func get_level(index: int) -> Dictionary:
 			}, true)
 		2:
 			base.merge({
-				"name": "MASS TRANSFER",
-				"hint": "Move the cargo onto its plate by turning gravity.",
+				"name": "The Weighted Patch",
+				"hint": "Shift the weighted patch onto its mark.",
 				"accent": Color("e9ab34"),
 				"crate": Vector2(488, 835),
 				"pad": Vector2(764, 876),
@@ -66,8 +66,8 @@ static func get_level(index: int) -> Dictionary:
 			}, true)
 		3:
 			base.merge({
-				"name": "THE CORE",
-				"hint": "Time each turn to pass the drones and restart the core.",
+				"name": "Cross Seam",
+				"hint": "Time each shift to pass the needle moths.",
 				"accent": Color("8e7ae8"),
 				"walls": FRAME + [Rect2(610, 550, 32, 348), Rect2(975, 285, 32, 360), Rect2(1345, 540, 32, 358)],
 				"phase_walls": [Rect2(675, 485, 260, 26), Rect2(1040, 712, 260, 26)],
@@ -81,8 +81,8 @@ static func get_level(index: int) -> Dictionary:
 			}, true)
 		4:
 			base.merge({
-				"name": "TIDE LOCK",
-				"hint": "Floodwater slows your fall. Turn gravity through the pool.",
+				"name": "Blue Thread",
+				"hint": "Water slows your fall. Shift through the pool.",
 				"backdrop": 4,
 				"environment": "water",
 				"environment_zone": Rect2(660, 590, 680, 308),
@@ -92,8 +92,8 @@ static func get_level(index: int) -> Dictionary:
 			}, true)
 		5:
 			base.merge({
-				"name": "PUMP GALLERY",
-				"hint": "Use the flooded sluice to soften the descent.",
+				"name": "Washed Hem",
+				"hint": "Let the water soften your descent.",
 				"backdrop": 4,
 				"environment": "water",
 				"environment_zone": Rect2(595, 560, 320, 338),
@@ -106,8 +106,8 @@ static func get_level(index: int) -> Dictionary:
 			}, true)
 		6:
 			base.merge({
-				"name": "DUNE RELAY",
-				"hint": "The sand wind pushes right. Turn with its momentum.",
+				"name": "Sand Drift",
+				"hint": "The wind pushes right. Shift with its momentum.",
 				"backdrop": 5,
 				"environment": "dunes",
 				"environment_zone": Rect2(580, 280, 1030, 618),
@@ -117,8 +117,8 @@ static func get_level(index: int) -> Dictionary:
 			}, true)
 		7:
 			base.merge({
-				"name": "SAND CHOKE",
-				"hint": "Cross the sand wind, then switch the bridge.",
+				"name": "Tight Knot",
+				"hint": "Cross the sand wind, then sew the bridge solid.",
 				"backdrop": 5,
 				"environment": "dunes",
 				"environment_zone": Rect2(590, 270, 1010, 628),
@@ -131,8 +131,8 @@ static func get_level(index: int) -> Dictionary:
 			}, true)
 		8:
 			base.merge({
-				"name": "CANOPY BRIDGE",
-				"hint": "The canopy draft lifts you under the bridge.",
+				"name": "Green Canopy",
+				"hint": "A canopy draft lifts you under the bridge.",
 				"backdrop": 6,
 				"environment": "forest",
 				"environment_zone": Rect2(725, 390, 485, 508),
@@ -143,8 +143,8 @@ static func get_level(index: int) -> Dictionary:
 			}, true)
 		9:
 			base.merge({
-				"name": "ROOT ENGINE",
-				"hint": "Ride the canopy draft after setting the cargo plate.",
+				"name": "Rootwork",
+				"hint": "Set the weighted patch, then ride the canopy draft.",
 				"backdrop": 6,
 				"environment": "forest",
 				"environment_zone": Rect2(1050, 370, 590, 528),
@@ -158,8 +158,8 @@ static func get_level(index: int) -> Dictionary:
 			}, true)
 		10:
 			base.merge({
-				"name": "ORBITAL RIM",
-				"hint": "Outside the ring, each jump carries farther.",
+				"name": "Night Quilt",
+				"hint": "In the night cloth, each jump carries farther.",
 				"backdrop": 7,
 				"environment": "space",
 				"environment_zone": Rect2(140, 198, 1640, 700),
@@ -169,8 +169,8 @@ static func get_level(index: int) -> Dictionary:
 			}, true)
 		11:
 			base.merge({
-				"name": "SOLAR SPAN",
-				"hint": "Drift across the array. Shift to open the last bridge.",
+				"name": "The Last Seam",
+				"hint": "Drift across the quilt. Shift to sew the last bridge.",
 				"backdrop": 7,
 				"environment": "space",
 				"environment_zone": Rect2(140, 198, 1640, 700),
