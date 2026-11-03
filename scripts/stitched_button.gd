@@ -1,7 +1,8 @@
 class_name StitchedButton
 extends Button
 
-const FONT: FontFile = preload("res://assets/fonts/AveriaSansLibre-Bold.ttf")
+const FONT: FontFile = preload("res://assets/fonts/Threadline-Satin.ttf")
+const BODY_FONT: FontFile = preload("res://assets/fonts/BricolageGrotesque.ttf")
 const PLATE: Texture2D = preload("res://assets/art/linen_button_plate.png")
 const ICON_PATCH: Texture2D = preload("res://assets/art/linen_icon_patch.png")
 
@@ -11,6 +12,7 @@ var glyph: String = ""
 var cloth: Color = Color("f1e2c8")
 var thread: Color = Color("8f6758")
 var ink: Color = Color("493a37")
+var compact: bool = false
 
 
 func _ready() -> void:
@@ -34,18 +36,18 @@ func _draw() -> void:
 		draw_texture_rect(ICON_PATCH, Rect2(Vector2(0, lift), size), false, tint)
 	else:
 		_draw_plate(lift, tint)
-	var icon_center: Vector2 = Vector2(size.x * (0.5 if caption.is_empty() else 0.18), size.y * 0.48 + lift)
-	var icon_scale: float = minf(size.x, size.y) * (0.26 if caption.is_empty() else 0.19)
+	var icon_center: Vector2 = Vector2(size.x * (0.5 if caption.is_empty() or compact else 0.18), size.y * (0.29 if compact else 0.48) + lift)
+	var icon_scale: float = minf(size.x, size.y) * (0.15 if compact else (0.26 if caption.is_empty() else 0.19))
 	if not glyph.is_empty():
 		_draw_icon(icon_center, icon_scale, ink)
 	if not caption.is_empty():
-		var font_size: int = 55 if size.x >= 680 else (44 if size.y > 110 else 38)
-		var text_left: float = 40.0 if glyph.is_empty() else size.x * 0.33
-		var baseline: float = size.y * (0.54 if subcaption.is_empty() else 0.47) + lift
-		draw_string(FONT, Vector2(text_left, baseline), caption, HORIZONTAL_ALIGNMENT_LEFT, size.x - text_left - 34.0, font_size, ink)
+		var font_size: int = 43 if compact else (55 if size.x >= 680 else (44 if size.y > 110 else 38))
+		var text_left: float = 18.0 if compact else (40.0 if glyph.is_empty() else size.x * 0.33)
+		var baseline: float = size.y * (0.74 if compact else (0.54 if subcaption.is_empty() else 0.47)) + lift
+		draw_string(FONT, Vector2(text_left, baseline), caption, HORIZONTAL_ALIGNMENT_CENTER if compact or subcaption.is_empty() else HORIZONTAL_ALIGNMENT_LEFT, size.x - text_left * 2.0 if compact else size.x - text_left - 34.0, font_size, ink)
 		if not subcaption.is_empty():
 			var small_size: int = 43 if size.x > 720 else 32
-			draw_string(FONT, Vector2(text_left, size.y * 0.73 + lift), subcaption, HORIZONTAL_ALIGNMENT_LEFT, size.x - text_left - 34.0, small_size, ink)
+			draw_string(BODY_FONT, Vector2(text_left, size.y * 0.73 + lift), subcaption, HORIZONTAL_ALIGNMENT_LEFT, size.x - text_left - 34.0, small_size, ink)
 
 
 func _draw_plate(lift: float, tint: Color) -> void:
@@ -99,6 +101,18 @@ func _draw_icon(center: Vector2, radius: float, color: Color) -> void:
 		"mute":
 			_draw_icon_speaker(p, r, color)
 			draw_line(p + Vector2(r * 0.28, -r * 0.44), p + Vector2(r * 0.83, r * 0.44), color, 4.0, true)
+		"settings":
+			draw_arc(p, r * 0.58, 0, TAU, 24, color, 4.0, true)
+			draw_circle(p, r * 0.18, color)
+			for angle: float in [0.0, PI * 0.5, PI, PI * 1.5]:
+				var q: Vector2 = p + Vector2.from_angle(angle) * r * 0.73
+				draw_line(q - Vector2.from_angle(angle) * r * 0.12, q + Vector2.from_angle(angle) * r * 0.12, color, 5.0, true)
+		"fullscreen":
+			for side_x: float in [-1.0, 1.0]:
+				for side_y: float in [-1.0, 1.0]:
+					var corner: Vector2 = p + Vector2(side_x, side_y) * r * 0.65
+					draw_line(corner, corner - Vector2(side_x * r * 0.37, 0), color, 5.0, true)
+					draw_line(corner, corner - Vector2(0, side_y * r * 0.37), color, 5.0, true)
 		"seam":
 			draw_arc(p, r * 0.52, 0, TAU, 24, color, 3.0, true)
 			for angle: float in [PI * 0.25, PI * 0.75, PI * 1.25, PI * 1.75]:

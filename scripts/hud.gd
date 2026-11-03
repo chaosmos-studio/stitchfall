@@ -11,12 +11,9 @@ signal sound_toggled(enabled: bool)
 const INK: Color = Color("493a37")
 const PAPER: Color = Color("f7edda")
 const ACCENT: Color = Color("a85648")
-const FONT_REGULAR: FontFile = preload("res://assets/fonts/AveriaSansLibre-Regular.ttf")
-const FONT_BOLD: FontFile = preload("res://assets/fonts/AveriaSansLibre-Bold.ttf")
+const FONT_REGULAR: FontFile = preload("res://assets/fonts/BricolageGrotesque.ttf")
+const FONT_BOLD: FontFile = preload("res://assets/fonts/Threadline-Satin.ttf")
 const HOME_SCENE: Texture2D = preload("res://assets/art/home_woodland.webp")
-const DANCE_SHEET_1: Texture2D = preload("res://assets/art/seam_runner_dance_front_1.png")
-const DANCE_SHEET_2: Texture2D = preload("res://assets/art/seam_runner_dance_front_2.png")
-const DANCE_SHEET_3: Texture2D = preload("res://assets/art/seam_runner_dance_front_3.png")
 const DANCE_SHEET_4: Texture2D = preload("res://assets/art/seam_runner_dance_front_4.png")
 const BORDER_SCRIPT: GDScript = preload("res://scripts/stitch_border.gd")
 const CLEANUP_SHADER: Shader = preload("res://shaders/runner_cleanup.gdshader")
@@ -37,6 +34,7 @@ var level_previous: StitchedButton
 var level_next: StitchedButton
 var help_page: Control
 var about_page: Control
+var settings_page: Control
 var pause_page: Control
 var hero: AnimatedSprite2D
 var pause_heading: Label
@@ -84,21 +82,14 @@ func _layout() -> void:
 	var mobile_scale: float = 1.2 if DisplayServer.is_touchscreen_available() else 1.0
 	meter.scale = Vector2.ONE * mobile_scale
 	pause_button.scale = Vector2.ONE * mobile_scale
-	sound_buttons[0].scale = Vector2.ONE * mobile_scale
 	pause_button.position.x = root.size.x - pause_button.size.x * mobile_scale - 28.0
 	hint_back.position.x = (root.size.x - hint_back.size.x) * 0.5
 	hero.position.x = root.size.x * 0.735
 	level_page.position.x = (root.size.x - 1920.0) * 0.5
 	help_page.position.x = (root.size.x - 1920.0) * 0.5
 	about_page.position.x = (root.size.x - 1920.0) * 0.5
+	settings_page.position.x = (root.size.x - 1920.0) * 0.5
 	pause_page.position.x = (root.size.x - 1920.0) * 0.5
-	var sound_inset: float = 28.0
-	if OS.has_feature("web"):
-		var browser_width: float = float(JavaScriptBridge.eval("window.innerWidth"))
-		if browser_width > 0.0:
-			var fullscreen_width: float = clampf(browser_width * 0.056, 48.0, 72.0)
-			sound_inset = (16.0 + fullscreen_width + 12.0) * root.size.x / browser_width
-	sound_buttons[0].position.x = root.size.x - sound_buttons[0].size.x * mobile_scale - sound_inset
 
 
 func _style(color: Color, border: Color, width: int) -> StyleBoxFlat:
@@ -180,6 +171,7 @@ func _build_pages() -> void:
 	_build_levels()
 	_build_help()
 	_build_about()
+	_build_settings()
 	_build_pause()
 	show_home()
 
@@ -200,13 +192,21 @@ func _build_home() -> void:
 	title.text = "PALEWHEEL"
 	var line: Label = _label(home_page, Vector2(138, 340), Vector2(840, 84), 39, INK)
 	line.text = "Find the buttons. Turn the pull.\nOpen the seam."
-	_tag(home_page, Rect2(140, 475, 720, 117), "PLAY", "play", Color("e0a278")).pressed.connect(func() -> void: begin_pressed.emit())
-	_tag(home_page, Rect2(140, 605, 720, 106), "LEVELS", "levels", Color("dbe5d1")).pressed.connect(show_levels)
-	_tag(home_page, Rect2(140, 723, 720, 106), "HOW TO PLAY", "help", Color("e8d8bd")).pressed.connect(show_help)
-	_tag(home_page, Rect2(140, 841, 720, 106), "ABOUT", "seam", Color("e4d0b1")).pressed.connect(show_about)
-	var sound_button: StitchedButton = _tag(home_page, Rect2(1737, 35, 116, 104), "", "sound", Color("f1e2c8"))
-	sound_buttons.append(sound_button)
-	sound_button.pressed.connect(_toggle_sound)
+	var menu_items: Array[PackedStringArray] = [
+		PackedStringArray(["PLAY", "play"]),
+		PackedStringArray(["LEVELS", "levels"]),
+		PackedStringArray(["GUIDE", "help"]),
+		PackedStringArray(["SETTINGS", "settings"]),
+	]
+	for index: int in range(menu_items.size()):
+		var item: PackedStringArray = menu_items[index]
+		var button: StitchedButton = _tag(home_page, Rect2(135 + (index % 2) * 365, 494 + (index / 2) * 205, 340, 178), item[0], item[1], [Color("e0a278"), Color("dbe5d1"), Color("e8d8bd"), Color("e4d0b1")][index])
+		button.compact = true
+		match index:
+			0: button.pressed.connect(func() -> void: begin_pressed.emit())
+			1: button.pressed.connect(show_levels)
+			2: button.pressed.connect(show_help)
+			3: button.pressed.connect(show_settings)
 	hero = AnimatedSprite2D.new()
 	hero.sprite_frames = _dance_frames()
 	hero.scale = Vector2.ONE * 2.0
@@ -223,17 +223,14 @@ func _dance_frames() -> SpriteFrames:
 	frames.remove_animation("default")
 	frames.add_animation("dance")
 	frames.set_animation_loop("dance", true)
-	frames.set_animation_speed("dance", 12.0)
-	var sheets: Array[Texture2D] = [DANCE_SHEET_1, DANCE_SHEET_2, DANCE_SHEET_3, DANCE_SHEET_4]
-	for sheet_index: int in range(sheets.size()):
-		var sheet: Texture2D = sheets[sheet_index]
-		var cell: Vector2 = Vector2(float(sheet.get_width()) / 4.0, float(sheet.get_height()) / 4.0)
-		var frame_count: int = 15 if sheet_index == 0 or sheet_index == 3 else 16
-		for index: int in range(frame_count):
-			var frame: AtlasTexture = AtlasTexture.new()
-			frame.atlas = sheet
-			frame.region = Rect2(Vector2(float(index % 4) * cell.x, float(index / 4) * cell.y), cell)
-			frames.add_frame("dance", frame)
+	frames.set_animation_speed("dance", 5.0)
+	var sheet: Texture2D = DANCE_SHEET_4
+	var cell: Vector2 = Vector2(float(sheet.get_width()) / 4.0, float(sheet.get_height()) / 4.0)
+	for step: PackedInt32Array in [PackedInt32Array([0, 4]), PackedInt32Array([1, 2]), PackedInt32Array([2, 2]), PackedInt32Array([3, 3]), PackedInt32Array([2, 2]), PackedInt32Array([1, 2])]:
+		var frame: AtlasTexture = AtlasTexture.new()
+		frame.atlas = sheet
+		frame.region = Rect2(Vector2(float(step[0] % 4) * cell.x, float(step[0] / 4) * cell.y), cell)
+		frames.add_frame("dance", frame, float(step[1]))
 	return frames
 
 
@@ -287,10 +284,10 @@ func _build_help() -> void:
 	heading.text = "HOW TO PLAY"
 	_tag(help_page, Rect2(1560, 136, 112, 105), "", "back", Color("e5d5bc")).pressed.connect(show_home)
 	var instructions: Array[PackedStringArray] = [
-		PackedStringArray(["MOVE", "A / D  or  slide left / right", "move"]),
-		PackedStringArray(["JUMP", "W / Space  or  swipe up", "jump"]),
-		PackedStringArray(["CROUCH", "S  or  swipe down", "crouch"]),
-		PackedStringArray(["SHIFT", "Shift / click  or  tap", "shift"]),
+		PackedStringArray(["MOVE", "A / D / arrows  |  slide", "move"]),
+		PackedStringArray(["JUMP", "W / Space / up  |  swipe up", "jump"]),
+		PackedStringArray(["CROUCH", "S / down  |  swipe down", "crouch"]),
+		PackedStringArray(["SHIFT", "Shift / click  |  tap", "shift"]),
 	]
 	for index: int in range(instructions.size()):
 		var column: int = index % 2
@@ -301,7 +298,7 @@ func _build_help() -> void:
 		diagram.focus_mode = Control.FOCUS_NONE
 		diagram.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var footer: Label = _label(help_page, Vector2(265, 839), Vector2(1300, 70), 31, ACCENT, true)
-	footer.text = "On the ceiling, swipe down to jump. Collect the buttons to open the seam."
+	footer.text = "Enter: play  |  Esc / P: pause  |  R: retry  |  M: sound  |  F: fullscreen"
 
 
 func _build_about() -> void:
@@ -319,6 +316,37 @@ func _build_about() -> void:
 	studio.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	var signoff: Label = _label(about_page, Vector2(320, 805), Vector2(1100, 65), 34, ACCENT, true)
 	signoff.text = "Thanks for spending a little time here."
+
+
+func _build_settings() -> void:
+	settings_page = _page()
+	var card: Panel = _panel(settings_page, Rect2(430, 105, 1060, 850), Color("f7edda", 0.96))
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var heading: Label = _label(settings_page, Vector2(530, 153), Vector2(760, 110), 72, INK, true)
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	heading.text = "SETTINGS"
+	_tag(settings_page, Rect2(1325, 148, 105, 105), "", "back", Color("e5d5bc")).pressed.connect(show_home)
+	var sound_button: StitchedButton = _tag(settings_page, Rect2(545, 340, 385, 192), "SOUND", "sound", Color("e8d8bd"))
+	sound_button.compact = true
+	sound_buttons.append(sound_button)
+	sound_button.pressed.connect(_toggle_sound)
+	var fullscreen_button: StitchedButton = _tag(settings_page, Rect2(990, 340, 385, 192), "FULLSCREEN", "fullscreen", Color("dbe5d1"))
+	fullscreen_button.compact = true
+	fullscreen_button.pressed.connect(_toggle_fullscreen)
+	var about_button: StitchedButton = _tag(settings_page, Rect2(765, 625, 390, 155), "ABOUT", "seam", Color("e4d0b1"))
+	about_button.compact = true
+	about_button.pressed.connect(show_about)
+	var note: Label = _label(settings_page, Vector2(570, 798), Vector2(780, 55), 30, ACCENT)
+	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	note.text = "M: sound     F: fullscreen"
+
+
+func _toggle_fullscreen() -> void:
+	if OS.has_feature("web"):
+		JavaScriptBridge.eval("window.palewheelToggleFullscreen?.()")
+	else:
+		var mode: DisplayServer.WindowMode = DisplayServer.window_get_mode()
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if mode == DisplayServer.WINDOW_MODE_FULLSCREEN else DisplayServer.WINDOW_MODE_FULLSCREEN)
 
 
 func _build_pause() -> void:
@@ -378,11 +406,12 @@ func _toggle_sound() -> void:
 func _show_screen(name: String) -> void:
 	screen = name
 	panel.visible = true
-	fabric.visible = name in ["levels", "help", "about"]
+	fabric.visible = name in ["levels", "help", "about", "settings"]
 	home_page.visible = name == "home"
 	level_page.visible = name == "levels"
 	help_page.visible = name == "help"
 	about_page.visible = name == "about"
+	settings_page.visible = name == "settings"
 	pause_page.visible = name in ["pause", "finish"]
 	meter.visible = false
 	pause_button.visible = false
@@ -391,7 +420,6 @@ func _show_screen(name: String) -> void:
 		hero.play("dance")
 	else:
 		hero.stop()
-	_set_browser_menu(name == "home")
 
 
 func show_home() -> void:
@@ -409,6 +437,10 @@ func show_help() -> void:
 
 func show_about() -> void:
 	_show_screen("about")
+
+
+func show_settings() -> void:
+	_show_screen("settings")
 
 
 func show_pause() -> void:
@@ -437,12 +469,6 @@ func hide_panel() -> void:
 	meter.visible = true
 	pause_button.visible = true
 	hero.stop()
-	_set_browser_menu(false)
-
-
-func _set_browser_menu(visible: bool) -> void:
-	if OS.has_feature("web"):
-		JavaScriptBridge.eval("window.palewheelMenuState?.(%s)" % ["true" if visible else "false"])
 
 
 func set_room_intro(title: String, instruction: String) -> void:

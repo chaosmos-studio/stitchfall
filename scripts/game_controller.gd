@@ -6,6 +6,7 @@ const WORLD_SCRIPT: Script = preload("res://scripts/world_view.gd")
 const HUD_SCRIPT: Script = preload("res://scripts/hud.gd")
 const SENTRY_SCRIPT: Script = preload("res://scripts/sentry.gd")
 const MUSIC_STREAM: AudioStreamOggVorbis = preload("res://assets/audio/music/stitched_home.ogg")
+const SEWING_CURSOR: Texture2D = preload("res://assets/art/sewing_cursor.png")
 
 var level_index: int = 0
 var level: Dictionary = {}
@@ -53,6 +54,9 @@ var sound_paths: Dictionary = {
 
 
 func _ready() -> void:
+	if not DisplayServer.is_touchscreen_available():
+		DisplayServer.cursor_set_custom_image(SEWING_CURSOR, DisplayServer.CURSOR_ARROW, Vector2(5, 5))
+		DisplayServer.cursor_set_custom_image(SEWING_CURSOR, DisplayServer.CURSOR_POINTING_HAND, Vector2(5, 5))
 	world = WORLD_SCRIPT.new() as PalewheelWorldView
 	add_child(world)
 	camera = Camera2D.new()
@@ -103,6 +107,13 @@ func _process(delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.physical_keycode == KEY_M:
+			hud._toggle_sound()
+			return
+		if event.physical_keycode == KEY_F:
+			hud._toggle_fullscreen()
+			return
 	if event is InputEventScreenTouch and playing:
 		_handle_touch(event)
 		return
@@ -119,7 +130,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif not playing and event.is_action_pressed("pause"):
 		if hud.screen == "pause":
 			_on_begin()
-		elif hud.screen in ["levels", "help", "about"]:
+		elif hud.screen in ["levels", "help", "about", "settings"]:
 			hud.show_home()
 	elif playing and event.is_action_pressed("shift_gravity"):
 		_shift(1)

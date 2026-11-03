@@ -37,15 +37,25 @@ async function main() {
     await page.waitForTimeout(800);
     if (errors.length) throw new Error(errors.join('\n'));
     await page.screenshot({ path: path.join(results, 'intro.png') });
-    if (await page.locator('#fullscreen').evaluate(element => getComputedStyle(element).display) !== 'grid') throw new Error('Fullscreen option is missing on the home screen');
+    if (await page.locator('#fullscreen').count()) throw new Error('Fullscreen should live inside Settings');
+    const cursor = await page.locator('#canvas').evaluate(element => getComputedStyle(element).cursor);
+    if (!cursor.includes('sewing_cursor.png')) throw new Error(`The needle cursor is missing: ${cursor}`);
     await page.waitForTimeout(600);
     await page.screenshot({ path: path.join(results, 'intro-dance.png') });
-    await page.touchscreen.tap(100, 320);
+    await page.touchscreen.tap(240, 285);
+    await page.waitForTimeout(220);
+    await page.screenshot({ path: path.join(results, 'settings.png') });
+    if (await page.evaluate(() => document.fullscreenEnabled)) {
+      await page.touchscreen.tap(500, 155);
+      await page.waitForFunction(() => document.fullscreenElement, null, { timeout: 5000 });
+      await page.keyboard.press('Escape');
+    }
+    await page.touchscreen.tap(420, 248);
     await page.waitForTimeout(220);
     await page.screenshot({ path: path.join(results, 'about.png') });
     await page.touchscreen.tap(640, 65);
     await page.waitForTimeout(220);
-    await page.touchscreen.tap(90, 250);
+    await page.touchscreen.tap(240, 210);
     await page.waitForTimeout(220);
     await page.screenshot({ path: path.join(results, 'levels.png') });
     await page.touchscreen.tap(665, 54);
@@ -60,13 +70,12 @@ async function main() {
     await page.touchscreen.tap(340, 275);
     await page.waitForTimeout(220);
     await page.screenshot({ path: path.join(results, 'home-return.png') });
-    await page.touchscreen.tap(90, 296);
+    await page.touchscreen.tap(110, 285);
     await page.waitForTimeout(220);
     await page.screenshot({ path: path.join(results, 'help.png') });
     await page.touchscreen.tap(655, 65);
-    await page.touchscreen.tap(90, 250);
-    marker = page.waitForEvent('console', { predicate: message => message.text().includes('PALEWHEEL_START 0'), timeout: 10000 });
-    await page.touchscreen.tap(170, 110);
+    marker = page.waitForEvent('console', { predicate: message => message.text().includes('PALEWHEEL_START 9'), timeout: 10000 });
+    await page.touchscreen.tap(110, 210);
     await marker;
     await page.waitForTimeout(600);
     if (shifts.length) throw new Error('Starting the game turned gravity');
