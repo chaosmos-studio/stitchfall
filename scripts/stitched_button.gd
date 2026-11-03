@@ -1,0 +1,164 @@
+class_name StitchedButton
+extends Button
+
+const FONT: FontFile = preload("res://assets/fonts/Baloo2.ttf")
+
+var caption: String = ""
+var subcaption: String = ""
+var glyph: String = ""
+var cloth: Color = Color("f1e2c8")
+var thread: Color = Color("8f6758")
+var ink: Color = Color("493a37")
+var age: float = 0.0
+
+
+func _ready() -> void:
+	text = ""
+	focus_mode = Control.FOCUS_ALL
+	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	for state: String in ["normal", "hover", "pressed", "focus", "disabled"]:
+		add_theme_stylebox_override(state, StyleBoxEmpty.new())
+	resized.connect(queue_redraw)
+	mouse_entered.connect(queue_redraw)
+	mouse_exited.connect(queue_redraw)
+	focus_entered.connect(queue_redraw)
+	focus_exited.connect(queue_redraw)
+
+
+func _process(delta: float) -> void:
+	age += delta
+	if is_hovered() or has_focus():
+		queue_redraw()
+
+
+func _draw() -> void:
+	var hovered: bool = is_hovered() or has_focus()
+	var lift: float = -3.0 if hovered else 0.0
+	var margin: float = 4.0
+	var right: float = size.x - margin
+	var bottom: float = size.y - margin
+	var silhouette: PackedVector2Array = PackedVector2Array([
+		Vector2(16, 13 + lift), Vector2(36, 5 + lift), Vector2(right - 28, 7 + lift),
+		Vector2(right - 7, 20 + lift), Vector2(right - 9, bottom - 18 + lift),
+		Vector2(right - 28, bottom - 5 + lift), Vector2(21, bottom - 7 + lift),
+		Vector2(7, bottom - 24 + lift),
+	])
+	draw_colored_polygon(silhouette, Color("42352f", 0.2))
+	var front: PackedVector2Array = PackedVector2Array([
+		Vector2(10, 8 + lift), Vector2(32, 2 + lift), Vector2(right - 32, 4 + lift),
+		Vector2(right - 3, 14 + lift), Vector2(right - 6, bottom - 25 + lift),
+		Vector2(right - 29, bottom - 9 + lift), Vector2(19, bottom - 11 + lift),
+		Vector2(4, bottom - 28 + lift),
+	])
+	draw_colored_polygon(front, cloth.lightened(0.08) if hovered else cloth)
+	draw_polyline(front, thread, 3.0, true)
+	draw_line(front[7], front[0], thread, 3.0, true)
+	var stitch: Color = thread.lightened(0.2) if hovered else thread
+	for x: int in range(40, int(right - 32), 19):
+		var sway: float = sin(float(x) * 0.13 + age * 3.0) * 1.0 if hovered else 0.0
+		draw_line(Vector2(x, 18 + lift + sway), Vector2(x + 10, 18 + lift + sway), stitch, 1.7, true)
+		draw_line(Vector2(x, bottom - 24 + lift), Vector2(x + 10, bottom - 24 + lift), stitch, 1.7, true)
+	for y: int in range(35, int(bottom - 32), 18):
+		draw_line(Vector2(18, y + lift), Vector2(18, y + 9 + lift), stitch, 1.7, true)
+		draw_line(Vector2(right - 19, y + lift), Vector2(right - 19, y + 9 + lift), stitch, 1.7, true)
+	for point: Vector2 in [Vector2(22, 21 + lift), Vector2(right - 21, 23 + lift), Vector2(22, bottom - 27 + lift), Vector2(right - 22, bottom - 28 + lift)]:
+		draw_circle(point, 3.2, stitch)
+	var icon_center: Vector2 = Vector2(size.x * (0.5 if caption.is_empty() else 0.18), size.y * 0.48 + lift)
+	var icon_scale: float = minf(size.x, size.y) * (0.26 if caption.is_empty() else 0.19)
+	if not glyph.is_empty():
+		_draw_icon(icon_center, icon_scale, ink)
+	if not caption.is_empty():
+		var font_size: int = 48 if size.x > 720 else (38 if size.y > 110 else 29)
+		var text_left: float = 40.0 if glyph.is_empty() else size.x * 0.33
+		var baseline: float = size.y * (0.54 if subcaption.is_empty() else 0.47) + lift
+		draw_string(FONT, Vector2(text_left, baseline), caption, HORIZONTAL_ALIGNMENT_LEFT, size.x - text_left - 34.0, font_size, ink)
+		if not subcaption.is_empty():
+			var small_size: int = 37 if size.x > 720 else 27
+			draw_string(FONT, Vector2(text_left, size.y * 0.73 + lift), subcaption, HORIZONTAL_ALIGNMENT_LEFT, size.x - text_left - 34.0, small_size, ink.lightened(0.14))
+
+
+func _draw_icon(center: Vector2, radius: float, color: Color) -> void:
+	var p: Vector2 = center
+	var r: float = radius
+	match glyph:
+		"pause":
+			draw_line(p + Vector2(-r * 0.34, -r * 0.62), p + Vector2(-r * 0.34, r * 0.62), color, 7.0, true)
+			draw_line(p + Vector2(r * 0.34, -r * 0.62), p + Vector2(r * 0.34, r * 0.62), color, 7.0, true)
+		"play":
+			draw_colored_polygon(PackedVector2Array([p + Vector2(-r * 0.5, -r * 0.72), p + Vector2(r * 0.7, 0), p + Vector2(-r * 0.5, r * 0.72)]), color)
+		"home":
+			draw_polyline(PackedVector2Array([p + Vector2(-r * 0.78, -r * 0.08), p + Vector2(0, -r * 0.75), p + Vector2(r * 0.78, -r * 0.08)]), color, 5.0, true)
+			draw_rect(Rect2(p + Vector2(-r * 0.54, -r * 0.05), Vector2(r * 1.08, r * 0.78)), color, false, 4.0, true)
+			draw_line(p + Vector2(0, r * 0.7), p + Vector2(0, r * 0.2), color, 3.0, true)
+		"back":
+			draw_line(p + Vector2(r * 0.62, 0), p + Vector2(-r * 0.62, 0), color, 5.0, true)
+			draw_polyline(PackedVector2Array([p + Vector2(-r * 0.1, -r * 0.55), p + Vector2(-r * 0.7, 0), p + Vector2(-r * 0.1, r * 0.55)]), color, 5.0, true)
+		"next":
+			draw_line(p + Vector2(-r * 0.62, 0), p + Vector2(r * 0.62, 0), color, 5.0, true)
+			draw_polyline(PackedVector2Array([p + Vector2(r * 0.1, -r * 0.55), p + Vector2(r * 0.7, 0), p + Vector2(r * 0.1, r * 0.55)]), color, 5.0, true)
+		"levels":
+			for x: int in range(2):
+				for y: int in range(2):
+					var q: Vector2 = p + Vector2((float(x) - 0.5) * r * 0.82, (float(y) - 0.5) * r * 0.82)
+					draw_rect(Rect2(q - Vector2.ONE * r * 0.27, Vector2.ONE * r * 0.54), color, false, 3.0, true)
+		"restart":
+			draw_arc(p, r * 0.64, -PI * 0.65, PI * 0.85, 20, color, 5.0, true)
+			draw_colored_polygon(PackedVector2Array([p + Vector2(-r * 0.67, -r * 0.12), p + Vector2(-r * 0.78, -r * 0.7), p + Vector2(-r * 0.15, -r * 0.51)]), color)
+		"help":
+			draw_arc(p + Vector2(0, -r * 0.18), r * 0.36, PI * 1.12, TAU * 1.08, 16, color, 4.0, true)
+			draw_line(p + Vector2(r * 0.2, r * 0.05), p + Vector2(0, r * 0.36), color, 4.0, true)
+			draw_circle(p + Vector2(0, r * 0.64), 3.5, color)
+		"sound":
+			draw_colored_polygon(PackedVector2Array([p + Vector2(-r * 0.74, -r * 0.27), p + Vector2(-r * 0.38, -r * 0.27), p + Vector2(0, -r * 0.6), p + Vector2(0, r * 0.6), p + Vector2(-r * 0.38, r * 0.27), p + Vector2(-r * 0.74, r * 0.27)]), color)
+			draw_arc(p, r * 0.49, -PI * 0.34, PI * 0.34, 12, color, 3.5, true)
+		"mute":
+			_draw_icon_speaker(p, r, color)
+			draw_line(p + Vector2(r * 0.28, -r * 0.44), p + Vector2(r * 0.83, r * 0.44), color, 4.0, true)
+		"seam":
+			draw_arc(p, r * 0.52, 0, TAU, 24, color, 3.0, true)
+			for angle: float in [PI * 0.25, PI * 0.75, PI * 1.25, PI * 1.75]:
+				draw_circle(p + Vector2.from_angle(angle) * r * 0.29, 2.5, color)
+		"move":
+			draw_line(p + Vector2(-r * 0.65, 0), p + Vector2(r * 0.65, 0), color, 4.0, true)
+			for side: float in [-1.0, 1.0]:
+				var tip: Vector2 = p + Vector2(side * r * 0.74, 0)
+				draw_polyline(PackedVector2Array([tip - Vector2(side * r * 0.3, r * 0.3), tip, tip - Vector2(side * r * 0.3, -r * 0.3)]), color, 4.0, true)
+		"jump":
+			draw_line(p + Vector2(0, r * 0.7), p + Vector2(0, -r * 0.6), color, 4.0, true)
+			draw_polyline(PackedVector2Array([p + Vector2(-r * 0.34, -r * 0.22), p + Vector2(0, -r * 0.7), p + Vector2(r * 0.34, -r * 0.22)]), color, 4.0, true)
+			draw_arc(p + Vector2(0, r * 0.58), r * 0.42, PI, TAU, 14, color, 2.0, true)
+		"crouch":
+			draw_line(p + Vector2(0, -r * 0.65), p + Vector2(0, r * 0.28), color, 4.0, true)
+			draw_polyline(PackedVector2Array([p + Vector2(-r * 0.32, 0), p + Vector2(0, r * 0.4), p + Vector2(r * 0.32, 0)]), color, 4.0, true)
+			draw_line(p + Vector2(-r * 0.65, r * 0.68), p + Vector2(r * 0.65, r * 0.68), color, 4.0, true)
+		"shift":
+			draw_arc(p, r * 0.62, -PI * 0.72, PI * 0.28, 18, color, 4.0, true)
+			draw_arc(p, r * 0.62, PI * 0.28, PI * 1.28, 18, color, 4.0, true)
+			draw_colored_polygon(PackedVector2Array([p + Vector2(r * 0.51, -r * 0.47), p + Vector2(r * 0.8, -r * 0.47), p + Vector2(r * 0.68, -r * 0.07)]), color)
+		"water":
+			for row: int in range(2):
+				for column: int in range(2):
+					var q: Vector2 = p + Vector2((float(column) - 0.5) * r * 0.95, (float(row) - 0.5) * r * 0.6)
+					draw_arc(q, r * 0.32, 0, PI, 12, color, 3.0, true)
+		"dunes":
+			draw_polyline(PackedVector2Array([p + Vector2(-r * 0.78, r * 0.45), p + Vector2(-r * 0.12, -r * 0.36), p + Vector2(r * 0.72, r * 0.45)]), color, 3.0, true)
+			draw_line(p + Vector2(-r * 0.4, r * 0.57), p + Vector2(r * 0.7, r * 0.57), color, 2.0, true)
+		"forest":
+			draw_colored_polygon(PackedVector2Array([p + Vector2(-r * 0.5, r * 0.5), p + Vector2(-r * 0.28, -r * 0.5), p + Vector2(r * 0.5, -r * 0.42), p + Vector2(r * 0.32, r * 0.4)]), color)
+			draw_line(p + Vector2(-r * 0.64, r * 0.7), p + Vector2(r * 0.32, -r * 0.31), Color("f4ead4"), 2.0, true)
+		"night":
+			for q: Vector2 in [p, p + Vector2(-r * 0.5, -r * 0.3), p + Vector2(r * 0.48, r * 0.25)]:
+				draw_line(q + Vector2(0, -r * 0.23), q + Vector2(0, r * 0.23), color, 2.0, true)
+				draw_line(q + Vector2(-r * 0.23, 0), q + Vector2(r * 0.23, 0), color, 2.0, true)
+		"rain":
+			for column: int in range(3):
+				var q: Vector2 = p + Vector2((float(column) - 1.0) * r * 0.5, (float(column % 2) - 0.5) * r * 0.3)
+				draw_line(q + Vector2(3, -r * 0.36), q + Vector2(-3, r * 0.37), color, 3.0, true)
+		"frost":
+			for angle: float in [0.0, PI / 3.0, PI * 2.0 / 3.0]:
+				var d: Vector2 = Vector2.from_angle(angle) * r * 0.72
+				draw_line(p - d, p + d, color, 3.0, true)
+
+
+func _draw_icon_speaker(p: Vector2, r: float, color: Color) -> void:
+	draw_colored_polygon(PackedVector2Array([p + Vector2(-r * 0.74, -r * 0.27), p + Vector2(-r * 0.38, -r * 0.27), p + Vector2(0, -r * 0.6), p + Vector2(0, r * 0.6), p + Vector2(-r * 0.38, r * 0.27), p + Vector2(-r * 0.74, r * 0.27)]), color)

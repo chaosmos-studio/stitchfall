@@ -13,6 +13,13 @@ func _ready() -> void:
 	if args.size() > 3:
 		if args[3] == "start":
 			scene._on_begin()
+		elif args[3] == "levels":
+			scene.hud.show_levels()
+		elif args[3] == "help":
+			scene.hud.show_help()
+		elif args[3] == "pause":
+			scene._on_begin()
+			scene._on_pause()
 		elif args[3].begins_with("room="):
 			scene._load_level(int(args[3].trim_prefix("room=")))
 			scene._on_begin()

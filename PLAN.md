@@ -18,6 +18,9 @@ Platforms, hazards, pickups, exits, enemies, cargo, and HUD elements are drawn i
 The HUD keeps button progress and pause available during play.
 Each room name and its instruction appear briefly when the room begins.
 The HUD cloth palette follows the setting.
+The Home screen plays a dance loop made from 32 poses.
+Level Select presents the rooms as two pages of larger textile cards with setting symbols.
+Help uses sewn gesture diagrams, and Pause uses a stitched icon during play.
 
 ## Settings and rules
 
@@ -36,7 +39,7 @@ Frost preserves horizontal momentum.
 `scripts/player.gd` owns movement, environmental forces, and sprite animation.
 `scripts/cargo.gd` and `scripts/sentry.gd` own moving obstacles.
 `scripts/world_view.gd` draws the textile world.
-`scripts/hud.gd`, `scripts/button_meter.gd`, and `scripts/stitch_border.gd` draw the interface.
+`scripts/hud.gd`, `scripts/stitched_button.gd`, `scripts/button_meter.gd`, and `scripts/stitch_border.gd` draw the interface.
 
 ## Next milestones
 

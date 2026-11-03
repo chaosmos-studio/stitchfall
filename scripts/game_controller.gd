@@ -66,13 +66,17 @@ func _ready() -> void:
 	add_child(hud)
 	hud.begin_pressed.connect(_on_begin)
 	hud.pause_pressed.connect(_on_pause)
+	hud.restart_pressed.connect(_restart)
+	hud.home_pressed.connect(_on_home)
+	hud.level_selected.connect(_on_level_selected)
+	hud.sound_toggled.connect(func(enabled: bool) -> void: audio_enabled = enabled)
 	var initial_room: int = 0
 	if OS.has_feature("web"):
 		var requested_room: Variant = JavaScriptBridge.eval("new URLSearchParams(window.location.search).get('room')")
 		if requested_room != null:
 			initial_room = clampi(str(requested_room).to_int(), 0, PalewheelLevels.count() - 1)
 	_load_level(initial_room)
-	hud.show_panel("PALEWHEEL", "Collect the buttons. Shift the pull. Find the open seam.", "BEGIN")
+	hud.show_home()
 
 
 func _process(delta: float) -> void:
@@ -96,8 +100,13 @@ func _unhandled_input(event: InputEvent) -> void:
 			if not DisplayServer.is_touchscreen_available() and Time.get_ticks_msec() - last_touch_msec > 2000 and Time.get_ticks_msec() - last_start_msec > 150:
 				_shift(1)
 		return
-	if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_ENTER and not playing:
+	if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_ENTER and not playing and hud.screen in ["home", "pause", "finish"]:
 		_on_begin()
+	elif not playing and event.is_action_pressed("pause"):
+		if hud.screen == "pause":
+			_on_begin()
+		elif hud.screen in ["levels", "help"]:
+			hud.show_home()
 	elif playing and event.is_action_pressed("shift_gravity"):
 		_shift(1)
 	elif playing and event.is_action_pressed("retry"):
@@ -394,7 +403,7 @@ func _advance() -> void:
 	if level_index + 1 >= PalewheelLevels.count():
 		finished = true
 		print("PALEWHEEL_WIN")
-		hud.show_panel("THE SEAM HOLDS", "Every patch found its place.\n\nTime %s   /   Shifts %d   /   Hits %d" % [_format_time(run_time), shifts, deaths], "PLAY AGAIN")
+		hud.show_finish(_format_time(run_time), shifts, deaths)
 		return
 	_load_level(level_index + 1)
 	playing = true
@@ -424,7 +433,29 @@ func _on_pause() -> void:
 	pilot.control_enabled = false
 	for sentry: PalewheelWatcher in sentries:
 		sentry.active = false
-	hud.show_panel("PAUSED", "The thread can wait.", "RESUME")
+	hud.show_pause()
+
+
+func _on_home() -> void:
+	if is_instance_valid(pilot):
+		pilot.control_enabled = false
+		pilot.touch_axis = 0.0
+		pilot.set_touch_crouch(false)
+	for sentry: PalewheelWatcher in sentries:
+		sentry.active = false
+	playing = false
+	touch_starts.clear()
+	mobile_crouched = false
+	hud.show_home()
+
+
+func _on_level_selected(index: int) -> void:
+	finished = false
+	run_time = 0.0
+	deaths = 0
+	shifts = 0
+	_load_level(index)
+	_on_begin()
 
 
 func _on_begin() -> void:
