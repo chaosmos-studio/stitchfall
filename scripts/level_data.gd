@@ -16,6 +16,8 @@ static func count() -> int:
 static func get_level(index: int) -> Dictionary:
 	var base: Dictionary = {
 		"backdrop": mini(index, 3),
+		"environment": "",
+		"environment_zone": Rect2(),
 		"start": Vector2(270, 822),
 		"exit": Vector2(1705, 815),
 		"walls": FRAME.duplicate(),
@@ -80,8 +82,10 @@ static func get_level(index: int) -> Dictionary:
 		4:
 			base.merge({
 				"name": "TIDE LOCK",
-				"hint": "Follow the new pull above the flooded shaft.",
+				"hint": "Floodwater slows your fall. Turn gravity through the pool.",
 				"backdrop": 4,
+				"environment": "water",
+				"environment_zone": Rect2(660, 590, 680, 308),
 				"walls": FRAME + [Rect2(610, 660, 34, 238), Rect2(1000, 510, 310, 28)],
 				"checkpoint": Vector2(935, 815),
 				"shards": [Vector2(420, 730), Vector2(870, 420), Vector2(1500, 690)],
@@ -89,8 +93,10 @@ static func get_level(index: int) -> Dictionary:
 		5:
 			base.merge({
 				"name": "PUMP GALLERY",
-				"hint": "Turn through the sluice and cross while the watcher rests.",
+				"hint": "Use the flooded sluice to soften the descent.",
 				"backdrop": 4,
+				"environment": "water",
+				"environment_zone": Rect2(595, 560, 320, 338),
 				"walls": FRAME + [Rect2(570, 620, 32, 278), Rect2(1110, 585, 32, 313)],
 				"phase_walls": [Rect2(670, 485, 245, 26)],
 				"hazards": [Rect2(930, 870, 145, 28)],
@@ -101,8 +107,10 @@ static func get_level(index: int) -> Dictionary:
 		6:
 			base.merge({
 				"name": "DUNE RELAY",
-				"hint": "Keep your momentum through the open relay.",
+				"hint": "The sand wind pushes right. Turn with its momentum.",
 				"backdrop": 5,
+				"environment": "dunes",
+				"environment_zone": Rect2(580, 280, 1030, 618),
 				"walls": FRAME + [Rect2(535, 700, 32, 198), Rect2(900, 510, 315, 28)],
 				"checkpoint": Vector2(1100, 815),
 				"shards": [Vector2(360, 715), Vector2(815, 405), Vector2(1510, 710)],
@@ -110,8 +118,10 @@ static func get_level(index: int) -> Dictionary:
 		7:
 			base.merge({
 				"name": "SAND CHOKE",
-				"hint": "Switch the bridge before the heated vent.",
+				"hint": "Cross the sand wind, then switch the bridge.",
 				"backdrop": 5,
+				"environment": "dunes",
+				"environment_zone": Rect2(590, 270, 1010, 628),
 				"walls": FRAME + [Rect2(615, 610, 34, 288), Rect2(1180, 540, 34, 358)],
 				"phase_walls": [Rect2(740, 445, 280, 26)],
 				"hazards": [Rect2(940, 870, 155, 28)],
@@ -122,8 +132,10 @@ static func get_level(index: int) -> Dictionary:
 		8:
 			base.merge({
 				"name": "CANOPY BRIDGE",
-				"hint": "The old crossing returns only after a turn.",
+				"hint": "The canopy draft lifts you under the bridge.",
 				"backdrop": 6,
+				"environment": "forest",
+				"environment_zone": Rect2(725, 390, 485, 508),
 				"walls": FRAME + [Rect2(700, 650, 34, 248), Rect2(1170, 585, 34, 313)],
 				"phase_walls": [Rect2(770, 535, 290, 26)],
 				"checkpoint": Vector2(1030, 815),
@@ -132,8 +144,10 @@ static func get_level(index: int) -> Dictionary:
 		9:
 			base.merge({
 				"name": "ROOT ENGINE",
-				"hint": "Set the cargo plate, then carry the last light home.",
+				"hint": "Ride the canopy draft after setting the cargo plate.",
 				"backdrop": 6,
+				"environment": "forest",
+				"environment_zone": Rect2(1050, 370, 590, 528),
 				"crate": Vector2(460, 835),
 				"pad": Vector2(760, 876),
 				"walls": FRAME + [Rect2(1060, 565, 34, 333), Rect2(1340, 470, 265, 28)],

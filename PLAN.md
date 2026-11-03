@@ -15,7 +15,8 @@ The working assumptions are a light default palette, crisp sci-fi machinery, a l
 The current pass uses held drawings for idle, running, takeoff, flight, landing, and gravity turns.
 The camera follows the mechanic through a full-screen room, with the touch controls over the playfield.
 The airlocks, light cells, beacons, and cargo use painted sprite art, and the touch controls use compact station hardware styling.
-The first world expansion adds flooded machinery, desert relay, and reclaimed forest rooms with distinct painted backgrounds.
+The first world expansion adds flooded machinery, desert relay, and reclaimed forest rooms with distinct painted backgrounds and movement fields.
+Floodwater slows and buoys the pilot, dune wind pushes across open jumps, and canopy drafts lift upward.
 The touch UI has left and right movement, Jump, and Turn.
 Jump height follows the hold time, and gravity turns preserve momentum while the character art rotates into the new orientation.
 Rooms now continue without an interstitial menu.
@@ -34,7 +35,7 @@ Web preview links can open a selected room for art and route review.
 ## Next milestones
 
 - Expand the campaign toward more than 100 reviewed rooms across distinct worlds, with route audits before each pack ships.
-- Give each world a rule that affects movement or puzzles, beyond its background painting.
+- Add more world rules that change movement and puzzles.
 - Tune routes, movement, and touch controls through real phone play.
 - Add chambers with distinct puzzle patterns that build on turning, cargo, bridges, and watcher timing.
 - Add ambient music, richer motion, transition effects, and an ending sequence.

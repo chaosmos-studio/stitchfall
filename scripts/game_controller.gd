@@ -154,6 +154,7 @@ func _load_level(index: int) -> void:
 	pilot = PILOT_SCRIPT.new() as PalewheelCourier
 	pilot.position = level["start"]
 	room.add_child(pilot)
+	pilot.set_environment(level["environment"], level["environment_zone"])
 	pilot.control_enabled = playing
 	pilot.jumped.connect(_on_pilot_jumped)
 	pilot.stepped.connect(func() -> void: _play_step(-17.0))

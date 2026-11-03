@@ -16,6 +16,7 @@ func _run() -> void:
 	_test_input_map_is_wired()
 	_test_orientation_is_an_int()
 	await _test_movement_feel()
+	await _test_environment_forces()
 	await _test_palewheel_playthrough()
 	print("\n==== TESTS: %d passed, %d failed ====" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
@@ -62,6 +63,25 @@ func _test_movement_feel() -> void:
 		await physics_frame
 		_check("releasing jump reduces upward speed", pilot.velocity.y > -400.0)
 	pilot.queue_free()
+	await process_frame
+
+
+func _test_environment_forces() -> void:
+	var dry: PalewheelCourier = PalewheelCourier.new()
+	var wet: PalewheelCourier = PalewheelCourier.new()
+	dry.position = Vector2(2200, 350)
+	wet.position = Vector2(2600, 350)
+	root.add_child(dry)
+	root.add_child(wet)
+	await process_frame
+	_check("the pilot accepts an authored environment zone", wet.has_method("set_environment"))
+	if wet.has_method("set_environment"):
+		wet.call("set_environment", "water", Rect2(2500, 200, 220, 500))
+		for frame: int in range(12):
+			await physics_frame
+		_check("water slows a fall", wet.velocity.y < dry.velocity.y * 0.55)
+	dry.queue_free()
+	wet.queue_free()
 	await process_frame
 
 

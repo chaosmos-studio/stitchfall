@@ -14,6 +14,8 @@ const COYOTE_TIME: float = 0.11
 const JUMP_BUFFER: float = 0.13
 
 var gravity_direction: Vector2 = Vector2.DOWN
+var environment: String = ""
+var environment_zone: Rect2 = Rect2()
 var touch_axis: float = 0.0
 var touch_jump: bool = false
 var jump_cut_requested: bool = false
@@ -122,12 +124,24 @@ func _physics_process(delta: float) -> void:
 	var axis: float = Input.get_axis("move_left", "move_right")
 	if absf(touch_axis) > absf(axis):
 		axis = touch_axis
+	var in_field: bool = environment_zone.has_point(position)
+	if in_field and environment == "dunes":
+		velocity += Vector2(1100.0, 0.0) * delta
+	elif in_field and environment == "forest":
+		velocity += Vector2(0.0, -1850.0) * delta
 	var tangent: Vector2 = Vector2(gravity_direction.y, -gravity_direction.x)
 	var along: float = velocity.dot(tangent)
-	var falling: float = minf(velocity.dot(gravity_direction) + GRAVITY * delta, 900.0)
-	along = move_toward(along, axis * RUN_SPEED, (RUN_ACCEL if grounded else AIR_ACCEL) * delta)
+	var submerged: bool = in_field and environment == "water"
+	var falling: float = velocity.dot(gravity_direction)
+	if submerged:
+		falling = minf(falling * (1.0 - 1.5 * delta) + GRAVITY * 0.33 * delta, 400.0)
+	else:
+		falling = minf(falling + GRAVITY * delta, 900.0)
+	var target_speed: float = 240.0 if submerged else RUN_SPEED
+	var acceleration: float = 1200.0 if submerged else (RUN_ACCEL if grounded else AIR_ACCEL)
+	along = move_toward(along, axis * target_speed, acceleration * delta)
 	if jump_buffer > 0.0 and coyote > 0.0:
-		falling = -JUMP_SPEED
+		falling = -510.0 if submerged else -JUMP_SPEED
 		coyote = 0.0
 		jump_buffer = 0.0
 		takeoff_time = 0.14
@@ -187,3 +201,8 @@ func queue_touch_jump() -> void:
 
 func release_touch_jump() -> void:
 	jump_cut_requested = true
+
+
+func set_environment(kind: String, zone: Rect2) -> void:
+	environment = kind
+	environment_zone = zone

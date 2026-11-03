@@ -52,6 +52,7 @@ func _draw() -> void:
 	if level.is_empty():
 		return
 	_draw_chamber()
+	_draw_environment()
 	for wall: Rect2 in level["walls"]:
 		_draw_wall(wall)
 	for bridge: Rect2 in level["phase_walls"]:
@@ -78,6 +79,36 @@ func _draw() -> void:
 
 func _draw_chamber() -> void:
 	draw_rect(Rect2(110, 168, 1700, 760), Color("f5f8f6", 0.15))
+
+
+func _draw_environment() -> void:
+	var kind: String = level.get("environment", "")
+	var zone: Rect2 = level.get("environment_zone", Rect2())
+	if zone.has_area() == false:
+		return
+	match kind:
+		"water":
+			draw_rect(zone, Color("348da9", 0.23))
+			for x: int in range(int(zone.position.x), int(zone.end.x), 20):
+				var ripple: float = sin(float(x) * 0.025 + time * 2.8) * 5.0
+				var next_ripple: float = sin(float(x + 20) * 0.025 + time * 2.8) * 5.0
+				draw_line(Vector2(x, zone.position.y + ripple), Vector2(x + 20, zone.position.y + next_ripple), Color("d4f9f3", 0.88), 3.0)
+			for index: int in range(18):
+				var x: float = zone.position.x + fposmod(float(index * 79), zone.size.x)
+				var y: float = zone.end.y - fposmod(float(index * 131) + time * (16.0 + float(index % 4) * 5.0), zone.size.y)
+				draw_arc(Vector2(x, y), 3.0 + float(index % 3) * 2.0, 0.0, TAU, 12, Color("d4f9f3", 0.53), 2.0)
+		"dunes":
+			for index: int in range(22):
+				var x: float = zone.position.x + fposmod(float(index * 103) + time * (95.0 + float(index % 4) * 18.0), zone.size.x)
+				var y: float = zone.position.y + fposmod(float(index * 139), zone.size.y)
+				draw_line(Vector2(x, y), Vector2(x + 43.0, y - 7.0), Color("f1cb88", 0.56), 2.0)
+				draw_circle(Vector2(x + 49.0, y - 8.0), 2.0, Color("f1cb88", 0.62))
+		"forest":
+			for index: int in range(18):
+				var x: float = zone.position.x + fposmod(float(index * 83) + sin(time * 1.3 + float(index)) * 22.0, zone.size.x)
+				var y: float = zone.end.y - fposmod(float(index * 117) + time * (22.0 + float(index % 3) * 7.0), zone.size.y)
+				draw_circle(Vector2(x, y), 3.0 + float(index % 3), Color("c9e9b5", 0.6))
+				draw_line(Vector2(x - 8.0, y + 10.0), Vector2(x + 4.0, y - 8.0), Color("b6dc96", 0.32), 2.0)
 
 
 func _draw_wall(wall: Rect2) -> void:
