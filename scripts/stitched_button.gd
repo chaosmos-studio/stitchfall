@@ -1,7 +1,9 @@
 class_name StitchedButton
 extends Button
 
-const FONT: FontFile = preload("res://assets/fonts/Baloo2.ttf")
+const FONT: FontFile = preload("res://assets/fonts/BricolageGrotesque-ExtraBold.ttf")
+const PLATE: Texture2D = preload("res://assets/art/linen_button_plate.png")
+const ICON_PATCH: Texture2D = preload("res://assets/art/linen_icon_patch.png")
 
 var caption: String = ""
 var subcaption: String = ""
@@ -9,7 +11,6 @@ var glyph: String = ""
 var cloth: Color = Color("f1e2c8")
 var thread: Color = Color("8f6758")
 var ink: Color = Color("493a37")
-var age: float = 0.0
 
 
 func _ready() -> void:
@@ -25,56 +26,40 @@ func _ready() -> void:
 	focus_exited.connect(queue_redraw)
 
 
-func _process(delta: float) -> void:
-	age += delta
-	if is_hovered() or has_focus():
-		queue_redraw()
-
-
 func _draw() -> void:
 	var hovered: bool = is_hovered() or has_focus()
 	var lift: float = -3.0 if hovered else 0.0
-	var margin: float = 4.0
-	var right: float = size.x - margin
-	var bottom: float = size.y - margin
-	var silhouette: PackedVector2Array = PackedVector2Array([
-		Vector2(16, 13 + lift), Vector2(36, 5 + lift), Vector2(right - 28, 7 + lift),
-		Vector2(right - 7, 20 + lift), Vector2(right - 9, bottom - 18 + lift),
-		Vector2(right - 28, bottom - 5 + lift), Vector2(21, bottom - 7 + lift),
-		Vector2(7, bottom - 24 + lift),
-	])
-	draw_colored_polygon(silhouette, Color("42352f", 0.2))
-	var front: PackedVector2Array = PackedVector2Array([
-		Vector2(10, 8 + lift), Vector2(32, 2 + lift), Vector2(right - 32, 4 + lift),
-		Vector2(right - 3, 14 + lift), Vector2(right - 6, bottom - 25 + lift),
-		Vector2(right - 29, bottom - 9 + lift), Vector2(19, bottom - 11 + lift),
-		Vector2(4, bottom - 28 + lift),
-	])
-	draw_colored_polygon(front, cloth.lightened(0.08) if hovered else cloth)
-	draw_polyline(front, thread, 3.0, true)
-	draw_line(front[7], front[0], thread, 3.0, true)
-	var stitch: Color = thread.lightened(0.2) if hovered else thread
-	for x: int in range(40, int(right - 32), 19):
-		var sway: float = sin(float(x) * 0.13 + age * 3.0) * 1.0 if hovered else 0.0
-		draw_line(Vector2(x, 18 + lift + sway), Vector2(x + 10, 18 + lift + sway), stitch, 1.7, true)
-		draw_line(Vector2(x, bottom - 24 + lift), Vector2(x + 10, bottom - 24 + lift), stitch, 1.7, true)
-	for y: int in range(35, int(bottom - 32), 18):
-		draw_line(Vector2(18, y + lift), Vector2(18, y + 9 + lift), stitch, 1.7, true)
-		draw_line(Vector2(right - 19, y + lift), Vector2(right - 19, y + 9 + lift), stitch, 1.7, true)
-	for point: Vector2 in [Vector2(22, 21 + lift), Vector2(right - 21, 23 + lift), Vector2(22, bottom - 27 + lift), Vector2(right - 22, bottom - 28 + lift)]:
-		draw_circle(point, 3.2, stitch)
+	var tint: Color = cloth.lightened(0.13) if hovered else cloth
+	if caption.is_empty():
+		draw_texture_rect(ICON_PATCH, Rect2(Vector2(0, lift), size), false, tint)
+	else:
+		_draw_plate(lift, tint)
 	var icon_center: Vector2 = Vector2(size.x * (0.5 if caption.is_empty() else 0.18), size.y * 0.48 + lift)
 	var icon_scale: float = minf(size.x, size.y) * (0.26 if caption.is_empty() else 0.19)
 	if not glyph.is_empty():
 		_draw_icon(icon_center, icon_scale, ink)
 	if not caption.is_empty():
-		var font_size: int = 48 if size.x > 720 else (38 if size.y > 110 else 29)
+		var font_size: int = 55 if size.x > 720 else (42 if size.y > 110 else 35)
 		var text_left: float = 40.0 if glyph.is_empty() else size.x * 0.33
 		var baseline: float = size.y * (0.54 if subcaption.is_empty() else 0.47) + lift
 		draw_string(FONT, Vector2(text_left, baseline), caption, HORIZONTAL_ALIGNMENT_LEFT, size.x - text_left - 34.0, font_size, ink)
 		if not subcaption.is_empty():
-			var small_size: int = 37 if size.x > 720 else 27
+			var small_size: int = 43 if size.x > 720 else 31
 			draw_string(FONT, Vector2(text_left, size.y * 0.73 + lift), subcaption, HORIZONTAL_ALIGNMENT_LEFT, size.x - text_left - 34.0, small_size, ink.lightened(0.14))
+
+
+func _draw_plate(lift: float, tint: Color) -> void:
+	var source_x: Array[float] = [20.0, 430.0, float(PLATE.get_width()) - 430.0, float(PLATE.get_width()) - 20.0]
+	var source_y: Array[float] = [110.0, 250.0, float(PLATE.get_height()) - 250.0, float(PLATE.get_height()) - 110.0]
+	var horizontal: float = minf(size.y * 0.48, size.x * 0.22)
+	var vertical: float = size.y * 0.34
+	var dest_x: Array[float] = [0.0, horizontal, size.x - horizontal, size.x]
+	var dest_y: Array[float] = [lift, lift + vertical, lift + size.y - vertical, lift + size.y]
+	for row: int in range(3):
+		for column: int in range(3):
+			var destination: Rect2 = Rect2(dest_x[column], dest_y[row], dest_x[column + 1] - dest_x[column], dest_y[row + 1] - dest_y[row])
+			var source: Rect2 = Rect2(source_x[column], source_y[row], source_x[column + 1] - source_x[column], source_y[row + 1] - source_y[row])
+			draw_texture_rect_region(PLATE, destination, source, tint)
 
 
 func _draw_icon(center: Vector2, radius: float, color: Color) -> void:

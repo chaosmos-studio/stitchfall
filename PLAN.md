@@ -55,11 +55,11 @@ Apsis places features with spacing constraints and verifies the result.
 Palewheel needs the same discipline for movement routes, with a replayable physics path and clearance checks before a room joins the campaign.
 
 - [ ] Measure and repair player movement in every gravity orientation on keyboard and touch.
-- [ ] Make the browser loader show actual downloaded bytes and a distinct opening sequence.
-- [ ] Fit home, pause, help, and level selection to the visible phone viewport.
-- [ ] Add a browser fullscreen action where the browser supports it.
-- [ ] Replace the home dance with a front-facing, detailed loop and give menu controls textile artwork.
-- [ ] Add an About page with a short studio introduction.
+- [x] Make the browser loader show actual downloaded bytes and a distinct opening sequence.
+- [x] Fit home, pause, help, and level selection to the visible phone viewport.
+- [x] Add a browser fullscreen action where the browser supports it.
+- [x] Replace the home dance with a front-facing, detailed loop and give menu controls textile artwork.
+- [x] Add an About page with a short studio introduction.
 - [ ] Give the studio site a game page and publish the playable build at `/palewheel/play/`.
 - [ ] Design room families around a single movement idea: ceiling runs, timed bridge crossings, cargo transport, water ascent, wind carry, canopy lift, low-gravity arcs, rain reversal, and ice braking.
 - [ ] Add setting families beyond the current route, with a visible interaction and sound identity for each.

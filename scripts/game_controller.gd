@@ -57,7 +57,7 @@ func _ready() -> void:
 	add_child(world)
 	camera = Camera2D.new()
 	camera.position = Vector2(960, 540)
-	camera.zoom = Vector2(1.6, 1.6)
+	camera.zoom = Vector2.ONE * (2.0 if DisplayServer.is_touchscreen_available() else 1.6)
 	add_child(camera)
 	camera.make_current()
 	sound = AudioStreamPlayer.new()
@@ -119,7 +119,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif not playing and event.is_action_pressed("pause"):
 		if hud.screen == "pause":
 			_on_begin()
-		elif hud.screen in ["levels", "help"]:
+		elif hud.screen in ["levels", "help", "about"]:
 			hud.show_home()
 	elif playing and event.is_action_pressed("shift_gravity"):
 		_shift(1)
