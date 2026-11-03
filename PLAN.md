@@ -13,11 +13,12 @@ Shravan chose the name Palewheel and gave full creative freedom after rejecting 
 The first art pass was too ornate and felt like fantasy, so Shravan redirected the project toward comics, manga, and anime.
 The working assumptions are a light default palette, crisp sci-fi machinery, a limited ink/cyan/coral palette, and an expressive gravity mechanic as the visual anchor.
 The current pass uses held drawings for idle, running, takeoff, flight, landing, and gravity turns.
-The camera follows the mechanic through a full-screen room, with the touch controls over the playfield.
-The airlocks, light cells, beacons, and cargo use painted sprite art, and the touch controls use compact station hardware styling.
+The camera follows the mechanic through a full-screen room.
+The airlocks, light cells, beacons, and cargo use painted sprite art.
 The first world expansion adds flooded machinery, desert relay, and reclaimed forest rooms with distinct painted backgrounds and movement fields.
 Floodwater slows and buoys the pilot, dune wind pushes across open jumps, canopy drafts lift upward, and the exterior ring lengthens each low-gravity jump.
-The touch UI has left and right movement, Jump, and Turn.
+Slide left or right to walk, swipe up to jump, swipe down to crouch, and tap the playfield to turn gravity.
+The title screen has one start button and a short control legend.
 Jump height follows the hold time, and gravity turns preserve momentum while the character art rotates into the new orientation.
 Rooms now continue without an interstitial menu.
 Web preview links can open a selected room for art and route review.
@@ -30,7 +31,7 @@ Web preview links can open a selected room for art and route review.
 `scripts/cargo.gd` applies gravity to the movable block.
 `scripts/sentry.gd` owns watcher patrol, collision, and freeze timing.
 `scripts/world_view.gd` draws the engine chamber and gameplay objects over a distinct painted anime background for each room.
-`scripts/hud.gd` owns touch controls, status, hints, and panels.
+`scripts/hud.gd` owns status, hints, and panels.
 
 ## Next milestones
 

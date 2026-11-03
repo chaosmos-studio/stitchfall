@@ -18,6 +18,8 @@ var environment: String = ""
 var environment_zone: Rect2 = Rect2()
 var touch_axis: float = 0.0
 var touch_jump: bool = false
+var touch_crouch: bool = false
+var crouching: bool = false
 var jump_cut_requested: bool = false
 var control_enabled: bool = true
 var coyote: float = 0.0
@@ -29,6 +31,8 @@ var landing_time: float = 0.0
 var shift_time: float = 0.0
 var step_age: float = 0.0
 var rotation_tween: Tween
+var collision_shape: CollisionShape2D
+var capsule: CapsuleShape2D
 
 
 func _ready() -> void:
@@ -36,12 +40,12 @@ func _ready() -> void:
 	collision_mask = 5
 	motion_mode = CharacterBody2D.MOTION_MODE_GROUNDED
 	floor_snap_length = 12.0
-	var shape: CollisionShape2D = CollisionShape2D.new()
-	var capsule: CapsuleShape2D = CapsuleShape2D.new()
+	collision_shape = CollisionShape2D.new()
+	capsule = CapsuleShape2D.new()
 	capsule.radius = 25.0
 	capsule.height = 78.0
-	shape.shape = capsule
-	add_child(shape)
+	collision_shape.shape = capsule
+	add_child(collision_shape)
 	sprite = AnimatedSprite2D.new()
 	sprite.sprite_frames = _build_frames()
 	sprite.scale = Vector2(0.17, 0.17)
@@ -56,7 +60,7 @@ func _ready() -> void:
 func _build_frames() -> SpriteFrames:
 	var frames: SpriteFrames = SpriteFrames.new()
 	frames.remove_animation("default")
-	for animation: String in ["idle", "run", "takeoff", "rise", "apex", "fall", "land", "shift"]:
+	for animation: String in ["idle", "run", "crouch", "takeoff", "rise", "apex", "fall", "land", "shift"]:
 		frames.add_animation(animation)
 		frames.set_animation_loop(animation, animation == "idle" or animation == "run")
 		frames.set_animation_speed(animation, 16.0 if animation == "run" else 12.0)
@@ -67,6 +71,7 @@ func _build_frames() -> SpriteFrames:
 		frames.add_frame("idle", load("res://assets/art/courier_idle_%02d.png" % index) as Texture2D, idle_durations[index])
 	for index: int in range(8):
 		frames.add_frame("run", load("res://assets/art/courier_run_%02d.png" % index) as Texture2D)
+	frames.add_frame("crouch", preload("res://assets/art/courier_crouch.png"))
 	frames.add_frame("takeoff", load("res://assets/art/courier_jump_00.png") as Texture2D)
 	frames.add_frame("takeoff", load("res://assets/art/courier_jump_01.png") as Texture2D)
 	frames.add_frame("rise", load("res://assets/art/courier_jump_02.png") as Texture2D)
@@ -86,6 +91,8 @@ func _process(delta: float) -> void:
 	match sprite.animation:
 		"run":
 			scale_value = 0.28
+		"crouch":
+			scale_value = 0.17
 		"shift":
 			scale_value = 0.21
 		"takeoff", "rise", "apex", "fall", "land":
@@ -115,12 +122,15 @@ func _on_sprite_frame_changed() -> void:
 func _physics_process(delta: float) -> void:
 	if not control_enabled:
 		return
+	_set_crouch(Input.is_action_pressed("crouch") or touch_crouch)
 	var grounded: bool = is_on_floor()
 	coyote = COYOTE_TIME if grounded else maxf(0.0, coyote - delta)
 	jump_buffer = maxf(0.0, jump_buffer - delta)
 	if Input.is_action_just_pressed("jump") or touch_jump:
 		jump_buffer = JUMP_BUFFER
 		touch_jump = false
+	if crouching:
+		jump_buffer = 0.0
 	var axis: float = Input.get_axis("move_left", "move_right")
 	if absf(touch_axis) > absf(axis):
 		axis = touch_axis
@@ -141,6 +151,8 @@ func _physics_process(delta: float) -> void:
 	else:
 		falling = minf(falling + GRAVITY * delta, 900.0)
 	var target_speed: float = 240.0 if submerged else (300.0 if in_orbit else RUN_SPEED)
+	if crouching:
+		target_speed = minf(target_speed, 115.0)
 	var acceleration: float = 1200.0 if submerged else (450.0 if in_orbit and not grounded else (RUN_ACCEL if grounded else AIR_ACCEL))
 	along = move_toward(along, axis * target_speed, acceleration * delta)
 	if jump_buffer > 0.0 and coyote > 0.0:
@@ -170,6 +182,8 @@ func _physics_process(delta: float) -> void:
 	var animation: String = "idle"
 	if shift_time > 0.0:
 		animation = "shift"
+	elif crouching:
+		animation = "crouch"
 	elif landing_time > 0.0:
 		animation = "land"
 	elif takeoff_time > 0.0:
@@ -204,6 +218,34 @@ func queue_touch_jump() -> void:
 
 func release_touch_jump() -> void:
 	jump_cut_requested = true
+
+
+func set_touch_crouch(value: bool) -> void:
+	touch_crouch = value
+
+
+func _set_crouch(requested: bool) -> void:
+	if requested == crouching or (not requested and not _can_stand()):
+		return
+	crouching = requested
+	capsule.radius = 21.0 if requested else 25.0
+	capsule.height = 52.0 if requested else 78.0
+	collision_shape.position = Vector2(0, 13) if requested else Vector2.ZERO
+	sprite.position = Vector2.ZERO if requested else Vector2(0, -23)
+	if requested:
+		step_age = 0.15
+
+
+func _can_stand() -> bool:
+	var standing: CapsuleShape2D = CapsuleShape2D.new()
+	standing.radius = 25.0
+	standing.height = 78.0
+	var query: PhysicsShapeQueryParameters2D = PhysicsShapeQueryParameters2D.new()
+	query.shape = standing
+	query.transform = global_transform
+	query.collision_mask = collision_mask
+	query.exclude = [get_rid()]
+	return get_world_2d().direct_space_state.intersect_shape(query, 1).is_empty()
 
 
 func set_environment(kind: String, zone: Rect2) -> void:
