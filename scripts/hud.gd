@@ -90,7 +90,13 @@ func _layout() -> void:
 	help_page.position.x = (root.size.x - 1920.0) * 0.5
 	about_page.position.x = (root.size.x - 1920.0) * 0.5
 	pause_page.position.x = (root.size.x - 1920.0) * 0.5
-	sound_buttons[0].position.x = root.size.x - sound_buttons[0].size.x * mobile_scale - 28.0
+	var sound_inset: float = 28.0
+	if OS.has_feature("web"):
+		var browser_width: float = float(JavaScriptBridge.eval("window.innerWidth"))
+		if browser_width > 0.0:
+			var fullscreen_width: float = clampf(browser_width * 0.056, 48.0, 72.0)
+			sound_inset = (16.0 + fullscreen_width + 12.0) * root.size.x / browser_width
+	sound_buttons[0].position.x = root.size.x - sound_buttons[0].size.x * mobile_scale - sound_inset
 
 
 func _font(weight: int) -> FontVariation:
@@ -382,7 +388,7 @@ func _show_screen(name: String) -> void:
 		hero.play("dance")
 	else:
 		hero.stop()
-	_set_browser_menu(true)
+	_set_browser_menu(name == "home")
 
 
 func show_home() -> void:
