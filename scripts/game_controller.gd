@@ -5,6 +5,7 @@ const CARGO_SCRIPT: Script = preload("res://scripts/cargo.gd")
 const WORLD_SCRIPT: Script = preload("res://scripts/world_view.gd")
 const HUD_SCRIPT: Script = preload("res://scripts/hud.gd")
 const SENTRY_SCRIPT: Script = preload("res://scripts/sentry.gd")
+const MUSIC_STREAM: AudioStreamOggVorbis = preload("res://assets/audio/music/stitched_home.ogg")
 
 var level_index: int = 0
 var level: Dictionary = {}
@@ -35,6 +36,7 @@ var camera: Camera2D
 var hud: PalewheelHud
 var sound: AudioStreamPlayer
 var step_sound: AudioStreamPlayer
+var music: AudioStreamPlayer
 var audio_enabled: bool = true
 var step_streams: Array[AudioStream] = [
 	preload("res://assets/audio/sfx/step_0.wav"),
@@ -62,6 +64,12 @@ func _ready() -> void:
 	add_child(sound)
 	step_sound = AudioStreamPlayer.new()
 	add_child(step_sound)
+	music = AudioStreamPlayer.new()
+	music.stream = MUSIC_STREAM
+	music.volume_db = -17.0
+	add_child(music)
+	if DisplayServer.get_name() != "headless":
+		music.play()
 	hud = HUD_SCRIPT.new() as PalewheelHud
 	add_child(hud)
 	hud.begin_pressed.connect(_on_begin)
@@ -69,7 +77,7 @@ func _ready() -> void:
 	hud.restart_pressed.connect(_restart)
 	hud.home_pressed.connect(_on_home)
 	hud.level_selected.connect(_on_level_selected)
-	hud.sound_toggled.connect(func(enabled: bool) -> void: audio_enabled = enabled)
+	hud.sound_toggled.connect(_on_sound_toggled)
 	var initial_room: int = 0
 	if OS.has_feature("web"):
 		var requested_room: Variant = JavaScriptBridge.eval("new URLSearchParams(window.location.search).get('room')")
@@ -77,6 +85,12 @@ func _ready() -> void:
 			initial_room = clampi(str(requested_room).to_int(), 0, PalewheelLevels.count() - 1)
 	_load_level(initial_room)
 	hud.show_home()
+
+
+func _exit_tree() -> void:
+	if is_instance_valid(music):
+		music.stop()
+		music.stream = null
 
 
 func _process(delta: float) -> void:
@@ -456,6 +470,14 @@ func _on_level_selected(index: int) -> void:
 	shifts = 0
 	_load_level(index)
 	_on_begin()
+
+
+func _on_sound_toggled(enabled: bool) -> void:
+	audio_enabled = enabled
+	music.stream_paused = not enabled
+	if not enabled:
+		sound.stop()
+		step_sound.stop()
 
 
 func _on_begin() -> void:

@@ -19,6 +19,7 @@ The HUD keeps button progress and pause available during play.
 Each room name and its instruction appear briefly when the room begins.
 The HUD cloth palette follows the setting.
 The Home screen plays a dance loop made from 32 poses.
+An original music loop accompanies the dance and continues into play.
 Level Select presents the rooms as two pages of larger textile cards with setting symbols.
 Help uses sewn gesture diagrams, and Pause uses a stitched icon during play.
 
@@ -46,5 +47,5 @@ Frost preserves horizontal momentum.
 - Play every route on desktop and phone, then revise jumps and hazards that fail the intended path.
 - Expand the campaign with reviewed rooms and new natural settings.
 - Give each setting distinct interaction patterns, art details, and audio.
-- Add a composed score, transitions, and an ending sequence.
+- Expand the score for each setting, then add transitions and an ending sequence.
 - Review accessibility, performance, and the Game Off submission.
