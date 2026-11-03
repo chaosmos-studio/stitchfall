@@ -13,6 +13,7 @@ var cloth: Color = Color("f1e2c8")
 var thread: Color = Color("8f6758")
 var ink: Color = Color("493a37")
 var compact: bool = false
+var home_link: bool = false
 
 
 func _ready() -> void:
@@ -30,6 +31,9 @@ func _ready() -> void:
 
 func _draw() -> void:
 	var hovered: bool = is_hovered() or has_focus()
+	if home_link:
+		_draw_home_link(hovered)
+		return
 	var lift: float = -3.0 if hovered else 0.0
 	var tint: Color = cloth.lightened(0.13) if hovered else cloth
 	if caption.is_empty():
@@ -48,6 +52,24 @@ func _draw() -> void:
 		if not subcaption.is_empty():
 			var small_size: int = 43 if size.x > 720 else 32
 			draw_string(BODY_FONT, Vector2(text_left, size.y * 0.73 + lift), subcaption, HORIZONTAL_ALIGNMENT_LEFT, size.x - text_left - 34.0, small_size, ink)
+
+
+func _draw_home_link(hovered: bool) -> void:
+	var icon_size: float = 92.0 if glyph == "play" else 77.0
+	var icon_position: Vector2 = Vector2(9.0, (size.y - icon_size) * 0.5)
+	var tint: Color = cloth.lightened(0.1) if hovered else cloth
+	draw_texture_rect(ICON_PATCH, Rect2(icon_position, Vector2.ONE * icon_size), false, tint)
+	_draw_icon(icon_position + Vector2.ONE * icon_size * 0.5, icon_size * 0.24, ink)
+	var baseline: float = size.y * 0.68
+	var font_size: int = 62 if glyph == "play" else 50
+	var label_color: Color = ink.lightened(0.1) if hovered else ink
+	draw_string(FONT, Vector2(121, baseline), caption, HORIZONTAL_ALIGNMENT_LEFT, size.x - 135.0, font_size, label_color)
+	if hovered or glyph == "play":
+		var line_y: float = size.y - 12.0
+		var line_end: float = minf(size.x - 21.0, 145.0 + FONT.get_string_size(caption, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x)
+		for step: int in range(int((line_end - 122.0) / 16.0) + 1):
+			var x: float = 122.0 + float(step) * 16.0
+			draw_line(Vector2(x, line_y), Vector2(minf(x + 8.0, line_end), line_y), thread, 2.0, true)
 
 
 func _draw_plate(lift: float, tint: Color) -> void:

@@ -42,7 +42,9 @@ async function main() {
     if (!cursor.includes('sewing_cursor.png')) throw new Error(`The needle cursor is missing: ${cursor}`);
     await page.waitForTimeout(600);
     await page.screenshot({ path: path.join(results, 'intro-dance.png') });
-    await page.touchscreen.tap(240, 285);
+    await page.waitForTimeout(7800);
+    await page.screenshot({ path: path.join(results, 'intro-bloom.png') });
+    await page.touchscreen.tap(110, 310);
     await page.waitForTimeout(220);
     await page.screenshot({ path: path.join(results, 'settings.png') });
     if (await page.evaluate(() => document.fullscreenEnabled)) {
@@ -55,7 +57,7 @@ async function main() {
     await page.screenshot({ path: path.join(results, 'about.png') });
     await page.touchscreen.tap(640, 65);
     await page.waitForTimeout(220);
-    await page.touchscreen.tap(240, 210);
+    await page.touchscreen.tap(110, 230);
     await page.waitForTimeout(220);
     await page.screenshot({ path: path.join(results, 'levels.png') });
     await page.touchscreen.tap(665, 54);
@@ -70,12 +72,12 @@ async function main() {
     await page.touchscreen.tap(340, 275);
     await page.waitForTimeout(220);
     await page.screenshot({ path: path.join(results, 'home-return.png') });
-    await page.touchscreen.tap(110, 285);
+    await page.touchscreen.tap(110, 270);
     await page.waitForTimeout(220);
     await page.screenshot({ path: path.join(results, 'help.png') });
     await page.touchscreen.tap(655, 65);
     marker = page.waitForEvent('console', { predicate: message => message.text().includes('PALEWHEEL_START 9'), timeout: 10000 });
-    await page.touchscreen.tap(110, 210);
+    await page.touchscreen.tap(110, 190);
     await marker;
     await page.waitForTimeout(600);
     if (shifts.length) throw new Error('Starting the game turned gravity');
@@ -110,7 +112,7 @@ async function main() {
     await desktop.waitForFunction(() => document.getElementById('loading')?.hidden, null, { timeout: 90000 });
     await desktop.waitForTimeout(800);
     const desktopStart = desktop.waitForEvent('console', { predicate: message => message.text().includes('PALEWHEEL_START 0'), timeout: 10000 });
-    await desktop.mouse.click(165, 390);
+    await desktop.mouse.click(165, 350);
     await desktopStart;
     await desktop.locator('#canvas').focus();
     await desktop.waitForTimeout(350);
