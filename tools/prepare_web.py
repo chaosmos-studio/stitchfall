@@ -37,6 +37,10 @@ loader = """// Stream the engine and game pack from static-host-friendly chunks.
   const nativeFetch = window.fetch.bind(window);
   const assets = ASSETS;
   const base = new URL('.', document.currentScript.src);
+  const received = Object.fromEntries(Object.keys(assets).map(name => [name, 0]));
+  const total = Object.values(assets).reduce((sum, asset) => sum + asset.size, 0);
+  const report = () => window.palewheelDownload?.(Object.values(received).reduce((sum, size) => sum + size, 0), total);
+  report();
   window.fetch = async function(resource, options) {
     const url = new URL(typeof resource === 'string' ? resource : resource.url || String(resource), location.href);
     const name = Object.keys(assets).find(candidate => url.href === new URL(candidate, base).href);
@@ -50,7 +54,13 @@ loader = """// Stream the engine and game pack from static-host-friendly chunks.
           const response = await nativeFetch(partUrl, options);
           if (!response.ok) throw new Error('Game download failed: ' + response.status);
           const reader = response.body.getReader();
-          while (true) {const {done, value} = await reader.read(); if (done) break; controller.enqueue(value);}
+          while (true) {
+            const {done, value} = await reader.read();
+            if (done) break;
+            received[name] += value.byteLength;
+            report();
+            controller.enqueue(value);
+          }
         }
         controller.close();
       } catch (error) {controller.error(error);}
