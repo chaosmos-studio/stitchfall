@@ -18,7 +18,7 @@ Platforms, hazards, pickups, exits, enemies, cargo, and HUD elements are drawn i
 The HUD keeps button progress and pause available during play.
 Each room name and its instruction appear briefly when the room begins.
 The HUD cloth palette follows the setting.
-The Home screen plays a dance loop made from 32 poses.
+The Home screen plays a front-facing dance loop made from 64 poses.
 An original music loop accompanies the dance and continues into play.
 Level Select presents the rooms as two pages of larger textile cards with setting symbols.
 Help uses sewn gesture diagrams, and Pause uses a stitched icon during play.
@@ -60,7 +60,7 @@ Palewheel needs the same discipline for movement routes, with a replayable physi
 - [x] Add a browser fullscreen action where the browser supports it.
 - [x] Replace the home dance with a front-facing, detailed loop and give menu controls textile artwork.
 - [x] Add an About page with a short studio introduction.
-- [ ] Give the studio site a game page and publish the playable build at `/palewheel/play/`.
+- [x] Give the studio site a game page and publish the playable build at `/palewheel/play/`.
 - [ ] Design room families around a single movement idea: ceiling runs, timed bridge crossings, cargo transport, water ascent, wind carry, canopy lift, low-gravity arcs, rain reversal, and ice braking.
 - [ ] Add setting families beyond the current route, with a visible interaction and sound identity for each.
 - [ ] Build deterministic candidate generation with protected start and exit zones, reachable collectibles, hazard clearance, and repeated-layout rejection.
