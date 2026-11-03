@@ -5,6 +5,7 @@ const { chromium } = require('playwright');
 
 async function main() {
   const project = path.resolve(__dirname, '..');
+  const baseUrl = process.env.WEB_TEST_URL || 'http://127.0.0.1:8769/';
   const server = spawn('python3', ['-m', 'http.server', '8769', '--directory', path.join(project, 'build', 'web')], { stdio: 'ignore' });
   let browser;
   try {
@@ -26,7 +27,7 @@ async function main() {
       if (message.type() === 'error') errors.push(message.text());
       if (message.text().includes('PALEWHEEL_SHIFT')) shifts.push(message.text());
     });
-    await page.goto('http://127.0.0.1:8769/', { timeout: 180000 });
+    await page.goto(baseUrl, { timeout: 180000 });
     await page.waitForFunction(() => document.getElementById('loading')?.hidden, null, { timeout: 90000 });
     if (await page.locator('#error').textContent()) throw new Error(await page.locator('#error').textContent());
     await page.waitForTimeout(800);
@@ -86,7 +87,7 @@ async function main() {
     if (errors.length) throw new Error(errors.join('\n'));
     await page.screenshot({ path: path.join(results, 'mobile.png') });
     const desktop = await browser.newPage({ viewport: { width: 1280, height: 720 } });
-    await desktop.goto('http://127.0.0.1:8769/', { timeout: 180000 });
+    await desktop.goto(baseUrl, { timeout: 180000 });
     await desktop.waitForFunction(() => document.getElementById('loading')?.hidden, null, { timeout: 90000 });
     await desktop.waitForTimeout(800);
     const desktopStart = desktop.waitForEvent('console', { predicate: message => message.text().includes('PALEWHEEL_START 0'), timeout: 10000 });
@@ -110,7 +111,7 @@ async function main() {
       const previewErrors = [];
       preview.on('pageerror', error => previewErrors.push(String(error)));
       const roomLoaded = preview.waitForEvent('console', { predicate: message => message.text().includes(`PALEWHEEL_ROOM ${room}`), timeout: 90000 });
-      await preview.goto(`http://127.0.0.1:8769/?room=${room}`, { timeout: 180000 });
+      await preview.goto(new URL(`?room=${room}`, baseUrl).toString(), { timeout: 180000 });
       await roomLoaded;
       await preview.waitForFunction(() => document.getElementById('loading')?.hidden, null, { timeout: 90000 });
       const started = preview.waitForEvent('console', { predicate: message => message.text().includes(`PALEWHEEL_START ${room}`), timeout: 10000 });
