@@ -60,6 +60,22 @@ async function main() {
     await desktop.mouse.click(200, 545);
     await desktopStart;
     await desktop.screenshot({ path: path.join(results, 'desktop.png') });
+    for (const [room, world] of [[4, 'water'], [5, 'water-vent'], [6, 'dunes'], [8, 'forest']]) {
+      const preview = await browser.newPage({ viewport: { width: 844, height: 390 }, isMobile: true, hasTouch: true });
+      const previewErrors = [];
+      preview.on('pageerror', error => previewErrors.push(String(error)));
+      const roomLoaded = preview.waitForEvent('console', { predicate: message => message.text().includes(`PALEWHEEL_ROOM ${room}`), timeout: 90000 });
+      await preview.goto(`http://127.0.0.1:8769/?room=${room}`, { timeout: 180000 });
+      await roomLoaded;
+      await preview.waitForFunction(() => document.getElementById('loading')?.hidden, null, { timeout: 90000 });
+      const started = preview.waitForEvent('console', { predicate: message => message.text().includes(`PALEWHEEL_START ${room}`), timeout: 10000 });
+      await preview.touchscreen.tap(240, 292);
+      await started;
+      await preview.waitForTimeout(400);
+      await preview.screenshot({ path: path.join(results, `${world}.png`) });
+      if (previewErrors.length) throw new Error(previewErrors.join('\n'));
+      await preview.close();
+    }
     console.log('MOBILE_WEB_OK palewheel');
   } finally {
     if (browser) await browser.close();

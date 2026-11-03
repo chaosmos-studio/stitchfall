@@ -6,11 +6,15 @@ const BACKDROPS: Array = [
 	preload("res://assets/art/station_sensor.webp"),
 	preload("res://assets/art/station_freight.webp"),
 	preload("res://assets/art/station_core.webp"),
+	preload("res://assets/art/station_water.webp"),
+	preload("res://assets/art/station_dunes.webp"),
+	preload("res://assets/art/station_forest.webp"),
 ]
 const AIRLOCK_CLOSED: Texture2D = preload("res://assets/art/airlock_closed.png")
 const AIRLOCK_OPEN: Texture2D = preload("res://assets/art/airlock_open.png")
 const LIGHT_CELL: Texture2D = preload("res://assets/art/light_cell.png")
 const BEACON: Texture2D = preload("res://assets/art/beacon.png")
+const EXHAUST_VENT: Texture2D = preload("res://assets/art/exhaust_vent.png")
 const CELL_OFFSETS: Array[float] = [0.0, -1.0, -2.0, -3.0, -3.0, -2.0, -1.0, 0.0]
 const INK: Color = Color("18262c")
 const BRASS: Color = Color("ef6a3d")
@@ -112,15 +116,9 @@ func _draw_bridge(bridge: Rect2) -> void:
 
 
 func _draw_hazard(area: Rect2) -> void:
-	var glow: float = 0.12 + 0.06 * sin(time * 6.0)
-	draw_rect(area.grow(9.0), Color(1.0, 0.31, 0.24, glow))
-	draw_rect(area, Color("692d34"))
-	for x: float in range(int(area.position.x + 15), int(area.end.x), 26):
-		var points: PackedVector2Array = PackedVector2Array([
-			Vector2(x - 12, area.position.y), Vector2(x, area.position.y - 26), Vector2(x + 12, area.position.y),
-		])
-		draw_colored_polygon(points, Color("e96d52"))
-		draw_line(Vector2(x, area.position.y - 20), Vector2(x, area.position.y - 4), Color("ffcf9b"), 2.0)
+	var glow: float = 0.1 + 0.04 * sin(time * 5.0)
+	draw_rect(area.grow(7.0), Color(1.0, 0.31, 0.19, glow))
+	draw_texture_rect(EXHAUST_VENT, Rect2(area.position + Vector2(-7, -23), Vector2(area.size.x + 14, 52)), false)
 
 
 func _draw_sentry_tracks() -> void:
@@ -181,7 +179,19 @@ func _draw_spark_bursts() -> void:
 
 
 func _draw_motes() -> void:
+	var backdrop_index: int = int(level.get("backdrop", 0))
+	var mote_color: Color = Color(0.08, 0.7, 0.78, 0.2)
+	var drift: Vector2 = Vector2(11.0, -3.0)
+	if backdrop_index == 4:
+		mote_color = Color(0.74, 0.95, 0.96, 0.29)
+		drift = Vector2(3.0, -9.0)
+	elif backdrop_index == 5:
+		mote_color = Color(0.85, 0.59, 0.27, 0.27)
+		drift = Vector2(14.0, 2.0)
+	elif backdrop_index == 6:
+		mote_color = Color(0.9, 0.86, 0.52, 0.25)
+		drift = Vector2(4.0, -4.0)
 	for index: int in range(18):
 		var x: float = 170.0 + fposmod(float(index * 191) + time * (8.0 + float(index % 4) * 3.0), 1570.0)
 		var y: float = 205.0 + float((index * 137) % 660) + sin(time * 0.9 + index) * 15.0
-		draw_line(Vector2(x, y), Vector2(x + 11.0, y - 3.0), Color(0.08, 0.7, 0.78, 0.2), 2.0)
+		draw_line(Vector2(x, y), Vector2(x, y) + drift, mote_color, 2.0)

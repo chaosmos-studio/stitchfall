@@ -1,6 +1,6 @@
 # Credits
 
-The painted engine backgrounds, character and drone animation cels, airlocks, light cells, beacons, and cargo art were made for Palewheel with the help of AI tools and edited for the game.
+The painted engine backgrounds, character and drone animation cels, airlocks, light cells, beacons, cargo, and exhaust vents were made for Palewheel with the help of AI tools and edited for the game.
 The chamber structures and interface artwork were authored for this project.
 The sound effects were synthesized for this project with `tools/make_sound.py`.
 

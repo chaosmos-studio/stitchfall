@@ -10,12 +10,12 @@ const FRAME: Array[Rect2] = [
 
 
 static func count() -> int:
-	return 4
+	return 10
 
 
 static func get_level(index: int) -> Dictionary:
 	var base: Dictionary = {
-		"backdrop": index,
+		"backdrop": mini(index, 3),
 		"start": Vector2(270, 822),
 		"exit": Vector2(1705, 815),
 		"walls": FRAME.duplicate(),
@@ -76,5 +76,70 @@ static func get_level(index: int) -> Dictionary:
 					{"from": Vector2(1410, 365), "to": Vector2(1620, 365), "period": 3.3, "offset": 2.0},
 				],
 				"shards": [Vector2(405, 313), Vector2(1060, 354), Vector2(1580, 335)],
+			}, true)
+		4:
+			base.merge({
+				"name": "TIDE LOCK",
+				"hint": "Follow the new pull above the flooded shaft.",
+				"backdrop": 4,
+				"walls": FRAME + [Rect2(610, 660, 34, 238), Rect2(1000, 510, 310, 28)],
+				"checkpoint": Vector2(935, 815),
+				"shards": [Vector2(420, 730), Vector2(870, 420), Vector2(1500, 690)],
+			}, true)
+		5:
+			base.merge({
+				"name": "PUMP GALLERY",
+				"hint": "Turn through the sluice and cross while the watcher rests.",
+				"backdrop": 4,
+				"walls": FRAME + [Rect2(570, 620, 32, 278), Rect2(1110, 585, 32, 313)],
+				"phase_walls": [Rect2(670, 485, 245, 26)],
+				"hazards": [Rect2(930, 870, 145, 28)],
+				"checkpoint": Vector2(800, 815),
+				"sentries": [{"from": Vector2(1210, 420), "to": Vector2(1480, 420), "period": 3.7, "offset": 0.4}],
+				"shards": [Vector2(405, 430), Vector2(980, 350), Vector2(1570, 695)],
+			}, true)
+		6:
+			base.merge({
+				"name": "DUNE RELAY",
+				"hint": "Keep your momentum through the open relay.",
+				"backdrop": 5,
+				"walls": FRAME + [Rect2(535, 700, 32, 198), Rect2(900, 510, 315, 28)],
+				"checkpoint": Vector2(1100, 815),
+				"shards": [Vector2(360, 715), Vector2(815, 405), Vector2(1510, 710)],
+			}, true)
+		7:
+			base.merge({
+				"name": "SAND CHOKE",
+				"hint": "Switch the bridge before the heated vent.",
+				"backdrop": 5,
+				"walls": FRAME + [Rect2(615, 610, 34, 288), Rect2(1180, 540, 34, 358)],
+				"phase_walls": [Rect2(740, 445, 280, 26)],
+				"hazards": [Rect2(940, 870, 155, 28)],
+				"checkpoint": Vector2(850, 815),
+				"sentries": [{"from": Vector2(1310, 355), "to": Vector2(1570, 355), "period": 3.2, "offset": 1.1}],
+				"shards": [Vector2(400, 380), Vector2(1020, 375), Vector2(1570, 705)],
+			}, true)
+		8:
+			base.merge({
+				"name": "CANOPY BRIDGE",
+				"hint": "The old crossing returns only after a turn.",
+				"backdrop": 6,
+				"walls": FRAME + [Rect2(700, 650, 34, 248), Rect2(1170, 585, 34, 313)],
+				"phase_walls": [Rect2(770, 535, 290, 26)],
+				"checkpoint": Vector2(1030, 815),
+				"shards": [Vector2(410, 710), Vector2(915, 405), Vector2(1540, 685)],
+			}, true)
+		9:
+			base.merge({
+				"name": "ROOT ENGINE",
+				"hint": "Set the cargo plate, then carry the last light home.",
+				"backdrop": 6,
+				"crate": Vector2(460, 835),
+				"pad": Vector2(760, 876),
+				"walls": FRAME + [Rect2(1060, 565, 34, 333), Rect2(1340, 470, 265, 28)],
+				"phase_walls": [Rect2(1125, 675, 220, 26)],
+				"checkpoint": Vector2(980, 815),
+				"sentries": [{"from": Vector2(1370, 345), "to": Vector2(1610, 345), "period": 2.8, "offset": 0.8}],
+				"shards": [Vector2(565, 405), Vector2(1195, 370), Vector2(1580, 715)],
 			}, true)
 	return base

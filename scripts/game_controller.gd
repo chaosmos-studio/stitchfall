@@ -66,7 +66,12 @@ func _ready() -> void:
 	hud.jump_released.connect(func() -> void: if is_instance_valid(pilot): pilot.release_touch_jump())
 	hud.move_pressed.connect(func(axis: float) -> void: if is_instance_valid(pilot): pilot.touch_axis = axis)
 	hud.shift_pressed.connect(_shift)
-	_load_level(0)
+	var initial_room: int = 0
+	if OS.has_feature("web"):
+		var requested_room: Variant = JavaScriptBridge.eval("new URLSearchParams(window.location.search).get('room')")
+		if requested_room != null:
+			initial_room = clampi(str(requested_room).to_int(), 0, PalewheelLevels.count() - 1)
+	_load_level(initial_room)
 	hud.show_panel("PALEWHEEL", "The gravity engine is failing. Run through its chambers, recover the light, and turn gravity to change the route.\n\nA / D move. Space jumps. E turns. On a phone, use the touch controls.", "PLAY")
 
 
