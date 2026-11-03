@@ -87,6 +87,18 @@ func _test_environment_forces() -> void:
 		for frame: int in range(12):
 			await physics_frame
 		_check("orbit gravity lengthens a fall", wet.velocity.y < dry.velocity.y * 0.45)
+		wet.velocity = Vector2.ZERO
+		dry.velocity = Vector2.ZERO
+		wet.call("set_environment", "rain", Rect2(2500, 200, 220, 500))
+		for frame: int in range(12):
+			await physics_frame
+		_check("rain gust pushes the pilot across the field", wet.velocity.x > dry.velocity.x + 35.0)
+		wet.velocity = Vector2(300, 0)
+		dry.velocity = Vector2(300, 0)
+		wet.call("set_environment", "frost", Rect2(2500, 200, 220, 500))
+		for frame: int in range(12):
+			await physics_frame
+		_check("frost preserves horizontal momentum", wet.velocity.x > dry.velocity.x + 40.0)
 	dry.queue_free()
 	wet.queue_free()
 	await process_frame

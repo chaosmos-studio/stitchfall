@@ -7,6 +7,8 @@ const WATER_CLOTH: Texture2D = preload("res://assets/art/cloth_water.webp")
 const DUNE_CLOTH: Texture2D = preload("res://assets/art/cloth_dunes.webp")
 const FOREST_CLOTH: Texture2D = preload("res://assets/art/cloth_forest.webp")
 const NIGHT_CLOTH: Texture2D = preload("res://assets/art/cloth_night.webp")
+const RAIN_CLOTH: Texture2D = preload("res://assets/art/cloth_rain.webp")
+const FROST_CLOTH: Texture2D = preload("res://assets/art/cloth_frost.webp")
 const INK: Color = Color("493a37")
 const THREAD: Color = Color("f9e9ca")
 const RUST: Color = Color("b45d4c")
@@ -78,6 +80,10 @@ func _backdrop_texture() -> Texture2D:
 			return FOREST_CLOTH
 		7:
 			return NIGHT_CLOTH
+		8:
+			return RAIN_CLOTH
+		9:
+			return FROST_CLOTH
 	return LINEN
 
 
@@ -91,6 +97,10 @@ func _cloth_color() -> Color:
 			return Color("809b73")
 		7:
 			return Color("8185a4")
+		8:
+			return Color("7fa8a1")
+		9:
+			return Color("aabec9")
 	return Color("a1a88b")
 
 
@@ -131,6 +141,19 @@ func _draw_environment() -> void:
 				var pos: Vector2 = Vector2(zone.position.x + fposmod(float(index * 157), zone.size.x), zone.position.y + fposmod(float(index * 97), zone.size.y))
 				draw_line(pos + Vector2(-5, -5), pos + Vector2(5, 5), Color("e4d5ad", 0.7), 2.0, true)
 				draw_line(pos + Vector2(5, -5), pos + Vector2(-5, 5), Color("e4d5ad", 0.7), 2.0, true)
+		"rain":
+			for index: int in range(38):
+				var x: float = zone.position.x + fposmod(float(index * 61) + time * 105.0, zone.size.x)
+				var y: float = zone.position.y + fposmod(float(index * 117) + time * 240.0, zone.size.y)
+				var slant: float = 8.0 + sin(time * 1.7) * 6.0
+				draw_line(Vector2(x, y), Vector2(x + slant, y + 22), Color("d8eeeb", 0.63), 2.0, true)
+		"frost":
+			for index: int in range(32):
+				var x: float = zone.position.x + fposmod(float(index * 103) + sin(time * 0.7 + index) * 14.0, zone.size.x)
+				var y: float = zone.position.y + fposmod(float(index * 149) + time * (22.0 + float(index % 4) * 5.0), zone.size.y)
+				var pos: Vector2 = Vector2(x, y)
+				draw_line(pos + Vector2(-3, -3), pos + Vector2(3, 3), Color("ffffff", 0.62), 1.5, true)
+				draw_line(pos + Vector2(3, -3), pos + Vector2(-3, 3), Color("ffffff", 0.62), 1.5, true)
 
 
 func _draw_wall(wall: Rect2) -> void:

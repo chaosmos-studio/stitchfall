@@ -10,7 +10,7 @@ const FRAME: Array[Rect2] = [
 
 
 static func count() -> int:
-	return 12
+	return 16
 
 
 static func get_level(index: int) -> Dictionary:
@@ -169,8 +169,8 @@ static func get_level(index: int) -> Dictionary:
 			}, true)
 		11:
 			base.merge({
-				"name": "The Last Seam",
-				"hint": "Drift across the quilt. Shift to sew the last bridge.",
+				"name": "Moon Hem",
+				"hint": "Drift across the quilt. Shift to sew the bridge.",
 				"backdrop": 7,
 				"environment": "space",
 				"environment_zone": Rect2(140, 198, 1640, 700),
@@ -180,5 +180,59 @@ static func get_level(index: int) -> Dictionary:
 				"checkpoint": Vector2(980, 815),
 				"sentries": [{"from": Vector2(1200, 290), "to": Vector2(1560, 290), "period": 4.2, "offset": 1.0}],
 				"shards": [Vector2(400, 310), Vector2(880, 345), Vector2(1570, 360)],
+			}, true)
+		12:
+			base.merge({
+				"name": "Rainline",
+				"hint": "The gust changes direction. Shift when the rain leans.",
+				"backdrop": 8,
+				"environment": "rain",
+				"environment_zone": Rect2(420, 220, 1120, 678),
+				"walls": FRAME + [Rect2(700, 590, 34, 308), Rect2(1110, 475, 285, 28)],
+				"checkpoint": Vector2(935, 815),
+				"shards": [Vector2(390, 680), Vector2(885, 425), Vector2(1500, 705)],
+			}, true)
+		13:
+			base.merge({
+				"name": "Storm Stitch",
+				"hint": "Use the gust to reach the bridge, then shift to hold it.",
+				"backdrop": 8,
+				"environment": "rain",
+				"environment_zone": Rect2(480, 205, 1150, 693),
+				"walls": FRAME + [Rect2(575, 650, 34, 248), Rect2(1260, 525, 34, 373)],
+				"phase_walls": [Rect2(730, 500, 330, 26)],
+				"hazards": [Rect2(1010, 870, 140, 28)],
+				"checkpoint": Vector2(810, 815),
+				"sentries": [{"from": Vector2(1360, 370), "to": Vector2(1580, 370), "period": 3.0, "offset": 0.6}],
+				"shards": [Vector2(390, 405), Vector2(910, 385), Vector2(1560, 680)],
+			}, true)
+		14:
+			base.merge({
+				"name": "Frostline",
+				"hint": "The snow keeps your momentum. Brake before the needles.",
+				"backdrop": 9,
+				"environment": "frost",
+				"environment_zone": Rect2(140, 198, 1640, 700),
+				"walls": FRAME + [Rect2(660, 630, 34, 268), Rect2(1050, 535, 290, 28)],
+				"hazards": [Rect2(790, 870, 120, 28)],
+				"checkpoint": Vector2(1040, 815),
+				"shards": [Vector2(370, 520), Vector2(945, 460), Vector2(1530, 720)],
+			}, true)
+		15:
+			base.merge({
+				"name": "The Last Seam",
+				"hint": "Carry momentum, cross the moths, and close the final seam.",
+				"backdrop": 9,
+				"environment": "frost",
+				"environment_zone": Rect2(140, 198, 1640, 700),
+				"walls": FRAME + [Rect2(590, 640, 34, 258), Rect2(1130, 570, 34, 328), Rect2(1410, 380, 230, 28)],
+				"phase_walls": [Rect2(680, 510, 300, 26), Rect2(1190, 405, 220, 26)],
+				"hazards": [Rect2(815, 870, 145, 28), Rect2(1220, 870, 125, 28)],
+				"checkpoint": Vector2(1080, 815),
+				"sentries": [
+					{"from": Vector2(720, 340), "to": Vector2(975, 340), "period": 3.4, "offset": 0.4},
+					{"from": Vector2(1420, 310), "to": Vector2(1640, 310), "period": 2.9, "offset": 1.2},
+				],
+				"shards": [Vector2(380, 375), Vector2(1035, 355), Vector2(1590, 310)],
 			}, true)
 	return base

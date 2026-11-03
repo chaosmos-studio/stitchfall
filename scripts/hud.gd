@@ -27,6 +27,7 @@ var regular_font: FontVariation
 var heavy_font: FontVariation
 var intro_tween: Tween
 var current_biome: int = -1
+var borders: Array[StitchBorder] = []
 
 
 func _ready() -> void:
@@ -82,9 +83,10 @@ func _style(color: Color, border: Color, width: int) -> StyleBoxFlat:
 
 
 func _sew(parent: Control) -> void:
-	var border: Control = BORDER_SCRIPT.new() as Control
+	var border: StitchBorder = BORDER_SCRIPT.new() as StitchBorder
 	parent.add_child(border)
 	border.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	borders.append(border)
 
 
 func _panel(parent: Control, rect: Rect2, color: Color) -> Panel:
@@ -223,6 +225,10 @@ func set_status(_index: int, _name: String, sparks: int, total_sparks: int, _car
 		return
 	current_biome = biome
 	var palette: Array[Color] = meter._palette()
+	for border: StitchBorder in borders:
+		border.biome = biome
+		border.thread_color = palette[1]
+		border.queue_redraw()
 	pause_button.add_theme_stylebox_override("normal", _style(palette[2], INK, 3))
 	pause_button.add_theme_stylebox_override("hover", _style(palette[2].lightened(0.1), INK, 3))
 	pause_button.add_theme_stylebox_override("pressed", _style(palette[2].darkened(0.14), INK, 3))

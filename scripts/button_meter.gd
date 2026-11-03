@@ -27,6 +27,10 @@ func _palette() -> Array[Color]:
 			return [Color("dfe8c8"), Color("6f8962"), Color("536e54")]
 		7:
 			return [Color("d8d3e3"), Color("79779d"), Color("605a83")]
+		8:
+			return [Color("dce8e2"), Color("6d9aa2"), Color("5b7f85")]
+		9:
+			return [Color("e9e9ec"), Color("91a5ba"), Color("71879f")]
 	return [Color("f1e1c8"), Color("a47660"), Color("8d6653")]
 
 

@@ -33,6 +33,7 @@ var takeoff_time: float = 0.0
 var landing_time: float = 0.0
 var shift_time: float = 0.0
 var step_age: float = 0.0
+var environment_clock: float = 0.0
 var rotation_tween: Tween
 var collision_shape: CollisionShape2D
 var capsule: CapsuleShape2D
@@ -132,6 +133,7 @@ func _draw() -> void:
 func _physics_process(delta: float) -> void:
 	if not control_enabled:
 		return
+	environment_clock += delta
 	_set_crouch(Input.is_action_pressed("crouch") or touch_crouch)
 	var grounded: bool = is_on_floor()
 	coyote = COYOTE_TIME if grounded else maxf(0.0, coyote - delta)
@@ -149,6 +151,8 @@ func _physics_process(delta: float) -> void:
 		velocity += Vector2(1100.0, 0.0) * delta
 	elif in_field and environment == "forest":
 		velocity += Vector2(0.0, -1850.0) * delta
+	elif in_field and environment == "rain":
+		velocity += Vector2(900.0 * sin(environment_clock * 1.7) + 360.0, 0.0) * delta
 	var tangent: Vector2 = Vector2(gravity_direction.y, -gravity_direction.x)
 	var along: float = velocity.dot(tangent)
 	var submerged: bool = in_field and environment == "water"
@@ -164,6 +168,8 @@ func _physics_process(delta: float) -> void:
 	if crouching:
 		target_speed = minf(target_speed, 115.0)
 	var acceleration: float = 1200.0 if submerged else (450.0 if in_orbit and not grounded else (RUN_ACCEL if grounded else AIR_ACCEL))
+	if in_field and environment == "frost":
+		acceleration = 300.0 if grounded else 360.0
 	along = move_toward(along, axis * target_speed, acceleration * delta)
 	if jump_buffer > 0.0 and coyote > 0.0:
 		falling = -510.0 if submerged else (-430.0 if in_orbit else -JUMP_SPEED)
