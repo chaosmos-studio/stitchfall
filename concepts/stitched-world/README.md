@@ -2,6 +2,7 @@
 
 These images are visual direction studies for the forest and tidal worlds.
 They are not aligned to level collision or parallax layers yet.
+`home-menu-stage.png` is the full-resolution source for the Home background used in the game.
 
 Both studies used the built-in image generator.
 The tidal study used the forest study as a style and composition reference.
@@ -24,3 +25,9 @@ The eight-pose front-facing dance retry improved the key poses and model consist
 It still has red and yellow fringe around the transparency, so it is not a production sprite sheet.
 The linen button cleanup retry also retained colored edge artifacts.
 The opaque landscape studies do not have that cutout issue.
+
+## Home menu prompt
+
+```text
+Use case: illustration-story. Asset type: full-screen home menu background for a 2D stitched-world platform game, landscape 16:9. The supplied image is a material and color reference only; create a substantially richer new composition. Build a tactile handmade diorama from woven linen, soft felt, embroidery, pressed flowers, cut paper, tiny visible stitches and seams. On the LEFT HALF, make a large, pale warm-ivory fabric pocket or sewn-on patch, organically shaped but broad and calm, occupying about 48% of the image from 8% to 92% height. Its center must be visually quiet and uniformly light enough for dark game title, short copy and four buttons to be drawn over it later. Give this patch a hand-sewn edge, small corner tacks and subtle fiber texture, but no printed marks. On the RIGHT HALF, show a detailed sunlit woodland clearing made from layered cloth hills, felt grasses, embroidered wildflowers, a few overhanging leafy branches and a small winding thread trail. Keep an open, quiet standing area centered around 72% width and 60% height where the game's dancer sprite will be placed; do not draw any character. Use cream daylight, sage, muted olive, warm rust and faded blue; natural depth, soft shadows, precise craft detail, welcoming and grounded. The finished artwork should feel like a real physical tabletop set photographed straight-on, with coherent proportions, no computer-perfect geometry. Full opaque image. No character, no lettering, no symbols, no buttons, no HUD, no logo, no frame around the whole image, no futuristic or fantasy elements, no watermark.
+```

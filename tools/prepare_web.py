@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import shutil
 from pathlib import Path
 
 
@@ -76,6 +77,8 @@ loader_tag = 'src="wasm-loader.js"'
 assert loader_tag in html_text
 html.write_text(html_text.replace(loader_tag, f'src="wasm-loader.js?v={assets["index.pck"]["sha256"][:12]}"'))
 (root / ".nojekyll").touch()
+for font_name in ("AveriaSansLibre-Regular.ttf", "AveriaSansLibre-Bold.ttf"):
+    shutil.copyfile(Path.cwd() / "assets" / "fonts" / font_name, root / font_name)
 (root / "build-info.json").write_text(
     json.dumps(assets, indent=2) + "\n"
 )

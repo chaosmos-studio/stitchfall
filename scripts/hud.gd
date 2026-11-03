@@ -11,7 +11,9 @@ signal sound_toggled(enabled: bool)
 const INK: Color = Color("493a37")
 const PAPER: Color = Color("f7edda")
 const ACCENT: Color = Color("a85648")
-const FONT: FontFile = preload("res://assets/fonts/BricolageGrotesque.ttf")
+const FONT_REGULAR: FontFile = preload("res://assets/fonts/AveriaSansLibre-Regular.ttf")
+const FONT_BOLD: FontFile = preload("res://assets/fonts/AveriaSansLibre-Bold.ttf")
+const HOME_SCENE: Texture2D = preload("res://assets/art/home_woodland.webp")
 const DANCE_SHEET_1: Texture2D = preload("res://assets/art/seam_runner_dance_front_1.png")
 const DANCE_SHEET_2: Texture2D = preload("res://assets/art/seam_runner_dance_front_2.png")
 const DANCE_SHEET_3: Texture2D = preload("res://assets/art/seam_runner_dance_front_3.png")
@@ -42,8 +44,8 @@ var pause_body: Label
 var resume_button: StitchedButton
 var restart_button: StitchedButton
 var sound_buttons: Array[StitchedButton] = []
-var regular_font: FontVariation
-var heavy_font: FontVariation
+var regular_font: FontFile
+var heavy_font: FontFile
 var intro_tween: Tween
 var current_biome: int = -1
 var screen: String = "home"
@@ -53,8 +55,8 @@ var borders: Array[StitchBorder] = []
 
 func _ready() -> void:
 	layer = 1
-	regular_font = _font(600)
-	heavy_font = _font(800)
+	regular_font = FONT_REGULAR
+	heavy_font = FONT_BOLD
 	root = Control.new()
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(root)
@@ -97,13 +99,6 @@ func _layout() -> void:
 			var fullscreen_width: float = clampf(browser_width * 0.056, 48.0, 72.0)
 			sound_inset = (16.0 + fullscreen_width + 12.0) * root.size.x / browser_width
 	sound_buttons[0].position.x = root.size.x - sound_buttons[0].size.x * mobile_scale - sound_inset
-
-
-func _font(weight: int) -> FontVariation:
-	var value: FontVariation = FontVariation.new()
-	value.base_font = FONT
-	value.variation_opentype = {TextServerManager.get_primary_interface().name_to_tag("wght"): weight}
-	return value
 
 
 func _style(color: Color, border: Color, width: int) -> StyleBoxFlat:
@@ -191,18 +186,24 @@ func _build_pages() -> void:
 
 func _build_home() -> void:
 	home_page = _page()
-	var card: Panel = _panel(home_page, Rect2(75, 82, 1020, 920), Color("f7edda", 0.93))
-	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	home_page.clip_contents = true
+	var scene: TextureRect = TextureRect.new()
+	scene.texture = HOME_SCENE
+	scene.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	scene.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	scene.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	home_page.add_child(scene)
+	scene.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var eyebrow: Label = _label(home_page, Vector2(136, 120), Vector2(850, 55), 31, ACCENT, true)
 	eyebrow.text = "A STITCHED SHIFT ADVENTURE"
 	var title: Label = _label(home_page, Vector2(128, 185), Vector2(870, 158), 105, INK, true)
 	title.text = "PALEWHEEL"
 	var line: Label = _label(home_page, Vector2(138, 340), Vector2(840, 84), 39, INK)
 	line.text = "Find the buttons. Turn the pull.\nOpen the seam."
-	_tag(home_page, Rect2(133, 475, 805, 117), "PLAY", "play", Color("e0a278")).pressed.connect(func() -> void: begin_pressed.emit())
-	_tag(home_page, Rect2(133, 605, 805, 106), "LEVELS", "levels", Color("dbe5d1")).pressed.connect(show_levels)
-	_tag(home_page, Rect2(133, 723, 805, 106), "HOW TO PLAY", "help", Color("e8d8bd")).pressed.connect(show_help)
-	_tag(home_page, Rect2(133, 841, 805, 106), "ABOUT", "seam", Color("e4d0b1")).pressed.connect(show_about)
+	_tag(home_page, Rect2(140, 475, 720, 117), "PLAY", "play", Color("e0a278")).pressed.connect(func() -> void: begin_pressed.emit())
+	_tag(home_page, Rect2(140, 605, 720, 106), "LEVELS", "levels", Color("dbe5d1")).pressed.connect(show_levels)
+	_tag(home_page, Rect2(140, 723, 720, 106), "HOW TO PLAY", "help", Color("e8d8bd")).pressed.connect(show_help)
+	_tag(home_page, Rect2(140, 841, 720, 106), "ABOUT", "seam", Color("e4d0b1")).pressed.connect(show_about)
 	var sound_button: StitchedButton = _tag(home_page, Rect2(1737, 35, 116, 104), "", "sound", Color("f1e2c8"))
 	sound_buttons.append(sound_button)
 	sound_button.pressed.connect(_toggle_sound)
@@ -375,7 +376,7 @@ func _toggle_sound() -> void:
 func _show_screen(name: String) -> void:
 	screen = name
 	panel.visible = true
-	fabric.visible = name in ["home", "levels", "help", "about"]
+	fabric.visible = name in ["levels", "help", "about"]
 	home_page.visible = name == "home"
 	level_page.visible = name == "levels"
 	help_page.visible = name == "help"

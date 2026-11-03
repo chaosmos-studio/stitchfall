@@ -7,5 +7,7 @@ The original menu music was composed and synthesized for this project with `tool
 
 Baloo 2 is by Ek Type and is distributed under the SIL Open Font License 1.1, included in `assets/fonts/Baloo2-OFL.txt`.
 Bricolage Grotesque is distributed under the SIL Open Font License 1.1, included in `assets/fonts/BricolageGrotesque-OFL.txt`.
+Averia Sans Libre is by Dan Sayers and is distributed under the SIL Open Font License 1.1, included in `assets/fonts/AveriaSansLibre-OFL.txt`.
+The font files come from google/fonts revision `0f81bc90462b862dbfe3d16403ff284a68473833`.
 
 The browser export uses the official Godot 4.7 web template.

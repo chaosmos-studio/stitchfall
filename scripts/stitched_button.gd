@@ -1,7 +1,7 @@
 class_name StitchedButton
 extends Button
 
-const FONT: FontFile = preload("res://assets/fonts/BricolageGrotesque-ExtraBold.ttf")
+const FONT: FontFile = preload("res://assets/fonts/AveriaSansLibre-Bold.ttf")
 const PLATE: Texture2D = preload("res://assets/art/linen_button_plate.png")
 const ICON_PATCH: Texture2D = preload("res://assets/art/linen_icon_patch.png")
 
@@ -39,13 +39,13 @@ func _draw() -> void:
 	if not glyph.is_empty():
 		_draw_icon(icon_center, icon_scale, ink)
 	if not caption.is_empty():
-		var font_size: int = 55 if size.x > 720 else (42 if size.y > 110 else 35)
+		var font_size: int = 55 if size.x >= 680 else (44 if size.y > 110 else 38)
 		var text_left: float = 40.0 if glyph.is_empty() else size.x * 0.33
 		var baseline: float = size.y * (0.54 if subcaption.is_empty() else 0.47) + lift
 		draw_string(FONT, Vector2(text_left, baseline), caption, HORIZONTAL_ALIGNMENT_LEFT, size.x - text_left - 34.0, font_size, ink)
 		if not subcaption.is_empty():
-			var small_size: int = 43 if size.x > 720 else 31
-			draw_string(FONT, Vector2(text_left, size.y * 0.73 + lift), subcaption, HORIZONTAL_ALIGNMENT_LEFT, size.x - text_left - 34.0, small_size, ink.lightened(0.14))
+			var small_size: int = 43 if size.x > 720 else 32
+			draw_string(FONT, Vector2(text_left, size.y * 0.73 + lift), subcaption, HORIZONTAL_ALIGNMENT_LEFT, size.x - text_left - 34.0, small_size, ink)
 
 
 func _draw_plate(lift: float, tint: Color) -> void:
