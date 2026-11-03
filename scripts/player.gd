@@ -146,6 +146,8 @@ func _physics_process(delta: float) -> void:
 	var axis: float = Input.get_axis("move_left", "move_right")
 	if absf(touch_axis) > absf(axis):
 		axis = touch_axis
+	if gravity_direction == Vector2.UP:
+		axis = -axis
 	var in_field: bool = environment_zone.has_point(position)
 	if in_field and environment == "dunes":
 		velocity += Vector2(1100.0, 0.0) * delta

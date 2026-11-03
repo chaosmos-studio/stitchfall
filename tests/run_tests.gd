@@ -65,6 +65,17 @@ func _test_movement_feel() -> void:
 		_check("releasing jump reduces upward speed", pilot.velocity.y > -400.0)
 	pilot.queue_free()
 	await process_frame
+	var inverted: PalewheelCourier = PalewheelCourier.new()
+	inverted.position = Vector2(2200, 350)
+	root.add_child(inverted)
+	await process_frame
+	inverted.set_gravity_direction(Vector2.UP)
+	inverted.touch_axis = 1.0
+	await physics_frame
+	await physics_frame
+	_check("a right slide moves right on the ceiling", inverted.velocity.x > 0.0)
+	inverted.queue_free()
+	await process_frame
 
 
 func _test_environment_forces() -> void:
@@ -135,6 +146,14 @@ func _test_gesture_controls() -> void:
 		shift_key.pressed = true
 		game._unhandled_input(shift_key)
 		_check("Shift turns gravity", game.gravity_direction == Vector2.UP)
+		game._unhandled_input(press)
+		var inverted_jump: InputEventScreenDrag = InputEventScreenDrag.new()
+		inverted_jump.index = 0
+		inverted_jump.position = Vector2(500, 640)
+		game._unhandled_input(inverted_jump)
+		_check("a downward swipe jumps from the ceiling", game.pilot.touch_jump)
+		release.position = inverted_jump.position
+		game._unhandled_input(release)
 		game.last_shift = -1.0
 		game.last_touch_msec = -100000
 		game.last_start_msec = -100000

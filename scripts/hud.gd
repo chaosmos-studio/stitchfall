@@ -275,7 +275,7 @@ func _build_help() -> void:
 		diagram.focus_mode = Control.FOCUS_NONE
 		diagram.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var footer: Label = _label(help_page, Vector2(265, 839), Vector2(1300, 70), 31, ACCENT, true)
-	footer.text = "Collect every sewn button to open the next seam."
+	footer.text = "On the ceiling, swipe down to jump. Collect the buttons to open the seam."
 
 
 func _build_pause() -> void:

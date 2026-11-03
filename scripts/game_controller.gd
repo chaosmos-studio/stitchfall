@@ -157,7 +157,7 @@ func _handle_drag(event: InputEventScreenDrag) -> void:
 		touch["mode"] = "move"
 		touch["axis"] = signf(offset.x)
 		mobile_crouched = false
-	elif offset.y < 0.0:
+	elif (offset.y < 0.0) != (gravity_direction == Vector2.UP):
 		touch["mode"] = "jump"
 		touch["axis"] = 0.0
 		mobile_crouched = false
