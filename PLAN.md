@@ -81,3 +81,37 @@ Palewheel needs the same discipline for movement routes, with a replayable physi
 | Presentation | Stitched world with varied natural settings and a light home screen | A setting reads poorly on a phone |
 
 These decisions use Shravan's earlier creative freedom and instruction to build without waiting for concept approval.
+
+## Room design audit, 4 November 2026
+
+The 16 current rooms establish useful movement rules, but most start near the left floor, end near the right floor, place a wall in the middle, and scatter three sparks along the route.
+Changing the setting or adding a sentry does not change the route the player has to understand.
+Plumb's lesson is to make each stage earn its place through a new rule, a proved solution, a difficulty target, and a difference from nearby stages.
+Palewheel needs those checks around continuous movement and timing rather than a grid solver.
+
+Each room should have a one sentence action, such as "shift from the ceiling to catch a falling platform," that remains recognizable without its art.
+Build its route from a start state, a readable discovery, a commitment point, a payoff, and a safe finish.
+Put optional sparks on alternate paths, not on the mandatory line to the exit.
+Vary direction and shape: short vertical climbs, loops, descending runs, two-screen journeys, and compact timing rooms should interrupt left-to-right crossings.
+
+| Family | First room | Variation | Mastery room |
+| --- | --- | --- | --- |
+| Ceiling run | Cross one floor gap on the ceiling | Switch between offset floor and ceiling ledges | Descend from the ceiling into a moving exit window |
+| Phase seam | Reveal one bridge with a shift | Keep a route through two alternately solid seams | Shift while airborne to cross a broken chain |
+| Weighted patch | Move one patch onto its mark | Use the patch as temporary cover or footing | Carry it through a vertical route while gravity changes |
+| Water | Learn buoyant fall and a visible current | Enter and leave pools at different heights | Ride a current, then shift before the exit |
+| Wind and dunes | Cross a short gust with generous ground | Redirect a long jump with a shift | Brake against a gust and land on a narrow safe strip |
+| Forest | Bounce from one canopy lift | Chain two lifts with a ceiling run | Choose a high route or a low, safer route |
+| Night | Read a long low gravity arc | Make two shifts during one arc | Recover from overshoot in a room with sparse footing |
+| Rain and frost | Feel one slick or gusting surface | Alternate dry grip and wet slide | Stop precisely after a gravity change |
+
+For every family, ship an introduction, a reversal, a combination with an earlier rule, and a short mastery room before generating close variants.
+Revisit earlier families after each new world so a later room feels like a new situation, not a reskin.
+World art, sound, hazard silhouettes, and HUD materials should explain the physical rule before the player reads a hint.
+
+The generator should assemble authored route segments and vary their spacing, orientation, safe landing area, and optional detours from a saved seed.
+It should reserve start, exit, and checkpoint clearances before placing hazards.
+A deterministic fixed-step replay using the game's movement values should prove at least one exit route and record jumps, shifts, airtime, retraces, and near misses.
+Compare route signatures and geometry after translation or reflection to reject repetitions.
+Rank candidates within a family, then playtest the chosen rooms on phone and desktop before releasing them.
+Automated reachability is a gate, while human playtesting decides whether a route is readable and fun.
