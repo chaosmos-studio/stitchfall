@@ -223,11 +223,13 @@ func _dance_frames() -> SpriteFrames:
 	frames.remove_animation("default")
 	frames.add_animation("dance")
 	frames.set_animation_loop("dance", true)
-	frames.set_animation_speed("dance", 24.0)
+	frames.set_animation_speed("dance", 12.0)
 	var sheets: Array[Texture2D] = [DANCE_SHEET_1, DANCE_SHEET_2, DANCE_SHEET_3, DANCE_SHEET_4]
-	for sheet: Texture2D in sheets:
+	for sheet_index: int in range(sheets.size()):
+		var sheet: Texture2D = sheets[sheet_index]
 		var cell: Vector2 = Vector2(float(sheet.get_width()) / 4.0, float(sheet.get_height()) / 4.0)
-		for index: int in range(16):
+		var frame_count: int = 15 if sheet_index == 0 or sheet_index == 3 else 16
+		for index: int in range(frame_count):
 			var frame: AtlasTexture = AtlasTexture.new()
 			frame.atlas = sheet
 			frame.region = Rect2(Vector2(float(index % 4) * cell.x, float(index / 4) * cell.y), cell)

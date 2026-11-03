@@ -18,7 +18,9 @@ Platforms, hazards, pickups, exits, enemies, cargo, and HUD elements are drawn i
 The HUD keeps button progress and pause available during play.
 Each room name and its instruction appear briefly when the room begins.
 The HUD cloth palette follows the setting.
-The Home screen plays a front-facing dance loop made from 64 poses.
+The Home screen plays a slower front-facing dance loop made from 62 sprite frames.
+Its sewn woodland stage has a quiet fabric pocket for the menu.
+Game labels and buttons use Averia Sans Libre for a warm handmade letterform.
 An original music loop accompanies the dance and continues into play.
 Level Select presents the rooms as two pages of larger textile cards with setting symbols.
 Help uses sewn gesture diagrams, and Pause uses a stitched icon during play.
