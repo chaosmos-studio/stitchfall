@@ -15,6 +15,7 @@ func _initialize() -> void:
 func _run() -> void:
 	_test_input_map_is_wired()
 	_test_orientation_is_an_int()
+	await _test_movement_feel()
 	await _test_palewheel_playthrough()
 	print("\n==== TESTS: %d passed, %d failed ====" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
@@ -39,6 +40,29 @@ func _test_orientation_is_an_int() -> void:
 	var value: Variant = ProjectSettings.get_setting("display/window/handheld/orientation")
 	_check("handheld orientation is stored as an int, re-run tools/configure_project.gd",
 		typeof(value) == TYPE_INT)
+
+
+func _test_movement_feel() -> void:
+	var pilot: PalewheelCourier = PalewheelCourier.new()
+	pilot.control_enabled = false
+	root.add_child(pilot)
+	await process_frame
+	var momentum: Vector2 = Vector2(120, -220)
+	pilot.velocity = momentum
+	pilot.set_gravity_direction(Vector2.LEFT)
+	_check("gravity turns preserve incoming momentum", pilot.velocity.is_equal_approx(momentum))
+	_check("the pilot art begins its turn from the previous world angle", absf(pilot.sprite.global_rotation) < 0.02)
+	_check("touch jump supports a release", pilot.has_method("release_touch_jump"))
+	if pilot.has_method("release_touch_jump"):
+		pilot.set_gravity_direction(Vector2.DOWN)
+		pilot.velocity = Vector2(0, -500)
+		pilot.control_enabled = true
+		pilot.release_touch_jump()
+		await physics_frame
+		await physics_frame
+		_check("releasing jump reduces upward speed", pilot.velocity.y > -400.0)
+	pilot.queue_free()
+	await process_frame
 
 
 func _test_palewheel_playthrough() -> void:

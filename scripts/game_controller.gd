@@ -63,6 +63,7 @@ func _ready() -> void:
 	hud.begin_pressed.connect(_on_begin)
 	hud.pause_pressed.connect(_on_pause)
 	hud.jump_pressed.connect(func() -> void: if is_instance_valid(pilot): pilot.queue_touch_jump())
+	hud.jump_released.connect(func() -> void: if is_instance_valid(pilot): pilot.release_touch_jump())
 	hud.move_pressed.connect(func(axis: float) -> void: if is_instance_valid(pilot): pilot.touch_axis = axis)
 	hud.shift_pressed.connect(_shift)
 	_load_level(0)
@@ -241,6 +242,7 @@ func _respawn() -> void:
 	pilot.position = respawn_position
 	pilot.velocity = Vector2.ZERO
 	pilot.jump_buffer = 0.0
+	pilot.jump_cut_requested = false
 	pilot.touch_jump = false
 	pilot.reset_physics_interpolation()
 	pilot.control_enabled = playing

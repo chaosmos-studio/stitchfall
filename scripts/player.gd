@@ -7,15 +7,16 @@ signal stepped
 
 const RUN_SPEED: float = 360.0
 const RUN_ACCEL: float = 1850.0
-const AIR_ACCEL: float = 1180.0
-const JUMP_SPEED: float = 535.0
-const GRAVITY: float = 1190.0
+const AIR_ACCEL: float = 820.0
+const JUMP_SPEED: float = 590.0
+const GRAVITY: float = 1550.0
 const COYOTE_TIME: float = 0.11
 const JUMP_BUFFER: float = 0.13
 
 var gravity_direction: Vector2 = Vector2.DOWN
 var touch_axis: float = 0.0
 var touch_jump: bool = false
+var jump_cut_requested: bool = false
 var control_enabled: bool = true
 var coyote: float = 0.0
 var jump_buffer: float = 0.0
@@ -25,6 +26,7 @@ var takeoff_time: float = 0.0
 var landing_time: float = 0.0
 var shift_time: float = 0.0
 var step_age: float = 0.0
+var rotation_tween: Tween
 
 
 func _ready() -> void:
@@ -122,7 +124,7 @@ func _physics_process(delta: float) -> void:
 		axis = touch_axis
 	var tangent: Vector2 = Vector2(gravity_direction.y, -gravity_direction.x)
 	var along: float = velocity.dot(tangent)
-	var falling: float = minf(velocity.dot(gravity_direction) + GRAVITY * delta, 850.0)
+	var falling: float = minf(velocity.dot(gravity_direction) + GRAVITY * delta, 900.0)
 	along = move_toward(along, axis * RUN_SPEED, (RUN_ACCEL if grounded else AIR_ACCEL) * delta)
 	if jump_buffer > 0.0 and coyote > 0.0:
 		falling = -JUMP_SPEED
@@ -131,6 +133,10 @@ func _physics_process(delta: float) -> void:
 		takeoff_time = 0.14
 		landing_time = 0.0
 		jumped.emit()
+	if jump_cut_requested or Input.is_action_just_released("jump"):
+		if falling < -JUMP_SPEED * 0.48:
+			falling = -JUMP_SPEED * 0.48
+		jump_cut_requested = false
 	velocity = tangent * along + gravity_direction * falling
 	move_and_slide()
 	if not grounded and is_on_floor():
@@ -162,13 +168,22 @@ func _physics_process(delta: float) -> void:
 
 func set_gravity_direction(direction: Vector2) -> void:
 	if gravity_direction != direction:
-		shift_time = 0.17
+		shift_time = 0.23
+		var visual_angle: float = sprite.global_rotation
+		if rotation_tween and rotation_tween.is_running():
+			rotation_tween.kill()
+		rotation = direction.angle() - PI * 0.5
+		sprite.rotation = wrapf(visual_angle - rotation, -PI, PI)
+		rotation_tween = create_tween()
+		rotation_tween.tween_property(sprite, "rotation", 0.0, 0.23).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	gravity_direction = direction
 	up_direction = -direction
-	rotation = direction.angle() - PI * 0.5
 	coyote = 0.0
-	velocity += direction * 110.0
 
 
 func queue_touch_jump() -> void:
 	touch_jump = true
+
+
+func release_touch_jump() -> void:
+	jump_cut_requested = true

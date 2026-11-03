@@ -4,6 +4,7 @@ extends CanvasLayer
 signal begin_pressed
 signal pause_pressed
 signal jump_pressed
+signal jump_released
 signal shift_pressed(step: int)
 signal move_pressed(axis: float)
 
@@ -53,7 +54,7 @@ func _ready() -> void:
 	if DisplayServer.is_touchscreen_available():
 		_art_button("res://assets/ui/move_left.svg", Rect2(54, 906, 150, 130), func() -> void: move_pressed.emit(-1.0), func() -> void: move_pressed.emit(0.0))
 		_art_button("res://assets/ui/move_right.svg", Rect2(215, 906, 150, 130), func() -> void: move_pressed.emit(1.0), func() -> void: move_pressed.emit(0.0))
-		_art_button("res://assets/ui/jump.svg", Rect2(1505, 886, 165, 150), func() -> void: jump_pressed.emit(), Callable())
+		_art_button("res://assets/ui/jump.svg", Rect2(1505, 886, 165, 150), func() -> void: jump_pressed.emit(), func() -> void: jump_released.emit())
 		_art_button("res://assets/ui/turn.svg", Rect2(1692, 886, 165, 150), func() -> void: shift_pressed.emit(1), Callable())
 		_action_label("JUMP", Rect2(1505, 988, 165, 39))
 		_action_label("TURN", Rect2(1692, 988, 165, 39))
@@ -103,6 +104,8 @@ func _press_extra_control(control: String) -> void:
 func _release_extra_control(control: String) -> void:
 	if control == "left" or control == "right":
 		move_pressed.emit(0.0)
+	elif control == "jump":
+		jump_released.emit()
 
 
 func _font(weight: int) -> FontVariation:
