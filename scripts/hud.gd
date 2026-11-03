@@ -43,14 +43,18 @@ func _ready() -> void:
 	meter.size = Vector2(205, 79)
 	root.add_child(meter)
 	pause_button = _button(root, Rect2(1134, 18, 116, 78), "PAUSE", ACCENT, PAPER, 23)
+	if DisplayServer.is_touchscreen_available():
+		pause_button.size = Vector2(148, 120)
+		pause_button.add_theme_font_size_override("font_size", 28)
 	pause_button.tooltip_text = "Pause"
 	pause_button.pressed.connect(func() -> void: pause_pressed.emit())
-	hint_back = _panel(root, Rect2(342, 120, 596, 111), Color("f5e8d1", 0.96))
+	hint_back = _panel(root, Rect2(280, 120, 720, 132), Color("f5e8d1", 0.96))
 	hint_back.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hint_title = _label(hint_back, Vector2(26, 7), Vector2(544, 48), 30, INK, true)
+	hint_title = _label(hint_back, Vector2(28, 9), Vector2(664, 54), 36, INK, true)
 	hint_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hint_body = _label(hint_back, Vector2(24, 52), Vector2(548, 47), 23, INK)
+	hint_body = _label(hint_back, Vector2(28, 58), Vector2(664, 62), 27, INK)
 	hint_body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_build_panel()
 	get_viewport().size_changed.connect(_layout)
 	call_deferred("_layout")
@@ -155,10 +159,10 @@ func _build_panel() -> void:
 	guide_rule.size = Vector2(507, 2)
 	guide_rule.color = Color("8e7769")
 	panel.add_child(guide_rule)
-	guide_label = _label(panel, Vector2(101, 404), Vector2(548, 100), 22, INK)
+	guide_label = _label(panel, Vector2(101, 404), Vector2(548, 100), 24, INK)
 	guide_label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
-	guide_label.text = "SLIDE  /  WALK      SWIPE UP  /  JUMP\nSWIPE DOWN  /  CROUCH      TAP  /  SHIFT" if DisplayServer.is_touchscreen_available() else "A / D  /  WALK      SPACE  /  JUMP\nS  /  CROUCH      SHIFT  /  TURN GRAVITY"
-	panel_button = _button(panel, Rect2(101, 545, 300, 72), "BEGIN", ACCENT, PAPER, 30)
+	guide_label.text = "SLIDE  /  WALK      UP  /  JUMP\nDOWN  /  CROUCH      TAP  /  SHIFT" if DisplayServer.is_touchscreen_available() else "A / D  /  WALK      SPACE  /  JUMP\nS  /  CROUCH      SHIFT  /  TURN GRAVITY"
+	panel_button = _button(panel, Rect2(101, 510, 340, 120), "BEGIN", ACCENT, PAPER, 32)
 	panel_button.pressed.connect(func() -> void: begin_pressed.emit())
 	portrait = TextureRect.new()
 	var sprite_atlas: AtlasTexture = AtlasTexture.new()
@@ -208,7 +212,7 @@ func _show_intro(title: String, instruction: String) -> void:
 	hint_title.text = title
 	hint_body.text = instruction
 	hint_title.visible = not title.is_empty()
-	hint_body.position.y = 52 if not title.is_empty() else 30
+	hint_body.position.y = 58 if not title.is_empty() else 35
 	hint_back.visible = true
 	hint_back.modulate.a = 1.0
 	intro_tween = create_tween()

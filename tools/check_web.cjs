@@ -31,11 +31,11 @@ async function main() {
     if (await page.locator('#error').textContent()) throw new Error(await page.locator('#error').textContent());
     await page.waitForTimeout(800);
     if (errors.length) throw new Error(errors.join('\n'));
-    const results = path.join(project, 'test-results');
+    const results = path.join(project, 'build', 'test-results');
     await mkdir(results, { recursive: true });
     await page.screenshot({ path: path.join(results, 'intro.png') });
     let marker = page.waitForEvent('console', { predicate: message => message.text().includes('PALEWHEEL_START 0'), timeout: 10000 });
-    await page.touchscreen.tap(200, 330);
+    await page.touchscreen.tap(90, 210);
     await marker;
     await page.waitForTimeout(600);
     if (shifts.length) throw new Error('Starting the game turned gravity');
@@ -70,7 +70,7 @@ async function main() {
     await desktop.waitForFunction(() => document.getElementById('loading')?.hidden, null, { timeout: 90000 });
     await desktop.waitForTimeout(800);
     const desktopStart = desktop.waitForEvent('console', { predicate: message => message.text().includes('PALEWHEEL_START 0'), timeout: 10000 });
-    await desktop.mouse.click(200, 605);
+    await desktop.mouse.click(165, 390);
     await desktopStart;
     await desktop.waitForTimeout(350);
     const desktopJump = desktop.waitForEvent('console', { predicate: message => message.text().includes('PALEWHEEL_JUMP'), timeout: 10000 });
@@ -83,7 +83,7 @@ async function main() {
     await desktop.keyboard.press('Shift');
     await desktopShift;
     await desktop.screenshot({ path: path.join(results, 'desktop.png') });
-    for (const [room, world] of [[4, 'water'], [5, 'water-vent'], [6, 'dunes'], [8, 'forest'], [10, 'space']]) {
+    for (const [room, world] of [[4, 'water'], [5, 'water-vent'], [6, 'dunes'], [8, 'forest'], [10, 'night'], [12, 'rain'], [14, 'frost']]) {
       const preview = await browser.newPage({ viewport: { width: 844, height: 390 }, isMobile: true, hasTouch: true });
       const previewErrors = [];
       preview.on('pageerror', error => previewErrors.push(String(error)));
@@ -92,7 +92,7 @@ async function main() {
       await roomLoaded;
       await preview.waitForFunction(() => document.getElementById('loading')?.hidden, null, { timeout: 90000 });
       const started = preview.waitForEvent('console', { predicate: message => message.text().includes(`PALEWHEEL_START ${room}`), timeout: 10000 });
-      await preview.touchscreen.tap(200, 330);
+      await preview.touchscreen.tap(90, 210);
       await started;
       await preview.waitForTimeout(400);
       await preview.screenshot({ path: path.join(results, `${world}.png`) });

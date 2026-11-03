@@ -200,17 +200,17 @@ func _test_palewheel_playthrough() -> void:
 			var sentry_start: Vector2 = game.sentries[0].position
 			for frame: int in range(12):
 				await physics_frame
-			_check("the clock eye patrols its track", game.sentries[0].position.distance_to(sentry_start) > 10.0)
+			_check("the needle moth patrols its track", game.sentries[0].position.distance_to(sentry_start) > 10.0)
 			game.pilot.position = game.level["checkpoint"]
 			game.pilot.velocity = Vector2.ZERO
 			game.pilot.reset_physics_interpolation()
 			await physics_frame
 			await physics_frame
-			_check("the beacon activates when the pilot reaches it", game.checkpoint_active)
+			_check("the pin activates when the runner reaches it", game.checkpoint_active)
 			game.last_shift = -1.0
 			game._shift(1)
 			await process_frame
-			_check("shifting pauses the clock eye", game.sentries[0].freeze_remaining > 0.0 and not game.sentries[0].monitoring)
+			_check("shifting pauses the needle moth", game.sentries[0].freeze_remaining > 0.0 and not game.sentries[0].monitoring)
 			game.pilot.position = game.level["shards"][0]
 			game.pilot.velocity = Vector2.ZERO
 			game.pilot.reset_physics_interpolation()
@@ -218,21 +218,21 @@ func _test_palewheel_playthrough() -> void:
 			await physics_frame
 			await physics_frame
 			await physics_frame
-			_check("a spark is collected before a hazard hit", game.collected[0])
+			_check("a button is collected before a hazard hit", game.collected[0])
 			game.pilot.position = game.level["hazards"][0].get_center() + Vector2(0, -25)
 			game.pilot.velocity = Vector2.ZERO
 			game.pilot.reset_physics_interpolation()
 			await physics_frame
 			await physics_frame
 			await process_frame
-			_check("a hazard sends the pilot to the beacon and keeps sparks", game.pilot.position.distance_to(game.respawn_position) < 30.0 and game.collected[0])
+			_check("a hazard sends the runner to the pin and keeps buttons", game.pilot.position.distance_to(game.respawn_position) < 30.0 and game.collected[0])
 		for spark: Vector2 in game.level["shards"]:
 			game.pilot.position = spark
 			game.pilot.velocity = Vector2.ZERO
 			game.pilot.reset_physics_interpolation()
 			await physics_frame
 			await physics_frame
-		_check("all sparks collect in room %d" % level_number, not game.collected.has(false))
+		_check("all buttons collect in room %d" % level_number, not game.collected.has(false))
 		if game.level["pad"] != Vector2.ZERO:
 			game._on_pad_body(game.cargo)
 			_check("cargo plate arms in room %d" % level_number, game.pad_armed)
@@ -244,6 +244,6 @@ func _test_palewheel_playthrough() -> void:
 		await physics_frame
 		if level_number + 1 < PalewheelLevels.count():
 			_check("the next room opens after room %d" % level_number, game.level_index == level_number + 1)
-	_check("the dawn ending follows the last room", game.finished)
+	_check("the final seam ending follows the last room", game.finished)
 	game.queue_free()
 	await process_frame
