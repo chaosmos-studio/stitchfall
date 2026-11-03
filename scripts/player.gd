@@ -25,11 +25,12 @@ var control_enabled: bool = true
 var coyote: float = 0.0
 var jump_buffer: float = 0.0
 var facing: float = 1.0
-var sprite: AnimatedSprite2D
+var actor: StitchedActor
 var takeoff_time: float = 0.0
 var landing_time: float = 0.0
 var shift_time: float = 0.0
 var step_age: float = 0.0
+var step_cycle: float = 0.0
 var rotation_tween: Tween
 var collision_shape: CollisionShape2D
 var capsule: CapsuleShape2D
@@ -46,58 +47,15 @@ func _ready() -> void:
 	capsule.height = 78.0
 	collision_shape.shape = capsule
 	add_child(collision_shape)
-	sprite = AnimatedSprite2D.new()
-	sprite.sprite_frames = _build_frames()
-	sprite.scale = Vector2(0.17, 0.17)
-	sprite.position = Vector2(0, -23)
-	sprite.z_index = 5
-	add_child(sprite)
-	sprite.frame_changed.connect(_on_sprite_frame_changed)
-	sprite.play("idle")
+	actor = StitchedActor.new()
+	actor.z_index = 5
+	add_child(actor)
 	up_direction = -gravity_direction
-
-
-func _build_frames() -> SpriteFrames:
-	var frames: SpriteFrames = SpriteFrames.new()
-	frames.remove_animation("default")
-	for animation: String in ["idle", "run", "crouch", "takeoff", "rise", "apex", "fall", "land", "shift"]:
-		frames.add_animation(animation)
-		frames.set_animation_loop(animation, animation == "idle" or animation == "run")
-		frames.set_animation_speed(animation, 16.0 if animation == "run" else 12.0)
-	frames.set_animation_speed("idle", 3.0)
-	frames.set_animation_speed("takeoff", 14.0)
-	var idle_durations: Array[float] = [8.0, 2.0, 1.0, 5.0]
-	for index: int in range(4):
-		frames.add_frame("idle", load("res://assets/art/courier_idle_%02d.png" % index) as Texture2D, idle_durations[index])
-	for index: int in range(8):
-		frames.add_frame("run", load("res://assets/art/courier_run_%02d.png" % index) as Texture2D)
-	frames.add_frame("crouch", preload("res://assets/art/courier_crouch.png"))
-	frames.add_frame("takeoff", load("res://assets/art/courier_jump_00.png") as Texture2D)
-	frames.add_frame("takeoff", load("res://assets/art/courier_jump_01.png") as Texture2D)
-	frames.add_frame("rise", load("res://assets/art/courier_jump_02.png") as Texture2D)
-	frames.add_frame("apex", load("res://assets/art/courier_jump_03.png") as Texture2D)
-	frames.add_frame("fall", load("res://assets/art/courier_jump_04.png") as Texture2D)
-	frames.add_frame("land", load("res://assets/art/courier_jump_05.png") as Texture2D)
-	frames.add_frame("land", load("res://assets/art/courier_jump_00.png") as Texture2D)
-	for index: int in range(2):
-		frames.add_frame("shift", load("res://assets/art/courier_shift_%02d.png" % index) as Texture2D)
-	return frames
 
 
 func _process(delta: float) -> void:
 	var had_step: bool = step_age > 0.0
 	step_age = maxf(0.0, step_age - delta)
-	var scale_value: float = 0.17
-	match sprite.animation:
-		"run":
-			scale_value = 0.28
-		"crouch":
-			scale_value = 0.17
-		"shift":
-			scale_value = 0.21
-		"takeoff", "rise", "apex", "fall", "land":
-			scale_value = 0.24
-	sprite.scale = Vector2.ONE * scale_value
 	if had_step:
 		queue_redraw()
 
@@ -111,12 +69,6 @@ func _draw() -> void:
 		var origin: Vector2 = Vector2(side * (13.0 + progress * 17.0), 39.0 - progress * 6.0)
 		draw_arc(origin, 5.0 + progress * 13.0, PI, TAU, 12, Color(0.82, 0.87, 0.87, opacity), 3.0, true)
 		draw_circle(origin + Vector2(side * 12.0, -7.0 - progress * 14.0), 2.5, Color(0.86, 0.92, 0.91, opacity))
-
-
-func _on_sprite_frame_changed() -> void:
-	if sprite.animation == "run" and (sprite.frame == 0 or sprite.frame == 4) and control_enabled and is_on_floor():
-		step_age = 0.2
-		stepped.emit()
 
 
 func _physics_process(delta: float) -> void:
@@ -178,7 +130,7 @@ func _physics_process(delta: float) -> void:
 	shift_time = maxf(0.0, shift_time - delta)
 	if absf(axis) > 0.1:
 		facing = signf(axis)
-	sprite.flip_h = facing < 0.0
+	actor.facing = facing
 	var animation: String = "idle"
 	if shift_time > 0.0:
 		animation = "shift"
@@ -193,20 +145,29 @@ func _physics_process(delta: float) -> void:
 		animation = "rise" if vertical_speed < -130.0 else "apex" if vertical_speed < 110.0 else "fall"
 	elif absf(along) > 45.0:
 		animation = "run"
-	if sprite.animation != animation:
-		sprite.play(animation)
+	actor.action = animation
+	actor.speed = clampf(absf(along) / RUN_SPEED, 0.0, 1.0) if animation == "run" else 0.0
+	if animation == "run" and is_on_floor():
+		step_cycle += delta * (5.0 + actor.speed * 4.0)
+		if step_cycle >= 1.0:
+			step_cycle = 0.0
+			step_age = 0.2
+			stepped.emit()
+	else:
+		step_cycle = 0.0
 
 
 func set_gravity_direction(direction: Vector2) -> void:
 	if gravity_direction != direction:
 		shift_time = 0.23
-		var visual_angle: float = sprite.global_rotation
+		var visual_angle: float = actor.global_rotation
 		if rotation_tween and rotation_tween.is_running():
 			rotation_tween.kill()
 		rotation = direction.angle() - PI * 0.5
-		sprite.rotation = wrapf(visual_angle - rotation, -PI, PI)
+		actor.rotation = wrapf(visual_angle - rotation, -PI, PI)
+		actor.shift_age = 0.26
 		rotation_tween = create_tween()
-		rotation_tween.tween_property(sprite, "rotation", 0.0, 0.23).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		rotation_tween.tween_property(actor, "rotation", 0.0, 0.23).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	gravity_direction = direction
 	up_direction = -direction
 	coyote = 0.0
@@ -231,7 +192,6 @@ func _set_crouch(requested: bool) -> void:
 	capsule.radius = 21.0 if requested else 25.0
 	capsule.height = 52.0 if requested else 78.0
 	collision_shape.position = Vector2(0, 13) if requested else Vector2.ZERO
-	sprite.position = Vector2.ZERO if requested else Vector2(0, -23)
 	if requested:
 		step_age = 0.15
 

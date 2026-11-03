@@ -1,8 +1,6 @@
 class_name PalewheelCargo
 extends RigidBody2D
 
-const CASE_TEXTURE: Texture2D = preload("res://assets/art/cargo_case.png")
-
 var gravity_direction: Vector2 = Vector2.DOWN
 var glow_time: float = 0.0
 
@@ -31,5 +29,17 @@ func _physics_process(delta: float) -> void:
 
 
 func _draw() -> void:
-	draw_circle(Vector2.ZERO, 47.0, Color(0.96, 0.63, 0.18, 0.12 + 0.08 * sin(glow_time * 4.0)))
-	draw_texture_rect(CASE_TEXTURE, Rect2(-43, -41, 86, 82), false)
+	draw_rect(Rect2(-42, -39, 84, 84), Color("5d4b40", 0.22))
+	draw_rect(Rect2(-39, -39, 78, 78), Color("493a37"))
+	draw_rect(Rect2(-35, -35, 70, 70), Color("bd9778"))
+	draw_rect(Rect2(-29, -29, 58, 58), Color("cba98b"))
+	for x: int in range(-26, 28, 13):
+		draw_line(Vector2(x, -32), Vector2(x + 6, -32), Color("f7e8c9"), 2.0, true)
+		draw_line(Vector2(x, 32), Vector2(x + 6, 32), Color("f7e8c9"), 2.0, true)
+	for y: int in range(-25, 28, 13):
+		draw_line(Vector2(-32, y), Vector2(-32, y + 6), Color("f7e8c9"), 2.0, true)
+		draw_line(Vector2(32, y), Vector2(32, y + 6), Color("f7e8c9"), 2.0, true)
+	draw_colored_polygon(PackedVector2Array([Vector2(-17, -22), Vector2(17, -22), Vector2(21, 0), Vector2(0, 22), Vector2(-21, 0)]), Color("ad6654"))
+	draw_line(Vector2(-12, -15), Vector2(11, 14), Color("f7e8c9"), 2.0, true)
+	draw_line(Vector2(11, -15), Vector2(-12, 14), Color("f7e8c9"), 2.0, true)
+	draw_circle(Vector2.ZERO, 5.0, Color("e4c883"))
