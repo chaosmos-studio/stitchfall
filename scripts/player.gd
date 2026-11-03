@@ -132,16 +132,19 @@ func _physics_process(delta: float) -> void:
 	var tangent: Vector2 = Vector2(gravity_direction.y, -gravity_direction.x)
 	var along: float = velocity.dot(tangent)
 	var submerged: bool = in_field and environment == "water"
+	var in_orbit: bool = in_field and environment == "space"
 	var falling: float = velocity.dot(gravity_direction)
 	if submerged:
 		falling = minf(falling * (1.0 - 1.5 * delta) + GRAVITY * 0.33 * delta, 400.0)
+	elif in_orbit:
+		falling = minf(falling + GRAVITY * 0.27 * delta, 500.0)
 	else:
 		falling = minf(falling + GRAVITY * delta, 900.0)
-	var target_speed: float = 240.0 if submerged else RUN_SPEED
-	var acceleration: float = 1200.0 if submerged else (RUN_ACCEL if grounded else AIR_ACCEL)
+	var target_speed: float = 240.0 if submerged else (300.0 if in_orbit else RUN_SPEED)
+	var acceleration: float = 1200.0 if submerged else (450.0 if in_orbit and not grounded else (RUN_ACCEL if grounded else AIR_ACCEL))
 	along = move_toward(along, axis * target_speed, acceleration * delta)
 	if jump_buffer > 0.0 and coyote > 0.0:
-		falling = -510.0 if submerged else -JUMP_SPEED
+		falling = -510.0 if submerged else (-430.0 if in_orbit else -JUMP_SPEED)
 		coyote = 0.0
 		jump_buffer = 0.0
 		takeoff_time = 0.14

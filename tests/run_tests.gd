@@ -80,6 +80,12 @@ func _test_environment_forces() -> void:
 		for frame: int in range(12):
 			await physics_frame
 		_check("water slows a fall", wet.velocity.y < dry.velocity.y * 0.55)
+		wet.velocity = Vector2.ZERO
+		dry.velocity = Vector2.ZERO
+		wet.call("set_environment", "space", Rect2(2500, 200, 220, 500))
+		for frame: int in range(12):
+			await physics_frame
+		_check("orbit gravity lengthens a fall", wet.velocity.y < dry.velocity.y * 0.45)
 	dry.queue_free()
 	wet.queue_free()
 	await process_frame

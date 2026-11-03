@@ -8,7 +8,7 @@ Each turn moves loose cargo, changes the light bridges, and briefly stills the s
 
 [Play Palewheel in your browser](https://chaosmos.studio/palewheel/).
 Turn a phone sideways for touch controls.
-Preview the [flooded station](https://chaosmos.studio/palewheel/?room=4), [dune relay](https://chaosmos.studio/palewheel/?room=6), or [forest canopy](https://chaosmos.studio/palewheel/?room=8) directly.
+Preview the [flooded station](https://chaosmos.studio/palewheel/?room=4), [dune relay](https://chaosmos.studio/palewheel/?room=6), [forest canopy](https://chaosmos.studio/palewheel/?room=8), or [orbital rim](https://chaosmos.studio/palewheel/?room=10) directly.
 Run `./play.sh` from this directory to play locally with Godot 4.7.
 
 On desktop, use A and D to move, Space to jump, Q and E to turn gravity, R to restart the chamber, and P to pause.

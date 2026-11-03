@@ -10,7 +10,7 @@ const FRAME: Array[Rect2] = [
 
 
 static func count() -> int:
-	return 10
+	return 12
 
 
 static func get_level(index: int) -> Dictionary:
@@ -155,5 +155,30 @@ static func get_level(index: int) -> Dictionary:
 				"checkpoint": Vector2(980, 815),
 				"sentries": [{"from": Vector2(1370, 345), "to": Vector2(1610, 345), "period": 2.8, "offset": 0.8}],
 				"shards": [Vector2(565, 405), Vector2(1195, 370), Vector2(1580, 715)],
+			}, true)
+		10:
+			base.merge({
+				"name": "ORBITAL RIM",
+				"hint": "Outside the ring, each jump carries farther.",
+				"backdrop": 7,
+				"environment": "space",
+				"environment_zone": Rect2(140, 198, 1640, 700),
+				"walls": FRAME + [Rect2(650, 645, 34, 253), Rect2(1080, 470, 34, 428), Rect2(1370, 325, 260, 28)],
+				"checkpoint": Vector2(890, 815),
+				"shards": [Vector2(395, 505), Vector2(910, 405), Vector2(1510, 385)],
+			}, true)
+		11:
+			base.merge({
+				"name": "SOLAR SPAN",
+				"hint": "Drift across the array. Shift to open the last bridge.",
+				"backdrop": 7,
+				"environment": "space",
+				"environment_zone": Rect2(140, 198, 1640, 700),
+				"walls": FRAME + [Rect2(600, 575, 34, 323), Rect2(1050, 615, 34, 283), Rect2(1430, 490, 34, 408)],
+				"phase_walls": [Rect2(695, 420, 280, 26), Rect2(1150, 350, 230, 26)],
+				"hazards": [Rect2(750, 870, 155, 28), Rect2(1215, 870, 125, 28)],
+				"checkpoint": Vector2(980, 815),
+				"sentries": [{"from": Vector2(1200, 290), "to": Vector2(1560, 290), "period": 4.2, "offset": 1.0}],
+				"shards": [Vector2(400, 310), Vector2(880, 345), Vector2(1570, 360)],
 			}, true)
 	return base

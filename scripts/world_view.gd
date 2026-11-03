@@ -9,6 +9,7 @@ const BACKDROPS: Array = [
 	preload("res://assets/art/station_water.webp"),
 	preload("res://assets/art/station_dunes.webp"),
 	preload("res://assets/art/station_forest.webp"),
+	preload("res://assets/art/station_space.webp"),
 ]
 const AIRLOCK_CLOSED: Texture2D = preload("res://assets/art/airlock_closed.png")
 const AIRLOCK_OPEN: Texture2D = preload("res://assets/art/airlock_open.png")
@@ -109,6 +110,12 @@ func _draw_environment() -> void:
 				var y: float = zone.end.y - fposmod(float(index * 117) + time * (22.0 + float(index % 3) * 7.0), zone.size.y)
 				draw_circle(Vector2(x, y), 3.0 + float(index % 3), Color("c9e9b5", 0.6))
 				draw_line(Vector2(x - 8.0, y + 10.0), Vector2(x + 4.0, y - 8.0), Color("b6dc96", 0.32), 2.0)
+		"space":
+			for index: int in range(16):
+				var x: float = zone.position.x + fposmod(float(index * 167), zone.size.x)
+				var y: float = zone.position.y + fposmod(float(index * 107), zone.size.y)
+				var shimmer: float = 0.25 + 0.25 * sin(time * 1.8 + float(index) * 1.6)
+				draw_circle(Vector2(x, y), 2.0 + float(index % 3), Color(0.84, 0.94, 1.0, shimmer))
 
 
 func _draw_wall(wall: Rect2) -> void:
@@ -222,6 +229,9 @@ func _draw_motes() -> void:
 	elif backdrop_index == 6:
 		mote_color = Color(0.9, 0.86, 0.52, 0.25)
 		drift = Vector2(4.0, -4.0)
+	elif backdrop_index == 7:
+		mote_color = Color(0.77, 0.88, 1.0, 0.4)
+		drift = Vector2(-2.0, 0.0)
 	for index: int in range(18):
 		var x: float = 170.0 + fposmod(float(index * 191) + time * (8.0 + float(index % 4) * 3.0), 1570.0)
 		var y: float = 205.0 + float((index * 137) % 660) + sin(time * 0.9 + index) * 15.0

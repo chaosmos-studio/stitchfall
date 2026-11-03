@@ -16,6 +16,7 @@ The character drawing rotates over 0.23 seconds to show the body catching up wit
 Authored environment rectangles change movement only while the pilot is inside them.
 Floodwater adds 33 percent of normal gravity and damps existing fall speed each physics frame.
 Dune wind adds a rightward world force, while the forest canopy adds an upward world force.
+The orbital rim uses 27 percent of normal gravity and slower air steering, extending jumps without changing the pull's direction.
 
 The current movement constants and their actual behavior live in `scripts/player.gd` and `scripts/cargo.gd`.
 Tune them by playing through every room, especially after consecutive shifts.

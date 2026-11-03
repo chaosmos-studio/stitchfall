@@ -16,7 +16,7 @@ The current pass uses held drawings for idle, running, takeoff, flight, landing,
 The camera follows the mechanic through a full-screen room, with the touch controls over the playfield.
 The airlocks, light cells, beacons, and cargo use painted sprite art, and the touch controls use compact station hardware styling.
 The first world expansion adds flooded machinery, desert relay, and reclaimed forest rooms with distinct painted backgrounds and movement fields.
-Floodwater slows and buoys the pilot, dune wind pushes across open jumps, and canopy drafts lift upward.
+Floodwater slows and buoys the pilot, dune wind pushes across open jumps, canopy drafts lift upward, and the exterior ring lengthens each low-gravity jump.
 The touch UI has left and right movement, Jump, and Turn.
 Jump height follows the hold time, and gravity turns preserve momentum while the character art rotates into the new orientation.
 Rooms now continue without an interstitial menu.

@@ -60,7 +60,7 @@ async function main() {
     await desktop.mouse.click(200, 545);
     await desktopStart;
     await desktop.screenshot({ path: path.join(results, 'desktop.png') });
-    for (const [room, world] of [[4, 'water'], [5, 'water-vent'], [6, 'dunes'], [8, 'forest']]) {
+    for (const [room, world] of [[4, 'water'], [5, 'water-vent'], [6, 'dunes'], [8, 'forest'], [10, 'space']]) {
       const preview = await browser.newPage({ viewport: { width: 844, height: 390 }, isMobile: true, hasTouch: true });
       const previewErrors = [];
       preview.on('pageerror', error => previewErrors.push(String(error)));
