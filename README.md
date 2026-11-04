@@ -16,7 +16,7 @@ Run `./play.sh` from this directory to play locally with Godot 4.7.
 On desktop, use A and D or the arrow keys to move, W, Up, or Space to jump, S or Down to crouch, and Shift or a mouse click to turn gravity.
 Use R to restart the chamber and P or Escape to pause.
 The sewn pause icon opens Resume, Restart, and Home.
-The sound icon in Home and Pause toggles the music and effects.
+The Sound control is in Settings, and M toggles music and effects during play.
 
 ## Development
 
