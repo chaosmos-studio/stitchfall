@@ -11,8 +11,9 @@ signal sound_toggled(enabled: bool)
 const INK: Color = Color("493a37")
 const PAPER: Color = Color("f7edda")
 const ACCENT: Color = Color("a85648")
-const FONT_REGULAR: FontFile = preload("res://assets/fonts/BricolageGrotesque.ttf")
+const FONT_REGULAR: FontFile = preload("res://assets/fonts/Darn-UI.ttf")
 const FONT_BOLD: FontFile = preload("res://assets/fonts/Threadline-Satin.ttf")
+const FONT_DISPLAY: FontFile = preload("res://assets/fonts/Darn-Display.ttf")
 const HOME_SCENE: Texture2D = preload("res://assets/art/home_woodland.webp")
 const HOME_CLEAN_PLATE: Texture2D = preload("res://assets/art/home_clean_plate.png")
 const HOME_REVEAL_MASK: Texture2D = preload("res://assets/art/home_reveal_mask.png")
@@ -201,6 +202,7 @@ func _build_home() -> void:
 	var eyebrow: Label = _label(home_page, Vector2(136, 120), Vector2(850, 55), 31, ACCENT, true)
 	eyebrow.text = "A STITCHED SHIFT ADVENTURE"
 	var title: Label = _label(home_page, Vector2(128, 185), Vector2(870, 158), 105, INK, true)
+	title.add_theme_font_override("font", FONT_DISPLAY)
 	title.text = "PALEWHEEL"
 	var line: Label = _label(home_page, Vector2(138, 340), Vector2(840, 84), 39, INK)
 	line.text = "Find the buttons. Turn the pull.\nOpen the seam."

@@ -2,7 +2,7 @@ class_name StitchedButton
 extends Button
 
 const FONT: FontFile = preload("res://assets/fonts/Threadline-Satin.ttf")
-const BODY_FONT: FontFile = preload("res://assets/fonts/BricolageGrotesque.ttf")
+const BODY_FONT: FontFile = preload("res://assets/fonts/Darn-UI.ttf")
 const PLATE: Texture2D = preload("res://assets/art/linen_button_plate.png")
 const ICON_PATCH: Texture2D = preload("res://assets/art/linen_icon_patch.png")
 
@@ -47,11 +47,11 @@ func _draw() -> void:
 	if not caption.is_empty():
 		var font_size: int = 43 if compact else (55 if size.x >= 680 else (44 if size.y > 110 else 38))
 		var text_left: float = 18.0 if compact else (40.0 if glyph.is_empty() else size.x * 0.33)
-		var baseline: float = size.y * (0.74 if compact else (0.54 if subcaption.is_empty() else 0.47)) + lift
+		var baseline: float = size.y * (0.74 if compact else (0.54 if subcaption.is_empty() else 0.42)) + lift
 		draw_string(FONT, Vector2(text_left, baseline), caption, HORIZONTAL_ALIGNMENT_CENTER if compact or subcaption.is_empty() else HORIZONTAL_ALIGNMENT_LEFT, size.x - text_left * 2.0 if compact else size.x - text_left - 34.0, font_size, ink)
 		if not subcaption.is_empty():
 			var small_size: int = 43 if size.x > 720 else 32
-			draw_string(BODY_FONT, Vector2(text_left, size.y * 0.73 + lift), subcaption, HORIZONTAL_ALIGNMENT_LEFT, size.x - text_left - 34.0, small_size, ink)
+			draw_string(BODY_FONT, Vector2(text_left, size.y * 0.78 + lift), subcaption, HORIZONTAL_ALIGNMENT_LEFT, size.x - text_left - 34.0, small_size, ink)
 
 
 func _draw_home_link(hovered: bool) -> void:
