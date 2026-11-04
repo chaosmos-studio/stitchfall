@@ -17,10 +17,10 @@ const LEAVES: Array[Vector4] = [
 
 const LEAF_ATTACHMENTS: Array[Vector2] = [
 	Vector2(914, 72), Vector2(932, 78), Vector2(882, 137),
-	Vector2(893, 119), Vector2(1000, 31), Vector2(1200, 112),
-	Vector2(1240, 115), Vector2(1145, 166), Vector2(1170, 166),
-	Vector2(1190, 149), Vector2(1325, 84), Vector2(1357, 112),
-	Vector2(1390, 82), Vector2(1462, 80),
+	Vector2(893, 119), Vector2(1000, 31), Vector2(1200, 96),
+	Vector2(1240, 83), Vector2(1145, 166), Vector2(1170, 166),
+	Vector2(1190, 149), Vector2(1325, 84), Vector2(1357, 93),
+	Vector2(1390, 82), Vector2(1462, 103),
 ]
 
 const WHITE_FLOWERS: Array[Vector4] = [
@@ -118,16 +118,17 @@ func _build_leaves() -> void:
 		holder.position = attachment
 		art_root.add_child(holder)
 		var stalk: Line2D = Line2D.new()
-		stalk.width = 3.0
+		stalk.width = 4.0
 		stalk.default_color = Color("76523a")
+		stalk.antialiased = true
 		stalk.add_point(Vector2.ZERO)
-		stalk.add_point(reach.normalized() * minf(9.0, reach.length() * 0.26))
+		stalk.add_point(reach * 0.92)
 		holder.add_child(stalk)
 		var variant: int = 1 if absf(reach.y) > absf(reach.x) * 1.2 and index % 3 == 0 else (2 if index % 4 == 0 else 0)
-		var extent: Vector2 = Vector2(shape.z * 2.0, reach.length() * 2.05) if variant == 1 else Vector2(reach.length() * 2.05, minf(shape.z, shape.w) * 2.0)
+		var extent: Vector2 = Vector2(shape.z * 2.0, shape.w * 2.0)
 		var sprite: Sprite2D = _piece(holder, types[variant], extent)
 		sprite.position = reach
-		sprite.rotation = reach.angle() + (PI * 0.5 if variant == 1 else 0.0)
+		sprite.rotation = reach.angle() - (PI * 0.5 if variant == 1 else 0.0)
 		leaf_holders.append(holder)
 
 
