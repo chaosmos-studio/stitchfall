@@ -49,11 +49,24 @@ loader = """// Stream the engine and game pack from static-host-friendly chunks.
     const asset = assets[name];
     const stream = new ReadableStream({async start(controller) {
       try {
-        for (const part of asset.parts) {
-          const partUrl = new URL(part, base);
+        const prefetchWindow = 2;
+        const pending = new Map();
+        const requestPart = index => {
+          const partUrl = new URL(asset.parts[index], base);
           partUrl.searchParams.set('v', asset.sha256.slice(0, 12));
-          const response = await nativeFetch(partUrl, options);
+          return nativeFetch(partUrl, options).then(response => ({response}), error => ({error}));
+        };
+        for (let index = 0; index < Math.min(prefetchWindow, asset.parts.length); index++) {
+          pending.set(index, requestPart(index));
+        }
+        for (let index = 0; index < asset.parts.length; index++) {
+          const result = await pending.get(index);
+          pending.delete(index);
+          if (result.error) throw result.error;
+          const response = result.response;
           if (!response.ok) throw new Error('Game download failed: ' + response.status);
+          const next = index + prefetchWindow;
+          if (next < asset.parts.length) pending.set(next, requestPart(next));
           const reader = response.body.getReader();
           while (true) {
             const {done, value} = await reader.read();
