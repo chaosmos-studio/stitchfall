@@ -24,12 +24,21 @@ async function main() {
     const page = await context.newPage();
     await page.goto('http://127.0.0.1:8770/', { timeout: 180000 });
     await page.waitForFunction(() => document.getElementById('loading')?.hidden, null, { timeout: 90000 });
+    if (process.argv.includes('--still')) {
+      await page.setViewportSize({ width: 1672, height: 941 });
+      await page.waitForTimeout(3500);
+      await page.screenshot({ path: path.join(results, 'home-detail.png') });
+      return;
+    }
     const frames = path.join(results, 'home-motion-frames');
     await mkdir(frames, { recursive: true });
     for (let index = 0; index < 80; index++) {
       await page.screenshot({ path: path.join(frames, `${String(index).padStart(3, '0')}.png`) });
       await page.waitForTimeout(90);
     }
+    await page.setViewportSize({ width: 1672, height: 941 });
+    await page.waitForTimeout(500);
+    await page.screenshot({ path: path.join(results, 'home-detail.png') });
     await context.close();
     const encode = spawn('ffmpeg', [
       '-y', '-loglevel', 'error', '-framerate', '8', '-i', path.join(frames, '%03d.png'),
