@@ -14,6 +14,7 @@ var thread: Color = Color("8f6758")
 var ink: Color = Color("493a37")
 var compact: bool = false
 var home_link: bool = false
+var pause_action: bool = false
 
 
 func _ready() -> void:
@@ -33,6 +34,9 @@ func _draw() -> void:
 	var hovered: bool = is_hovered() or has_focus()
 	if home_link:
 		_draw_home_link(hovered)
+		return
+	if pause_action:
+		_draw_pause_action(hovered)
 		return
 	var lift: float = -3.0 if hovered else 0.0
 	var tint: Color = cloth.lightened(0.13) if hovered else cloth
@@ -63,13 +67,18 @@ func _draw_home_link(hovered: bool) -> void:
 	var baseline: float = size.y * 0.68
 	var font_size: int = 62 if glyph == "play" else 50
 	var label_color: Color = ink.lightened(0.1) if hovered else ink
-	draw_string(FONT, Vector2(121, baseline), caption, HORIZONTAL_ALIGNMENT_LEFT, size.x - 135.0, font_size, label_color)
-	if hovered or glyph == "play":
-		var line_y: float = size.y - 12.0
-		var line_end: float = minf(size.x - 21.0, 145.0 + FONT.get_string_size(caption, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x)
-		for step: int in range(int((line_end - 122.0) / 16.0) + 1):
-			var x: float = 122.0 + float(step) * 16.0
-			draw_line(Vector2(x, line_y), Vector2(minf(x + 8.0, line_end), line_y), thread, 2.0, true)
+	draw_string(BODY_FONT, Vector2(121, baseline), caption, HORIZONTAL_ALIGNMENT_LEFT, size.x - 135.0, font_size, label_color)
+
+
+func _draw_pause_action(hovered: bool) -> void:
+	var lift: float = -5.0 if hovered else 0.0
+	var patch_size: float = minf(size.x - 20.0, size.y * 0.72)
+	var patch_position: Vector2 = Vector2((size.x - patch_size) * 0.5, 0.0 + lift)
+	var tint: Color = cloth.lightened(0.12) if hovered else cloth
+	draw_texture_rect(ICON_PATCH, Rect2(patch_position, Vector2.ONE * patch_size), false, tint)
+	_draw_icon(patch_position + Vector2.ONE * patch_size * 0.5, patch_size * 0.23, ink)
+	var font_size: int = 47 if size.x > 260.0 else 42
+	draw_string(BODY_FONT, Vector2(0, size.y - 8.0 + lift), caption, HORIZONTAL_ALIGNMENT_CENTER, size.x, font_size, ink)
 
 
 func _draw_plate(lift: float, tint: Color) -> void:

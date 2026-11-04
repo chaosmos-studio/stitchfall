@@ -18,6 +18,7 @@ const HOME_SCENE: Texture2D = preload("res://assets/art/home_woodland.webp")
 const HOME_CLEAN_PLATE: Texture2D = preload("res://assets/art/home_clean_plate.png")
 const HOME_REVEAL_MASK: Texture2D = preload("res://assets/art/home_reveal_mask.png")
 const HOME_BOTANICALS: GDScript = preload("res://scripts/home_botanicals.gd")
+const PAUSE_CLOTH: Texture2D = preload("res://assets/art/pause_cloth.webp")
 const DANCE_SHEET_4: Texture2D = preload("res://assets/art/seam_runner_dance_front_4.png")
 const BORDER_SCRIPT: GDScript = preload("res://scripts/stitch_border.gd")
 const CLEANUP_SHADER: Shader = preload("res://shaders/runner_cleanup.gdshader")
@@ -46,6 +47,7 @@ var pause_heading: Label
 var pause_body: Label
 var resume_button: StitchedButton
 var restart_button: StitchedButton
+var pause_home_button: StitchedButton
 var sound_buttons: Array[StitchedButton] = []
 var regular_font: FontFile
 var heavy_font: FontFile
@@ -365,21 +367,29 @@ func _toggle_fullscreen() -> void:
 
 func _build_pause() -> void:
 	pause_page = _page()
-	var card: Panel = _panel(pause_page, Rect2(485, 125, 950, 832), Color("f7edda", 0.96))
-	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	pause_heading = _label(pause_page, Vector2(550, 178), Vector2(820, 113), 74, INK, true)
+	var cloth: TextureRect = TextureRect.new()
+	cloth.texture = PAUSE_CLOTH
+	cloth.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	cloth.stretch_mode = TextureRect.STRETCH_SCALE
+	cloth.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cloth.position = Vector2(500, 165)
+	cloth.size = Vector2(920, 700)
+	pause_page.add_child(cloth)
+	pause_heading = _label(pause_page, Vector2(585, 230), Vector2(750, 125), 74, INK, true)
+	pause_heading.add_theme_font_override("font", FONT_DISPLAY)
 	pause_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	pause_body = _label(pause_page, Vector2(560, 300), Vector2(800, 100), 31, INK)
+	pause_body = _label(pause_page, Vector2(600, 355), Vector2(720, 95), 32, INK)
 	pause_body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	pause_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	resume_button = _tag(pause_page, Rect2(615, 430, 690, 122), "RESUME", "play", Color("e0a278"))
-	resume_button.pressed.connect(func() -> void: begin_pressed.emit())
-	restart_button = _tag(pause_page, Rect2(615, 574, 690, 111), "RESTART", "restart", Color("dbe5d1"))
+	restart_button = _tag(pause_page, Rect2(620, 500, 230, 255), "RESTART", "restart", Color("dbe5d1"))
+	restart_button.pause_action = true
 	restart_button.pressed.connect(func() -> void: restart_pressed.emit())
-	_tag(pause_page, Rect2(615, 708, 690, 110), "HOME", "home", Color("e8d8bd")).pressed.connect(func() -> void: home_pressed.emit())
-	var sound_button: StitchedButton = _tag(pause_page, Rect2(1274, 169, 106, 99), "", "sound", Color("f1e2c8"))
-	sound_buttons.append(sound_button)
-	sound_button.pressed.connect(_toggle_sound)
+	resume_button = _tag(pause_page, Rect2(850, 472, 270, 290), "RESUME", "play", Color("e0a278"))
+	resume_button.pause_action = true
+	resume_button.pressed.connect(func() -> void: begin_pressed.emit())
+	pause_home_button = _tag(pause_page, Rect2(1120, 500, 230, 255), "HOME", "home", Color("e8d8bd"))
+	pause_home_button.pause_action = true
+	pause_home_button.pressed.connect(func() -> void: home_pressed.emit())
 
 
 func _biome_palette(biome: int) -> Array[Color]:
@@ -420,6 +430,7 @@ func _toggle_sound() -> void:
 func _show_screen(name: String) -> void:
 	screen = name
 	panel.visible = true
+	panel.color = Color("3c342f", 0.52) if name in ["pause", "finish"] else Color("f5ead5", 0.89)
 	fabric.visible = name in ["levels", "help", "about", "settings"]
 	home_page.visible = name == "home"
 	level_page.visible = name == "levels"
@@ -459,20 +470,26 @@ func show_settings() -> void:
 
 func show_pause() -> void:
 	pause_heading.text = "PAUSED"
-	pause_body.text = "The thread can wait."
+	pause_heading.add_theme_font_size_override("font_size", 74)
+	pause_body.text = ""
 	resume_button.caption = "RESUME"
+	resume_button.position.x = 850
 	resume_button.queue_redraw()
 	restart_button.visible = true
+	pause_home_button.position.x = 1120
 	_show_screen("pause")
 	resume_button.grab_focus()
 
 
 func show_finish(time_text: String, shift_count: int, hit_count: int) -> void:
 	pause_heading.text = "THE SEAM HOLDS"
+	pause_heading.add_theme_font_size_override("font_size", 51)
 	pause_body.text = "Time %s     Shifts %d     Hits %d" % [time_text, shift_count, hit_count]
 	resume_button.caption = "PLAY AGAIN"
+	resume_button.position.x = 700
 	resume_button.queue_redraw()
 	restart_button.visible = false
+	pause_home_button.position.x = 1040
 	_show_screen("finish")
 	resume_button.grab_focus()
 

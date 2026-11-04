@@ -77,7 +77,7 @@ async function main() {
     await page.touchscreen.tap(805, 27);
     await page.waitForTimeout(220);
     await page.screenshot({ path: path.join(results, 'pause.png') });
-    await page.touchscreen.tap(340, 275);
+    await page.touchscreen.tap(520, 210);
     await page.waitForTimeout(220);
     await page.screenshot({ path: path.join(results, 'home-return.png') });
     await page.touchscreen.tap(110, 270);
