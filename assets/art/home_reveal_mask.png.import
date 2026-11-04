@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://4tfmgchb5tv4"
-path="res://.godot/imported/home_motion_map.png-2cabd2abbdecbf3d54b0d45640489a84.ctex"
+uid="uid://bmaxqk5ulnwav"
+path="res://.godot/imported/home_reveal_mask.png-e40a7484f87c26acf09d377f60579f4d.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/art/home_motion_map.png"
-dest_files=["res://.godot/imported/home_motion_map.png-2cabd2abbdecbf3d54b0d45640489a84.ctex"]
+source_file="res://assets/art/home_reveal_mask.png"
+dest_files=["res://.godot/imported/home_reveal_mask.png-e40a7484f87c26acf09d377f60579f4d.ctex"]
 
 [params]
 

@@ -14,11 +14,13 @@ const ACCENT: Color = Color("a85648")
 const FONT_REGULAR: FontFile = preload("res://assets/fonts/BricolageGrotesque.ttf")
 const FONT_BOLD: FontFile = preload("res://assets/fonts/Threadline-Satin.ttf")
 const HOME_SCENE: Texture2D = preload("res://assets/art/home_woodland.webp")
+const HOME_CLEAN_PLATE: Texture2D = preload("res://assets/art/home_clean_plate.png")
+const HOME_REVEAL_MASK: Texture2D = preload("res://assets/art/home_reveal_mask.png")
+const HOME_BOTANICALS: GDScript = preload("res://scripts/home_botanicals.gd")
 const DANCE_SHEET_4: Texture2D = preload("res://assets/art/seam_runner_dance_front_4.png")
 const BORDER_SCRIPT: GDScript = preload("res://scripts/stitch_border.gd")
 const CLEANUP_SHADER: Shader = preload("res://shaders/runner_cleanup.gdshader")
-const BREEZE_SHADER: Shader = preload("res://shaders/home_breeze.gdshader")
-const HOME_MOTION_MAP: Texture2D = preload("res://assets/art/home_motion_map.png")
+const HOME_REVEAL_SHADER: Shader = preload("res://shaders/home_reveal.gdshader")
 
 var root: Control
 var meter: ButtonMeter
@@ -186,16 +188,16 @@ func _build_home() -> void:
 	scene.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	scene.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	scene.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var motion_enabled: bool = true
-	if OS.has_feature("web"):
-		motion_enabled = not bool(JavaScriptBridge.eval("window.matchMedia('(prefers-reduced-motion: reduce)').matches"))
-	var breeze: ShaderMaterial = ShaderMaterial.new()
-	breeze.shader = BREEZE_SHADER
-	breeze.set_shader_parameter("motion_map", HOME_MOTION_MAP)
-	breeze.set_shader_parameter("motion_amount", 1.0 if motion_enabled else 0.0)
-	scene.material = breeze
+	var reveal: ShaderMaterial = ShaderMaterial.new()
+	reveal.shader = HOME_REVEAL_SHADER
+	reveal.set_shader_parameter("clean_plate", HOME_CLEAN_PLATE)
+	reveal.set_shader_parameter("reveal_mask", HOME_REVEAL_MASK)
+	scene.material = reveal
 	home_page.add_child(scene)
 	scene.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var botanicals: Control = HOME_BOTANICALS.new() as Control
+	home_page.add_child(botanicals)
+	botanicals.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var eyebrow: Label = _label(home_page, Vector2(136, 120), Vector2(850, 55), 31, ACCENT, true)
 	eyebrow.text = "A STITCHED SHIFT ADVENTURE"
 	var title: Label = _label(home_page, Vector2(128, 185), Vector2(870, 158), 105, INK, true)
