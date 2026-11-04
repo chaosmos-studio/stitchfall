@@ -7,7 +7,7 @@ const SECONDARY_ATLAS: Texture2D = preload("res://assets/art/home_secondary_atla
 const RED_FLOWER: Texture2D = preload("res://assets/art/home_red_flower.png")
 const PETAL_SHADER: Shader = preload("res://shaders/home_petal.gdshader")
 
-const LEAVES: Array[Vector4] = [
+const LEAF_REVEAL_SHAPES: Array[Vector4] = [
 	Vector4(876, 81, 49, 29), Vector4(931, 114, 32, 49), Vector4(854, 175, 34, 47),
 	Vector4(895, 153, 24, 42), Vector4(1016, 59, 33, 42), Vector4(1149, 109, 47, 31),
 	Vector4(1227, 155, 29, 49), Vector4(1110, 201, 42, 29), Vector4(1155, 199, 32, 25),
@@ -15,12 +15,20 @@ const LEAVES: Array[Vector4] = [
 	Vector4(1380, 111, 27, 39), Vector4(1475, 108, 29, 37),
 ]
 
+const LEAVES: Array[Vector4] = [
+	Vector4(876, 92, 49, 29), Vector4(925, 75, 32, 49), Vector4(854, 165, 34, 47),
+	Vector4(898, 128, 24, 42), Vector4(1016, 50, 33, 42), Vector4(1150, 154, 47, 31),
+	Vector4(1227, 122, 29, 49), Vector4(1110, 192, 42, 29), Vector4(1155, 164, 32, 25),
+	Vector4(1182, 145, 20, 32), Vector4(1300, 107, 31, 40), Vector4(1351, 112, 30, 49),
+	Vector4(1380, 110, 27, 39), Vector4(1475, 108, 29, 37),
+]
+
 const LEAF_ATTACHMENTS: Array[Vector2] = [
-	Vector2(914, 72), Vector2(932, 78), Vector2(882, 137),
-	Vector2(893, 119), Vector2(1000, 31), Vector2(1200, 96),
-	Vector2(1240, 83), Vector2(1145, 166), Vector2(1170, 166),
-	Vector2(1190, 149), Vector2(1325, 84), Vector2(1357, 93),
-	Vector2(1390, 82), Vector2(1462, 103),
+	Vector2(906, 67), Vector2(930, 47), Vector2(849, 146),
+	Vector2(890, 110), Vector2(1016, 20), Vector2(1150, 138),
+	Vector2(1228, 91), Vector2(1110, 169), Vector2(1156, 136),
+	Vector2(1182, 115), Vector2(1300, 78), Vector2(1351, 80),
+	Vector2(1380, 85), Vector2(1451, 106),
 ]
 
 const WHITE_FLOWERS: Array[Vector4] = [
@@ -113,7 +121,8 @@ func _build_leaves() -> void:
 	for index: int in range(LEAVES.size()):
 		var shape: Vector4 = LEAVES[index]
 		var attachment: Vector2 = LEAF_ATTACHMENTS[index]
-		var reach: Vector2 = Vector2(shape.x, shape.y) - attachment
+		var direction: Vector2 = (Vector2(shape.x, shape.y) - attachment).normalized()
+		var stem_length: float = 15.0
 		var holder: Node2D = Node2D.new()
 		holder.position = attachment
 		art_root.add_child(holder)
@@ -122,13 +131,15 @@ func _build_leaves() -> void:
 		stalk.default_color = Color("76523a")
 		stalk.antialiased = true
 		stalk.add_point(Vector2.ZERO)
-		stalk.add_point(reach * 0.92)
+		var bend: Vector2 = Vector2(-direction.y, direction.x) * (2.0 if index % 2 == 0 else -2.0)
+		stalk.add_point(direction * (stem_length * 0.5) + bend)
+		stalk.add_point(direction * (stem_length + shape.z * 0.12))
 		holder.add_child(stalk)
-		var variant: int = 1 if absf(reach.y) > absf(reach.x) * 1.2 and index % 3 == 0 else (2 if index % 4 == 0 else 0)
+		var variant: int = 2 if index % 4 == 0 else 0
 		var extent: Vector2 = Vector2(shape.z * 2.0, shape.w * 2.0)
 		var sprite: Sprite2D = _piece(holder, types[variant], extent)
-		sprite.position = reach
-		sprite.rotation = reach.angle() - (PI * 0.5 if variant == 1 else 0.0)
+		sprite.position = direction * (shape.z + stem_length)
+		sprite.rotation = direction.angle()
 		leaf_holders.append(holder)
 
 

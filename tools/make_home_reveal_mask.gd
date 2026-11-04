@@ -8,7 +8,7 @@ const BOTANICALS: GDScript = preload("res://scripts/home_botanicals.gd")
 func _initialize() -> void:
 	var image: Image = Image.create(PAINTING_SIZE.x, PAINTING_SIZE.y, false, Image.FORMAT_RGBA8)
 	image.fill(Color.TRANSPARENT)
-	_paint_group(image, BOTANICALS.LEAVES, 1.16)
+	_paint_group(image, BOTANICALS.LEAF_REVEAL_SHAPES, 1.16)
 	_paint_group(image, BOTANICALS.WHITE_FLOWERS, 1.0)
 	_paint_group(image, BOTANICALS.BLUE_FLOWERS, 1.0)
 	_paint_group(image, BOTANICALS.CREAM_FLOWERS, 1.0)
