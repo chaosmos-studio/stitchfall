@@ -20,7 +20,7 @@ Each room name and its instruction appear briefly when the room begins.
 The HUD cloth palette follows the setting.
 The Home screen plays a slower front-facing dance loop made from 62 sprite frames.
 Its sewn woodland stage has a quiet fabric pocket for the menu.
-Game labels and buttons use Averia Sans Libre for a warm handmade letterform.
+The title uses Darn Display, reading text uses Darn UI, and stitched controls use Threadline Satin.
 An original music loop accompanies the dance and continues into play.
 Level Select presents the rooms as two pages of larger textile cards with setting symbols.
 Help uses sewn gesture diagrams, and Pause uses a stitched icon during play.
@@ -115,3 +115,34 @@ A deterministic fixed-step replay using the game's movement values should prove 
 Compare route signatures and geometry after translation or reflection to reject repetitions.
 Rank candidates within a family, then playtest the chosen rooms on phone and desktop before releasing them.
 Automated reachability is a gate, while human playtesting decides whether a route is readable and fun.
+
+## Next playable batch
+
+Replace the opening rooms before adding more settings.
+Each room needs a different route and a different reason to shift.
+
+| Room | Main action | What makes it distinct |
+| --- | --- | --- |
+| First Stitch | Turn onto a wall, then return to the floor | A short safe route teaches the quarter turn without a sentry or cargo |
+| Reverse Hem | Run across the ceiling to reach a button behind a floor barrier | The player must read the same space from the opposite side |
+| Loose Bridge | Shift while airborne to sew a missing bridge under the landing | The bridge changes the path, not only the look of the room |
+| Needle Clock | Shift to freeze a moth, cross its patrol, and land before it moves again | Timing matters, with a safe place to observe before committing |
+| Weighted Patch | Move cargo onto its mark through a gravity turn | Cargo and player need different routes through one room |
+| Stitch Relay | Carry the patch, reveal a bridge, then cross back for the exit | The earlier ideas combine without adding a new control |
+
+The first implementation slice is First Stitch through Loose Bridge.
+Play those rooms on phone and keyboard before changing the later route.
+Each room gets a sketched solution path, a fixed-step replay from its actual movement rules, and one optional button detour.
+Record shifts, jumps, airtime, safe landing width, hits, retries, and completion time from playtests.
+Difficulty rises through route reasoning, timing, and recovery pressure, not by adding more hazards to the same crossing.
+
+## Campaign production order
+
+1. Build a room grammar from authored entrances, ceiling runs, wall turns, landings, phase seams, cargo stations, and exits.
+2. Give each setting a physical rule that changes the route, then make an introduction, variation, reversal, combination, and mastery room for that rule.
+3. Generate candidates from fixed seeds within one family, replay them with the real physics constants, and reject blocked pickups, unsafe starts, impossible exits, and repeated route shapes.
+4. Hand-pick and tune accepted rooms in small batches on phone and desktop.
+5. Add textile art, sound, and HUD cues that show the rule before the player reads a hint.
+
+The first families are gravity routing, phase seams, cargo, water currents, dunes wind, canopy lift, low gravity, rain gusts, and frost momentum.
+New nature settings should earn a place by changing movement or interaction, not by changing the backdrop alone.
