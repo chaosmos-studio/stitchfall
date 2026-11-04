@@ -42,8 +42,10 @@ async function main() {
     if (!cursor.includes('sewing_cursor.png')) throw new Error(`The needle cursor is missing: ${cursor}`);
     await page.waitForTimeout(600);
     await page.screenshot({ path: path.join(results, 'intro-dance.png') });
-    await page.waitForTimeout(7800);
-    await page.screenshot({ path: path.join(results, 'intro-bloom.png') });
+    await page.waitForTimeout(2500);
+    await page.screenshot({ path: path.join(results, 'intro-air-early.png') });
+    await page.waitForTimeout(5300);
+    await page.screenshot({ path: path.join(results, 'intro-air-late.png') });
     await page.touchscreen.tap(110, 310);
     await page.waitForTimeout(220);
     await page.screenshot({ path: path.join(results, 'settings.png') });
