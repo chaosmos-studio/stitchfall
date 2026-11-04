@@ -8,16 +8,19 @@ const RED_FLOWER: Texture2D = preload("res://assets/art/home_red_flower.png")
 const PETAL_SHADER: Shader = preload("res://shaders/home_petal.gdshader")
 
 const LEAVES: Array[Vector4] = [
-	Vector4(614, 13, 34, 20), Vector4(659, 20, 34, 30), Vector4(728, 15, 34, 26),
-	Vector4(810, 20, 34, 24), Vector4(857, 68, 34, 27), Vector4(852, 162, 24, 41),
-	Vector4(935, 109, 25, 42), Vector4(934, 158, 26, 38), Vector4(981, 22, 27, 26),
-	Vector4(1047, 23, 33, 31), Vector4(1081, 57, 30, 40), Vector4(1148, 16, 32, 30),
-	Vector4(1207, 14, 34, 31), Vector4(1266, 16, 34, 34), Vector4(1335, 19, 36, 31),
-	Vector4(1428, 22, 35, 33), Vector4(1502, 18, 28, 29), Vector4(1621, 28, 29, 32),
-	Vector4(1137, 65, 31, 26), Vector4(1218, 100, 40, 29), Vector4(1260, 164, 27, 41),
-	Vector4(1300, 129, 27, 35), Vector4(1364, 100, 34, 31), Vector4(1450, 132, 27, 43),
-	Vector4(1515, 117, 25, 38), Vector4(1561, 107, 24, 34), Vector4(1116, 165, 31, 21),
-	Vector4(1161, 165, 30, 23), Vector4(1185, 183, 27, 34),
+	Vector4(876, 81, 49, 29), Vector4(931, 114, 32, 49), Vector4(854, 175, 34, 47),
+	Vector4(895, 153, 24, 42), Vector4(1016, 59, 33, 42), Vector4(1149, 109, 47, 31),
+	Vector4(1227, 155, 29, 49), Vector4(1110, 201, 42, 29), Vector4(1155, 199, 32, 25),
+	Vector4(1182, 180, 20, 32), Vector4(1300, 111, 31, 40), Vector4(1351, 158, 30, 49),
+	Vector4(1380, 111, 27, 39), Vector4(1475, 108, 29, 37),
+]
+
+const LEAF_ATTACHMENTS: Array[Vector2] = [
+	Vector2(914, 72), Vector2(932, 78), Vector2(882, 137),
+	Vector2(893, 119), Vector2(1000, 31), Vector2(1200, 112),
+	Vector2(1240, 115), Vector2(1145, 166), Vector2(1170, 166),
+	Vector2(1190, 149), Vector2(1325, 84), Vector2(1357, 112),
+	Vector2(1390, 82), Vector2(1462, 80),
 ]
 
 const WHITE_FLOWERS: Array[Vector4] = [
@@ -51,10 +54,13 @@ var leaf_holders: Array[Node2D] = []
 var flower_holders: Array[Node2D] = []
 var petal_sprites: Array[Sprite2D] = []
 var petal_scales: Array[Vector2] = []
-var petal_delays: Array[float] = []
+var petal_cycles: Array[float] = []
 var petal_initial_sizes: Array[float] = []
 var flower_centers: Array[Sprite2D] = []
 var center_scales: Array[Vector2] = []
+var center_cycles: Array[float] = []
+var center_initial_sizes: Array[float] = []
+var bloom_count: int = 0
 var elapsed: float = 0.0
 var motion_enabled: bool = true
 
@@ -103,13 +109,25 @@ func _build_leaves() -> void:
 		_atlas_region(LEAF_ATLAS, Rect2(1050, 50, 450, 620)),
 		_atlas_region(LEAF_ATLAS, Rect2(1560, 150, 570, 450)),
 	]
+	assert(LEAVES.size() == LEAF_ATTACHMENTS.size())
 	for index: int in range(LEAVES.size()):
 		var shape: Vector4 = LEAVES[index]
+		var attachment: Vector2 = LEAF_ATTACHMENTS[index]
+		var reach: Vector2 = Vector2(shape.x, shape.y) - attachment
 		var holder: Node2D = Node2D.new()
-		holder.position = Vector2(shape.x, shape.y)
+		holder.position = attachment
 		art_root.add_child(holder)
-		var variant: int = 1 if shape.w > shape.z else index % types.size()
-		_piece(holder, types[variant], Vector2(shape.z * 2.1, shape.w * 2.1))
+		var stalk: Line2D = Line2D.new()
+		stalk.width = 3.0
+		stalk.default_color = Color("76523a")
+		stalk.add_point(Vector2.ZERO)
+		stalk.add_point(reach.normalized() * minf(9.0, reach.length() * 0.26))
+		holder.add_child(stalk)
+		var variant: int = 1 if absf(reach.y) > absf(reach.x) * 1.2 and index % 3 == 0 else (2 if index % 4 == 0 else 0)
+		var extent: Vector2 = Vector2(shape.z * 2.0, reach.length() * 2.05) if variant == 1 else Vector2(reach.length() * 2.05, minf(shape.z, shape.w) * 2.0)
+		var sprite: Sprite2D = _piece(holder, types[variant], extent)
+		sprite.position = reach
+		sprite.rotation = reach.angle() + (PI * 0.5 if variant == 1 else 0.0)
 		leaf_holders.append(holder)
 
 
@@ -140,13 +158,16 @@ func _add_flower_group(shapes: Array[Vector4], source: Texture2D, region: Rect2i
 		if source == SECONDARY_ATLAS:
 			extent *= 0.65 if hanging else 1.15
 		if petal_count > 0:
-			_build_petals(bloom, texture, extent, petal_count, 0.42 + float(index) * 0.17)
+			_build_petals(bloom, texture, extent, petal_count)
 		else:
 			_piece(bloom, texture, extent)
 		flower_holders.append(holder)
 
 
-func _build_petals(parent: Node2D, texture: Texture2D, extent: Vector2, count: int, delay: float) -> void:
+func _build_petals(parent: Node2D, texture: Texture2D, extent: Vector2, count: int) -> void:
+	var red: bool = texture == RED_FLOWER
+	var cycle: float = 0.35 if red else fposmod(float(bloom_count) * 2.17 + 1.4, 9.0)
+	bloom_count += 1
 	for index: int in range(count):
 		var petal: Sprite2D = _piece(parent, texture, extent)
 		var material: ShaderMaterial = ShaderMaterial.new()
@@ -157,8 +178,8 @@ func _build_petals(parent: Node2D, texture: Texture2D, extent: Vector2, count: i
 		petal.material = material
 		petal_sprites.append(petal)
 		petal_scales.append(petal.scale)
-		petal_delays.append(delay + float(index) * 0.09)
-		petal_initial_sizes.append(0.6 if texture == RED_FLOWER else 0.84)
+		petal_cycles.append(cycle - float(index) * 0.11)
+		petal_initial_sizes.append(0.56 if red else 0.72)
 	var center: Sprite2D = _piece(parent, texture, extent)
 	var center_material: ShaderMaterial = ShaderMaterial.new()
 	center_material.shader = PETAL_SHADER
@@ -167,6 +188,8 @@ func _build_petals(parent: Node2D, texture: Texture2D, extent: Vector2, count: i
 	center.material = center_material
 	flower_centers.append(center)
 	center_scales.append(center.scale)
+	center_cycles.append(cycle)
+	center_initial_sizes.append(0.66 if red else 0.82)
 
 
 func _build_red_bloom() -> void:
@@ -178,7 +201,7 @@ func _build_red_bloom() -> void:
 	holder.add_child(bloom)
 	flower_holders.append(holder)
 	var extent: Vector2 = Vector2(RED_BLOOM.z * 3.1, RED_BLOOM.w * 2.5)
-	_build_petals(bloom, RED_FLOWER, extent, 6, 0.6)
+	_build_petals(bloom, RED_FLOWER, extent, 6)
 
 
 func _process(delta: float) -> void:
@@ -188,17 +211,25 @@ func _process(delta: float) -> void:
 	_animate_pieces()
 
 
+func _bloom_open(phase: float) -> float:
+	return smoothstep(0.35, 2.2, phase) * (1.0 - smoothstep(6.3, 8.6, phase))
+
+
 func _animate_pieces() -> void:
 	for index: int in range(leaf_holders.size()):
 		var phase: float = float(index) * 1.73
-		leaf_holders[index].rotation = deg_to_rad(3.1 * sin(elapsed * (0.61 + float(index % 5) * 0.07) + phase))
+		var branch_breath: float = 0.65 * sin(elapsed * 0.83 + phase * 0.12) + 0.35 * sin(elapsed * (1.13 + float(index % 4) * 0.05) + phase)
+		leaf_holders[index].rotation = deg_to_rad((13.5 + float(index % 4) * 1.1) * branch_breath)
 	for index: int in range(flower_holders.size()):
 		var phase: float = float(index) * 2.17
-		flower_holders[index].rotation = deg_to_rad(2.0 * sin(elapsed * (0.48 + float(index % 4) * 0.09) + phase))
+		var flower_breath: float = 0.7 * sin(elapsed * 0.64 + phase * 0.15) + 0.3 * sin(elapsed * (1.02 + float(index % 4) * 0.07) + phase)
+		flower_holders[index].rotation = deg_to_rad(8.0 * flower_breath)
 	for index: int in range(petal_sprites.size()):
 		var petal: Sprite2D = petal_sprites[index]
-		var open: float = smoothstep(0.0, 1.0, (elapsed - petal_delays[index]) / 1.7)
-		var breath: float = 1.0 + 0.015 * sin(elapsed * 0.78 + float(index) * 0.57)
-		petal.scale = petal_scales[index] * lerpf(petal_initial_sizes[index], breath, open)
+		var phase: float = fposmod(elapsed + petal_cycles[index], 9.0)
+		var open: float = _bloom_open(phase)
+		petal.scale = petal_scales[index] * lerpf(petal_initial_sizes[index], 1.02, open)
+		petal.rotation = deg_to_rad(4.0 * sin(elapsed * 0.92 + float(index) * 0.68)) * open
 	for index: int in range(flower_centers.size()):
-		flower_centers[index].scale = center_scales[index] * lerpf(0.88, 1.0, smoothstep(0.0, 1.0, (elapsed - 0.5) / 1.5))
+		var phase: float = fposmod(elapsed + center_cycles[index], 9.0)
+		flower_centers[index].scale = center_scales[index] * lerpf(center_initial_sizes[index], 1.0, _bloom_open(phase))
