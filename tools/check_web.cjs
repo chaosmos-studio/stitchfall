@@ -32,7 +32,13 @@ async function main() {
     const results = path.join(project, 'build', 'test-results');
     await mkdir(results, { recursive: true });
     await page.screenshot({ path: path.join(results, 'loading.png') });
-    await page.waitForFunction(() => document.getElementById('loading')?.hidden, null, { timeout: 90000 });
+    try {
+      await page.waitForFunction(() => document.getElementById('loading')?.hidden, null, { timeout: 90000 });
+    } catch (error) {
+      const progress = await page.locator('#bytes').textContent();
+      const failure = await page.locator('#error').textContent();
+      throw new Error(`Game loading stalled at ${progress}: ${failure || error}`);
+    }
     if (await page.locator('#error').textContent()) throw new Error(await page.locator('#error').textContent());
     await page.waitForTimeout(800);
     if (errors.length) throw new Error(errors.join('\n'));
@@ -109,6 +115,7 @@ async function main() {
     if (shifts.length !== 1) throw new Error(`One tap turned gravity ${shifts.length} times`);
     if (errors.length) throw new Error(errors.join('\n'));
     await page.screenshot({ path: path.join(results, 'mobile.png') });
+    await page.close();
     const desktop = await browser.newPage({ viewport: { width: 1280, height: 720 } });
     await desktop.goto(baseUrl, { timeout: 180000 });
     await desktop.waitForFunction(() => document.getElementById('loading')?.hidden, null, { timeout: 90000 });
