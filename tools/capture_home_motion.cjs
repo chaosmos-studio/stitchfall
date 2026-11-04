@@ -32,7 +32,7 @@ async function main() {
     }
     const frames = path.join(results, 'home-motion-frames');
     await mkdir(frames, { recursive: true });
-    for (let index = 0; index < 80; index++) {
+    for (let index = 0; index < 110; index++) {
       await page.screenshot({ path: path.join(frames, `${String(index).padStart(3, '0')}.png`) });
       await page.waitForTimeout(90);
     }
