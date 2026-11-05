@@ -10,7 +10,7 @@ const FRAME: Array[Rect2] = [
 
 
 static func count() -> int:
-	return 42
+	return 50
 
 
 static func wide_frame(width: float) -> Array[Rect2]:
@@ -662,6 +662,135 @@ static func get_level(index: int) -> Dictionary:
 				"mechanisms": [{"kind": "chain", "from": Vector2(560, 530), "to": Vector2(880, 530), "period": 4.1, "shift_armed": true}],
 				"checkpoint": Vector2(950, 285),
 				"shards": [Vector2(1480, 755), Vector2(1020, 590), Vector2(490, 285)],
+				"shard_phases": [-1, 1, -1],
+			}, true)
+		42:
+			base.merge({
+				"name": "Wet Stitch",
+				"hint": "The rain drives you across the warning mark. Turn high before the bobbin drops.",
+				"backdrop": 8,
+				"width": 2550.0,
+				"environment": "rain",
+				"environment_zone": Rect2(400, 230, 1830, 668),
+				"exit": Vector2(2310, 815),
+				"walls": wide_frame(2550) + [Rect2(860, 605, 290, 28), Rect2(1650, 500, 300, 28)],
+				"mechanisms": [{"kind": "pulley", "from": Vector2(1250, 270), "to": Vector2(1250, 745), "anchor": Vector2(1250, 210), "period": 3.1, "trigger": Vector2(720, 820), "trigger_radius": 100.0}],
+				"checkpoint": Vector2(1540, 805),
+				"shards": [Vector2(490, 755), Vector2(1330, 350), Vector2(2140, 755)],
+			}, true)
+		43:
+			base.merge({
+				"name": "Umbrella Run",
+				"hint": "A turn opens the tall seams. Hide under the awning until the chain passes.",
+				"backdrop": 8,
+				"width": 2700.0,
+				"environment": "rain",
+				"environment_zone": Rect2(440, 215, 1900, 683),
+				"start": Vector2(2480, 820),
+				"exit": Vector2(300, 815),
+				"walls": wide_frame(2700) + [Rect2(1790, 540, 350, 28), Rect2(750, 525, 350, 28)],
+				"timed_gates": [Rect2(1460, 198, 36, 700), Rect2(580, 198, 36, 700)],
+				"gate_window": 3.0,
+				"mechanisms": [{"kind": "chain", "from": Vector2(1000, 690), "to": Vector2(1350, 690), "period": 3.8}],
+				"checkpoint": Vector2(1240, 810),
+				"shards": [Vector2(2300, 750), Vector2(1240, 440), Vector2(450, 755)],
+			}, true)
+		44:
+			base.merge({
+				"name": "Slip Knot",
+				"hint": "Ice carries your speed. Catch the flower to clear the torn hem.",
+				"backdrop": 9,
+				"width": 2450.0,
+				"environment": "frost",
+				"environment_zone": Rect2(450, 520, 1540, 378),
+				"exit": Vector2(2200, 285),
+				"walls": wide_frame(2450) + [Rect2(650, 680, 290, 28), Rect2(1240, 480, 290, 28), Rect2(1880, 385, 250, 28)],
+				"bloom_pads": [Vector2(930, 870)],
+				"hazards": [Rect2(1060, 870, 180, 28)],
+				"checkpoint": Vector2(1470, 405),
+				"shards": [Vector2(490, 755), Vector2(1360, 405), Vector2(2040, 310)],
+			}, true)
+		45:
+			base.merge({
+				"name": "Frozen Clock",
+				"hint": "The cutter patrols a narrow lane. Turn the gate open only when it moves away.",
+				"backdrop": 9,
+				"width": 2600.0,
+				"environment": "frost",
+				"environment_zone": Rect2(400, 240, 1820, 658),
+				"start": Vector2(2370, 275),
+				"exit": Vector2(290, 815),
+				"walls": wide_frame(2600) + [Rect2(1870, 405, 320, 28), Rect2(730, 600, 300, 28)],
+				"timed_gates": [Rect2(1530, 198, 36, 700)],
+				"gate_window": 2.0,
+				"mechanisms": [{"kind": "cutter", "from": Vector2(1180, 695), "to": Vector2(1490, 695), "period": 3.0}],
+				"checkpoint": Vector2(1090, 525),
+				"shards": [Vector2(2160, 285), Vector2(1330, 600), Vector2(500, 755)],
+			}, true)
+		46:
+			base.merge({
+				"name": "Four Corners",
+				"hint": "Each turn lands on another wall. Gather the corner buttons before the center zipper.",
+				"backdrop": 2,
+				"start": Vector2(960, 820),
+				"exit": Vector2(960, 285),
+				"walls": FRAME + [Rect2(680, 420, 35, 260), Rect2(1200, 420, 35, 260), Rect2(810, 540, 300, 28)],
+				"phase_walls": [Rect2(760, 320, 400, 28)],
+				"checkpoint": Vector2(1520, 540),
+				"shards": [Vector2(360, 755), Vector2(1510, 755), Vector2(965, 385)],
+				"shard_phases": [-1, -1, 1],
+			}, true)
+		47:
+			base.merge({
+				"name": "The Long Hem",
+				"hint": "Ride one moving stitch to the next. The warning mark starts the final weight.",
+				"backdrop": 6,
+				"width": 3200.0,
+				"environment": "forest",
+				"environment_zone": Rect2(450, 260, 2430, 638),
+				"exit": Vector2(2950, 285),
+				"walls": wide_frame(3200) + [Rect2(630, 680, 270, 28), Rect2(1430, 500, 290, 28), Rect2(2520, 400, 280, 28)],
+				"ferries": [
+					{"from": Vector2(990, 740), "to": Vector2(1320, 560), "size": Vector2(200, 28), "period": 4.5},
+					{"from": Vector2(1840, 640), "to": Vector2(2200, 450), "size": Vector2(200, 28), "period": 4.9},
+				],
+				"mechanisms": [{"kind": "pulley", "from": Vector2(2400, 270), "to": Vector2(2400, 720), "anchor": Vector2(2400, 210), "period": 3.6, "trigger": Vector2(2050, 500), "trigger_radius": 95.0}],
+				"checkpoint": Vector2(1690, 425),
+				"shards": [Vector2(520, 755), Vector2(1590, 425), Vector2(2710, 325)],
+			}, true)
+		48:
+			base.merge({
+				"name": "Spool Maze",
+				"hint": "Seat the patch, open the lit seam, then take the route across the ceiling.",
+				"backdrop": 3,
+				"width": 2450.0,
+				"exit": Vector2(2190, 285),
+				"walls": wide_frame(2450) + [Rect2(670, 575, 40, 323), Rect2(1490, 500, 42, 398), Rect2(1720, 390, 260, 28)],
+				"phase_walls": [Rect2(1090, 410, 38, 400)],
+				"crate": Vector2(440, 835),
+				"pad": Vector2(580, 876),
+				"checkpoint": Vector2(1240, 285),
+				"shards": [Vector2(400, 755), Vector2(1270, 290), Vector2(1930, 320)],
+				"shard_phases": [-1, 1, -1],
+			}, true)
+		49:
+			base.merge({
+				"name": "The Last Knot",
+				"hint": "Read the marks, turn with the moving hems, and stitch the final zipper open.",
+				"backdrop": 8,
+				"width": 3400.0,
+				"environment": "rain",
+				"environment_zone": Rect2(520, 240, 2360, 658),
+				"exit": Vector2(3150, 285),
+				"walls": wide_frame(3400) + [Rect2(620, 650, 300, 28), Rect2(1450, 475, 310, 28), Rect2(2680, 380, 300, 28)],
+				"phase_walls": [Rect2(1040, 485, 38, 360)],
+				"timed_gates": [Rect2(2020, 198, 36, 700)],
+				"gate_window": 3.0,
+				"bloom_pads": [Vector2(540, 870)],
+				"ferries": [{"from": Vector2(2140, 650), "to": Vector2(2530, 455), "size": Vector2(210, 28), "period": 4.8}],
+				"mechanisms": [{"kind": "pulley", "from": Vector2(1870, 270), "to": Vector2(1870, 740), "anchor": Vector2(1870, 210), "period": 3.6, "trigger": Vector2(1600, 400), "trigger_radius": 100.0}],
+				"checkpoint": Vector2(1770, 395),
+				"shards": [Vector2(460, 755), Vector2(1650, 400), Vector2(2840, 305)],
 				"shard_phases": [-1, 1, -1],
 			}, true)
 	return base
