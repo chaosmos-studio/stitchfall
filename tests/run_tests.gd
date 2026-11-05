@@ -276,6 +276,18 @@ func _test_opening_route() -> void:
 	for frame: int in range(180):
 		await physics_frame
 	_check("the ceiling route reaches its button without teleporting", game.collected[1])
+	game.last_shift = -1.0
+	game._shift(1)
+	game.last_shift = -1.0
+	game._shift(1)
+	game.pilot.touch_axis = -1.0
+	for frame: int in range(65):
+		await physics_frame
+	_check("the return to the floor reaches the last button", game.collected[2])
+	game.pilot.touch_axis = 1.0
+	for frame: int in range(100):
+		await physics_frame
+	_check("the opening route reaches the zipper without teleporting", game.level_index == 1)
 	game.queue_free()
 	await process_frame
 
