@@ -10,7 +10,7 @@ const FRAME: Array[Rect2] = [
 
 
 static func count() -> int:
-	return 34
+	return 42
 
 
 static func wide_frame(width: float) -> Array[Rect2]:
@@ -540,5 +540,128 @@ static func get_level(index: int) -> Dictionary:
 				"mechanisms": [{"kind": "chain", "from": Vector2(1530, 580), "to": Vector2(1850, 580), "period": 3.6, "shift_armed": true}],
 				"checkpoint": Vector2(1180, 390),
 				"shards": [Vector2(2240, 760), Vector2(1510, 440), Vector2(500, 285)],
+			}, true)
+		34:
+			base.merge({
+				"name": "Drowned Stair",
+				"hint": "Drop through the pool, light the lower seam, then climb the opposite bank.",
+				"backdrop": 4,
+				"width": 2450.0,
+				"environment": "water",
+				"environment_zone": Rect2(500, 430, 1450, 468),
+				"start": Vector2(300, 275),
+				"exit": Vector2(2220, 815),
+				"walls": wide_frame(2450) + [Rect2(480, 385, 300, 28), Rect2(1050, 585, 300, 28), Rect2(1770, 690, 300, 28)],
+				"phase_walls": [Rect2(1420, 590, 38, 308)],
+				"checkpoint": Vector2(1270, 805),
+				"shards": [Vector2(560, 305), Vector2(1160, 510), Vector2(2000, 605)],
+				"shard_phases": [-1, 1, -1],
+			}, true)
+		35:
+			base.merge({
+				"name": "Sunk Button",
+				"hint": "The loose patch sinks slowly. Push it onto the button before turning upward.",
+				"backdrop": 4,
+				"environment": "water",
+				"environment_zone": Rect2(430, 430, 1010, 468),
+				"exit": Vector2(1630, 285),
+				"walls": FRAME + [Rect2(750, 485, 40, 413), Rect2(1170, 385, 310, 28)],
+				"crate": Vector2(460, 835),
+				"pad": Vector2(630, 876),
+				"checkpoint": Vector2(930, 285),
+				"shards": [Vector2(450, 750), Vector2(970, 650), Vector2(1440, 310)],
+			}, true)
+		36:
+			base.merge({
+				"name": "Crosswind",
+				"hint": "The dunes push right. Shift to the upper hem when the cutter turns back.",
+				"backdrop": 5,
+				"width": 2600.0,
+				"environment": "dunes",
+				"environment_zone": Rect2(390, 250, 1840, 648),
+				"exit": Vector2(2350, 285),
+				"walls": wide_frame(2600) + [Rect2(540, 700, 290, 28), Rect2(1230, 530, 320, 28), Rect2(1960, 380, 280, 28)],
+				"mechanisms": [{"kind": "cutter", "from": Vector2(1020, 740), "to": Vector2(1420, 740), "period": 4.2}],
+				"checkpoint": Vector2(1480, 455),
+				"shards": [Vector2(480, 755), Vector2(1350, 450), Vector2(2110, 305)],
+			}, true)
+		37:
+			base.merge({
+				"name": "Sandglass",
+				"hint": "Turn to open the hem, ride the moving ledge, and beat the falling sand.",
+				"backdrop": 5,
+				"width": 2450.0,
+				"environment": "dunes",
+				"environment_zone": Rect2(400, 260, 1660, 638),
+				"start": Vector2(2210, 275),
+				"exit": Vector2(290, 815),
+				"walls": wide_frame(2450) + [Rect2(1760, 390, 290, 28), Rect2(650, 660, 300, 28)],
+				"timed_gates": [Rect2(1270, 198, 36, 700)],
+				"gate_window": 2.4,
+				"ferries": [{"from": Vector2(1600, 610), "to": Vector2(1140, 430), "size": Vector2(205, 28), "period": 4.8}],
+				"checkpoint": Vector2(960, 590),
+				"shards": [Vector2(2050, 285), Vector2(1360, 500), Vector2(470, 755)],
+			}, true)
+		38:
+			base.merge({
+				"name": "Seed Vault",
+				"hint": "Set the patch in its notch. The flower grows a route above the roots.",
+				"backdrop": 6,
+				"environment": "forest",
+				"environment_zone": Rect2(380, 260, 1250, 638),
+				"start": Vector2(1530, 820),
+				"exit": Vector2(300, 285),
+				"walls": FRAME + [Rect2(1240, 575, 40, 323), Rect2(590, 455, 325, 28)],
+				"crate": Vector2(1430, 835),
+				"pad": Vector2(1080, 876),
+				"bloom_pads": [Vector2(730, 870)],
+				"checkpoint": Vector2(990, 380),
+				"shards": [Vector2(1480, 755), Vector2(870, 690), Vector2(510, 285)],
+			}, true)
+		39:
+			base.merge({
+				"name": "Branch Turn",
+				"hint": "Circle the high branch. A falling stitch blocks the direct return.",
+				"backdrop": 6,
+				"width": 2400.0,
+				"environment": "forest",
+				"environment_zone": Rect2(420, 240, 1600, 658),
+				"start": Vector2(2140, 285),
+				"exit": Vector2(300, 815),
+				"walls": wide_frame(2400) + [Rect2(1770, 410, 310, 28), Rect2(1040, 580, 320, 28)],
+				"mechanisms": [{"kind": "pulley", "from": Vector2(950, 270), "to": Vector2(950, 720), "anchor": Vector2(950, 210), "period": 3.9, "trigger": Vector2(1490, 285), "trigger_radius": 100.0}],
+				"checkpoint": Vector2(1110, 505),
+				"shards": [Vector2(2010, 285), Vector2(1340, 490), Vector2(480, 755)],
+			}, true)
+		40:
+			base.merge({
+				"name": "Comet Seam",
+				"hint": "The slow fall gives you one long jump across the unstitched gap.",
+				"backdrop": 7,
+				"width": 2850.0,
+				"environment": "space",
+				"environment_zone": Rect2(140, 198, 2570, 700),
+				"exit": Vector2(2610, 815),
+				"walls": wide_frame(2850) + [Rect2(620, 680, 300, 28), Rect2(1330, 475, 310, 28), Rect2(2220, 555, 290, 28)],
+				"hazards": [Rect2(970, 870, 250, 28), Rect2(1870, 870, 230, 28)],
+				"ferries": [{"from": Vector2(1710, 600), "to": Vector2(2110, 440), "size": Vector2(210, 28), "period": 5.3}],
+				"checkpoint": Vector2(1500, 400),
+				"shards": [Vector2(490, 755), Vector2(1480, 400), Vector2(2300, 480)],
+			}, true)
+		41:
+			base.merge({
+				"name": "Moon Tether",
+				"hint": "Turn to the ceiling while the chain sleeps. Return below its arc.",
+				"backdrop": 7,
+				"environment": "space",
+				"environment_zone": Rect2(140, 198, 1640, 700),
+				"start": Vector2(1600, 820),
+				"exit": Vector2(300, 285),
+				"walls": FRAME + [Rect2(1250, 575, 42, 323), Rect2(760, 390, 320, 28)],
+				"phase_walls": [Rect2(960, 660, 280, 28)],
+				"mechanisms": [{"kind": "chain", "from": Vector2(560, 530), "to": Vector2(880, 530), "period": 4.1, "shift_armed": true}],
+				"checkpoint": Vector2(950, 285),
+				"shards": [Vector2(1480, 755), Vector2(1020, 590), Vector2(490, 285)],
+				"shard_phases": [-1, 1, -1],
 			}, true)
 	return base
