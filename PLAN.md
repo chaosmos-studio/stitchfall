@@ -68,7 +68,8 @@ Palewheel needs the same discipline for movement routes, with a replayable physi
 - [ ] Build deterministic candidate generation with protected start and exit zones, reachable collectibles, hazard clearance, and repeated-layout rejection.
 - [ ] Replay generated candidates with the actual movement constants, reject unreachable routes, and order accepted rooms by measured difficulty.
 - [ ] Play every family on desktop and phone, tune checkpoints, then expand the campaign in reviewed batches.
-- [ ] Finish transitions, ending, accessibility, performance, Android export, and Game Off submission review.
+- [ ] Finish transitions, ending, accessibility, performance, and Android export.
+- [x] Submit the playable public build to Game Off with the source repository and AI disclosure.
 
 The current wider-room pass extends Needle Clock, Sand Drift, Green Canopy, and Rainline with a following camera, moving cloth platforms, new route targets, and longer crossings.
 These rooms still need human route playtests before they count as finished campaign stages.
@@ -178,21 +179,20 @@ New nature settings should earn a place by changing movement or interaction, not
 
 ## Campaign scope, 5 November 2026
 
-Target 120 curated rooms across 10 worlds of 12 rooms each.
-Each world has three introduction rooms, three variations, three combinations with earlier rules, two mastery rooms, and one finale.
-The worlds cover gravity, phase seams, cargo, water, dunes and wind, canopy, rain, frost, low gravity, and a final world that recombines the strongest ideas.
-This is a production target, not permission to fill a world with repeated routes.
-Ship the first 12 revised rooms as one coherent world, then build and playtest in batches of 12.
-Keep the campaign count private until the authored rooms and replay validation prove the target is worth keeping.
+The current target is 50 authored rooms across gravity, phase seams, cargo, water, dunes, canopy, rain, frost, low gravity, and a final recombination.
+The authored data reaches that target, including marked falling bobbins, long moving-hem relays, vertical corner routes, and reverse entrances.
+The room-clearance checks and scripted completion flow pass, but most rooms still need physics-driven route replays and manual phone and desktop playthroughs.
+Revise or remove rooms that repeat a route shape or cannot be finished reliably with normal controls.
+Keep the campaign count private until those route checks prove the target is worth keeping.
 
 ## Room revision, 5 November 2026
 
-The current 16 rooms now use different start and exit sides, ceiling routes, wall turns, cargo placements, environmental fields, and landing shapes.
+The authored rooms use different start and exit sides, ceiling routes, wall turns, cargo placements, environmental fields, and landing shapes.
 Mint buttons require a lit seam and make the phase change part of the route.
 The runner can push cargo into a corner before a gravity turn moves it to a ceiling mark.
 The opening ceiling button and both cargo marks have physics-driven checks.
 All room goals have a basic geometry clearance check.
-The remaining rooms still need full manual playthroughs and route replays before the campaign expands.
+The campaign still needs full manual playthroughs and route replays before release quality is claimed.
 
 ## Interaction pass, 5 November 2026
 
