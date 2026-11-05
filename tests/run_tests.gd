@@ -21,6 +21,7 @@ func _run() -> void:
 	await _test_timed_gate_and_bloom()
 	await _test_moving_ferry_lifecycle()
 	await _test_proximity_pulley()
+	await _test_fraying_ledge()
 	await _test_phase_buttons()
 	_test_room_clearance()
 	await _test_cargo_route()
@@ -145,6 +146,33 @@ func _test_proximity_pulley() -> void:
 	pulley.reset()
 	_check("retry restores the marked pulley", pulley.position == Vector2(600, 280) and pulley.warning == 0.0)
 	pulley.queue_free()
+	await process_frame
+
+
+func _test_fraying_ledge() -> void:
+	var script: GDScript = load("res://scripts/fray_ledge.gd") as GDScript
+	_check("a fraying ledge has a reusable physics body", script != null)
+	if script == null:
+		return
+	var ledge: StaticBody2D = script.new() as StaticBody2D
+	ledge.configure({"rect": Rect2(400, 650, 260, 28), "delay": 0.35})
+	root.add_child(ledge)
+	ledge.active = true
+	var runner: PalewheelCourier = PalewheelCourier.new()
+	runner.control_enabled = false
+	runner.position = Vector2(500, 595)
+	root.add_child(runner)
+	for frame: int in range(5):
+		await physics_frame
+	_check("the fraying ledge warns before tearing", ledge.countdown > 0.0 and not ledge.collapsed)
+	for frame: int in range(30):
+		await physics_frame
+	_check("the fraying ledge opens after its warning", ledge.collapsed and ledge.collision_shape.disabled)
+	ledge.reset()
+	await physics_frame
+	_check("retry sews the fraying ledge closed", not ledge.collapsed and not ledge.collision_shape.disabled)
+	runner.queue_free()
+	ledge.queue_free()
 	await process_frame
 
 

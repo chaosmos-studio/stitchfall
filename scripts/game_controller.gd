@@ -6,6 +6,7 @@ const WORLD_SCRIPT: Script = preload("res://scripts/world_view.gd")
 const HUD_SCRIPT: Script = preload("res://scripts/hud.gd")
 const SENTRY_SCRIPT: Script = preload("res://scripts/sentry.gd")
 const FERRY_SCRIPT: Script = preload("res://scripts/ferry.gd")
+const FRAY_LEDGE_SCRIPT: Script = preload("res://scripts/fray_ledge.gd")
 const MECHANISM_SCRIPT: Script = preload("res://scripts/mechanism.gd")
 const UNRAVEL_SCRIPT: Script = preload("res://scripts/unravel.gd")
 const MUSIC_STREAM: AudioStreamOggVorbis = preload("res://assets/audio/music/stitched_home.ogg")
@@ -40,6 +41,7 @@ var gate_remaining: float = 0.0
 var gates_open: bool = false
 var sentries: Array[PalewheelWatcher] = []
 var ferries: Array[PalewheelFerry] = []
+var fray_ledges: Array[PalewheelFrayLedge] = []
 var mechanisms: Array[PalewheelMechanism] = []
 var unravel: PalewheelUnravel
 var camera: Camera2D
@@ -262,6 +264,13 @@ func _load_level(index: int) -> void:
 		timed_gate_shapes.append(_add_wall(gate, false))
 	for hazard: Rect2 in level["hazards"]:
 		_add_hazard(hazard)
+	fray_ledges.clear()
+	for data: Dictionary in level["fray_ledges"]:
+		var ledge: PalewheelFrayLedge = FRAY_LEDGE_SCRIPT.new() as PalewheelFrayLedge
+		ledge.configure(data)
+		room.add_child(ledge)
+		ledge.active = playing
+		fray_ledges.append(ledge)
 	sentries.clear()
 	for sentry_data: Dictionary in level["sentries"]:
 		var sentry: PalewheelWatcher = SENTRY_SCRIPT.new() as PalewheelWatcher
@@ -450,6 +459,8 @@ func _respawn() -> void:
 		sentry.freeze_for(0.7)
 	for mechanism: PalewheelMechanism in mechanisms:
 		mechanism.reset()
+	for ledge: PalewheelFrayLedge in fray_ledges:
+		ledge.reset()
 	respawning = false
 	_update_hud()
 
@@ -561,6 +572,8 @@ func _advance() -> void:
 		ferry.active = true
 	for mechanism: PalewheelMechanism in mechanisms:
 		mechanism.active = true
+	for ledge: PalewheelFrayLedge in fray_ledges:
+		ledge.active = true
 
 
 func _restart() -> void:
@@ -573,6 +586,8 @@ func _restart() -> void:
 		ferry.active = true
 	for mechanism: PalewheelMechanism in mechanisms:
 		mechanism.active = true
+	for ledge: PalewheelFrayLedge in fray_ledges:
+		ledge.active = true
 	hud.hide_panel()
 	print("PALEWHEEL_START ", level_index)
 
@@ -592,6 +607,8 @@ func _on_pause() -> void:
 		ferry.active = false
 	for mechanism: PalewheelMechanism in mechanisms:
 		mechanism.active = false
+	for ledge: PalewheelFrayLedge in fray_ledges:
+		ledge.active = false
 	hud.show_pause()
 
 
@@ -606,6 +623,8 @@ func _on_home() -> void:
 		ferry.active = false
 	for mechanism: PalewheelMechanism in mechanisms:
 		mechanism.active = false
+	for ledge: PalewheelFrayLedge in fray_ledges:
+		ledge.active = false
 	playing = false
 	touch_starts.clear()
 	mobile_crouched = false
@@ -645,6 +664,8 @@ func _on_begin() -> void:
 		ferry.active = true
 	for mechanism: PalewheelMechanism in mechanisms:
 		mechanism.active = true
+	for ledge: PalewheelFrayLedge in fray_ledges:
+		ledge.active = true
 	hud.hide_panel()
 	hud.set_room_intro(level["name"], level["hint"])
 	print("PALEWHEEL_START ", level_index)
