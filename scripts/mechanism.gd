@@ -21,6 +21,10 @@ var elapsed: float = 0.0
 var warning: float = 0.0
 var active: bool = false
 var shift_armed: bool = false
+var trigger_point: Vector2 = Vector2.ZERO
+var trigger_radius: float = 100.0
+var trigger_armed: bool = false
+var triggered: bool = false
 
 
 func configure(data: Dictionary) -> void:
@@ -30,6 +34,9 @@ func configure(data: Dictionary) -> void:
 	anchor = data.get("anchor", start_point + Vector2(0, -220))
 	period = float(data.get("period", 3.0))
 	shift_armed = bool(data.get("shift_armed", false))
+	trigger_point = data.get("trigger", Vector2.ZERO)
+	trigger_radius = float(data.get("trigger_radius", 100.0))
+	trigger_armed = trigger_point != Vector2.ZERO
 	position = start_point
 
 
@@ -46,11 +53,24 @@ func _ready() -> void:
 	shape.shape = circle
 	add_child(shape)
 	body_entered.connect(_on_body_entered)
+	if trigger_armed:
+		var trigger: Area2D = Area2D.new()
+		trigger.position = trigger_point - start_point
+		trigger.collision_layer = 0
+		trigger.collision_mask = 2
+		var trigger_shape: CollisionShape2D = CollisionShape2D.new()
+		var trigger_circle: CircleShape2D = CircleShape2D.new()
+		trigger_circle.radius = trigger_radius
+		trigger_shape.shape = trigger_circle
+		trigger.add_child(trigger_shape)
+		add_child(trigger)
+		trigger.body_entered.connect(_on_trigger_body)
 	queue_redraw()
 
 
 func arm() -> void:
-	if shift_armed:
+	if shift_armed or (trigger_armed and not triggered):
+		triggered = trigger_armed
 		warning = 0.55
 		elapsed = 0.0001
 		queue_redraw()
@@ -59,6 +79,7 @@ func arm() -> void:
 func reset() -> void:
 	elapsed = 0.0
 	warning = 0.0
+	triggered = false
 	position = start_point
 	queue_redraw()
 
@@ -70,7 +91,7 @@ func _physics_process(delta: float) -> void:
 		warning = maxf(0.0, warning - delta)
 		queue_redraw()
 		return
-	if not shift_armed or elapsed > 0.0:
+	if (not shift_armed and not trigger_armed) or elapsed > 0.0:
 		elapsed += delta
 	if kind != "spring":
 		var progress: float = (1.0 - cos(elapsed * TAU / period)) * 0.5
@@ -78,16 +99,26 @@ func _physics_process(delta: float) -> void:
 	queue_redraw()
 
 
+func _on_trigger_body(_body: Node2D) -> void:
+	if active and not triggered:
+		arm()
+
+
 func _on_body_entered(body: Node2D) -> void:
 	if not active or warning > 0.0:
 		return
 	if kind == "spring":
 		launched.emit(body)
-	elif not shift_armed or elapsed > 0.0:
+	elif (not shift_armed and not trigger_armed) or elapsed > 0.0:
 		struck.emit(body)
 
 
 func _draw() -> void:
+	if trigger_armed:
+		var mark: Vector2 = trigger_point - position
+		draw_arc(mark, 25.0, 0.0, TAU, 18, Color("8e6954", 0.8), 3.0, true)
+		draw_line(mark + Vector2(-11, -11), mark + Vector2(11, 11), THREAD, 3.0, true)
+		draw_line(mark + Vector2(11, -11), mark + Vector2(-11, 11), THREAD, 3.0, true)
 	if kind == "spring":
 		_draw_spring()
 		return

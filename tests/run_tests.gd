@@ -20,6 +20,7 @@ func _run() -> void:
 	await _test_gesture_controls()
 	await _test_timed_gate_and_bloom()
 	await _test_moving_ferry_lifecycle()
+	await _test_proximity_pulley()
 	await _test_phase_buttons()
 	_test_room_clearance()
 	await _test_cargo_route()
@@ -110,6 +111,40 @@ func _test_moving_ferry_lifecycle() -> void:
 	game._restart()
 	_check("the moving hem restarts with the room", game.ferries[0].active)
 	game.queue_free()
+	await process_frame
+
+
+func _test_proximity_pulley() -> void:
+	var pulley: PalewheelMechanism = PalewheelMechanism.new()
+	pulley.configure({
+		"kind": "pulley",
+		"from": Vector2(600, 280),
+		"to": Vector2(600, 720),
+		"anchor": Vector2(600, 210),
+		"period": 3.0,
+		"trigger": Vector2(400, 820),
+		"trigger_radius": 110.0,
+	})
+	root.add_child(pulley)
+	pulley.active = true
+	for frame: int in range(10):
+		await physics_frame
+	_check("the marked pulley waits for the runner", pulley.position == Vector2(600, 280))
+	var runner: PalewheelCourier = PalewheelCourier.new()
+	runner.control_enabled = false
+	runner.position = Vector2(400, 820)
+	root.add_child(runner)
+	for frame: int in range(3):
+		await physics_frame
+	_check("approaching the mark warns before the pulley falls", pulley.warning > 0.0)
+	for frame: int in range(48):
+		await physics_frame
+	_check("the marked pulley moves after its warning", pulley.position.y > 300.0)
+	runner.queue_free()
+	await process_frame
+	pulley.reset()
+	_check("retry restores the marked pulley", pulley.position == Vector2(600, 280) and pulley.warning == 0.0)
+	pulley.queue_free()
 	await process_frame
 
 
