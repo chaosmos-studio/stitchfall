@@ -1,35 +1,10 @@
 extends Control
 
 const PAINTING_SIZE: Vector2 = Vector2(1672, 941)
-const LEAF_ATLAS: Texture2D = preload("res://assets/art/home_leaf_atlas.png")
 const BLOSSOM_ATLAS: Texture2D = preload("res://assets/art/home_blossom_atlas.png")
 const SECONDARY_ATLAS: Texture2D = preload("res://assets/art/home_secondary_atlas.png")
 const RED_FLOWER: Texture2D = preload("res://assets/art/home_red_flower.png")
 const PETAL_SHADER: Shader = preload("res://shaders/home_petal.gdshader")
-
-const LEAF_REVEAL_SHAPES: Array[Vector4] = [
-	Vector4(876, 81, 49, 29), Vector4(931, 114, 32, 49), Vector4(854, 175, 34, 47),
-	Vector4(895, 153, 24, 42), Vector4(1016, 59, 33, 42), Vector4(1149, 109, 47, 31),
-	Vector4(1227, 155, 29, 49), Vector4(1110, 201, 42, 29), Vector4(1155, 199, 32, 25),
-	Vector4(1182, 180, 20, 32), Vector4(1300, 111, 31, 40), Vector4(1351, 158, 30, 49),
-	Vector4(1380, 111, 27, 39), Vector4(1475, 108, 29, 37),
-]
-
-const LEAVES: Array[Vector4] = [
-	Vector4(876, 92, 49, 29), Vector4(925, 75, 32, 49), Vector4(854, 165, 34, 47),
-	Vector4(898, 128, 24, 42), Vector4(1016, 50, 33, 42), Vector4(1150, 154, 47, 31),
-	Vector4(1227, 122, 29, 49), Vector4(1110, 192, 42, 29), Vector4(1155, 164, 32, 25),
-	Vector4(1182, 145, 20, 32), Vector4(1300, 107, 31, 40), Vector4(1351, 112, 30, 49),
-	Vector4(1380, 110, 27, 39), Vector4(1475, 108, 29, 37),
-]
-
-const LEAF_ATTACHMENTS: Array[Vector2] = [
-	Vector2(906, 67), Vector2(930, 47), Vector2(849, 146),
-	Vector2(890, 110), Vector2(1016, 20), Vector2(1150, 138),
-	Vector2(1228, 91), Vector2(1110, 169), Vector2(1156, 136),
-	Vector2(1182, 115), Vector2(1300, 78), Vector2(1351, 80),
-	Vector2(1380, 85), Vector2(1451, 106),
-]
 
 const WHITE_FLOWERS: Array[Vector4] = [
 	Vector4(831, 260, 23, 25), Vector4(908, 230, 22, 26), Vector4(919, 280, 23, 25),
@@ -58,7 +33,6 @@ const HANGING_BELLS: Array[Vector4] = [
 const RED_BLOOM: Vector4 = Vector4(1563, 617, 69, 66)
 
 var art_root: Node2D
-var leaf_holders: Array[Node2D] = []
 var flower_holders: Array[Node2D] = []
 var petal_sprites: Array[Sprite2D] = []
 var petal_scales: Array[Vector2] = []
@@ -79,7 +53,6 @@ func _ready() -> void:
 		motion_enabled = not bool(JavaScriptBridge.eval("window.matchMedia('(prefers-reduced-motion: reduce)').matches"))
 	art_root = Node2D.new()
 	add_child(art_root)
-	_build_leaves()
 	_build_flowers()
 	_build_red_bloom()
 	resized.connect(_fit_painting)
@@ -109,38 +82,6 @@ func _piece(parent: Node2D, texture: Texture2D, extent: Vector2) -> Sprite2D:
 	sprite.scale = extent / texture.get_size()
 	parent.add_child(sprite)
 	return sprite
-
-
-func _build_leaves() -> void:
-	var types: Array[AtlasTexture] = [
-		_atlas_region(LEAF_ATLAS, Rect2(80, 50, 950, 620)),
-		_atlas_region(LEAF_ATLAS, Rect2(1050, 50, 450, 620)),
-		_atlas_region(LEAF_ATLAS, Rect2(1560, 150, 570, 450)),
-	]
-	assert(LEAVES.size() == LEAF_ATTACHMENTS.size())
-	for index: int in range(LEAVES.size()):
-		var shape: Vector4 = LEAVES[index]
-		var attachment: Vector2 = LEAF_ATTACHMENTS[index]
-		var direction: Vector2 = (Vector2(shape.x, shape.y) - attachment).normalized()
-		var stem_length: float = 15.0
-		var holder: Node2D = Node2D.new()
-		holder.position = attachment
-		art_root.add_child(holder)
-		var stalk: Line2D = Line2D.new()
-		stalk.width = 4.0
-		stalk.default_color = Color("76523a")
-		stalk.antialiased = true
-		stalk.add_point(Vector2.ZERO)
-		var bend: Vector2 = Vector2(-direction.y, direction.x) * (2.0 if index % 2 == 0 else -2.0)
-		stalk.add_point(direction * (stem_length * 0.5) + bend)
-		stalk.add_point(direction * (stem_length + shape.z * 0.12))
-		holder.add_child(stalk)
-		var variant: int = 2 if index % 4 == 0 else 0
-		var extent: Vector2 = Vector2(shape.z * 2.0, shape.w * 2.0)
-		var sprite: Sprite2D = _piece(holder, types[variant], extent)
-		sprite.position = direction * (shape.z + stem_length)
-		sprite.rotation = direction.angle()
-		leaf_holders.append(holder)
 
 
 func _build_flowers() -> void:
@@ -228,10 +169,6 @@ func _bloom_open(phase: float) -> float:
 
 
 func _animate_pieces() -> void:
-	for index: int in range(leaf_holders.size()):
-		var phase: float = float(index) * 1.73
-		var branch_breath: float = 0.65 * sin(elapsed * 0.83 + phase * 0.12) + 0.35 * sin(elapsed * (1.13 + float(index % 4) * 0.05) + phase)
-		leaf_holders[index].rotation = deg_to_rad((13.5 + float(index % 4) * 1.1) * branch_breath)
 	for index: int in range(flower_holders.size()):
 		var phase: float = float(index) * 2.17
 		var flower_breath: float = 0.7 * sin(elapsed * 0.64 + phase * 0.15) + 0.3 * sin(elapsed * (1.02 + float(index % 4) * 0.07) + phase)
