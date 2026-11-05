@@ -413,8 +413,10 @@ func _test_palewheel_playthrough() -> void:
 			game.pilot.reset_physics_interpolation()
 			await physics_frame
 			await physics_frame
-			await process_frame
-			_check("a hazard sends the runner to the pin and keeps buttons", game.pilot.position.distance_to(game.respawn_position) < 30.0 and game.collected[0])
+			_check("a hit scatters the fabric runner", game.respawning and not game.pilot.visible and is_instance_valid(game.unravel))
+			for frame: int in range(45):
+				await physics_frame
+			_check("a hazard sends the runner to the pin and keeps buttons", not game.respawning and game.pilot.visible and game.pilot.position.distance_to(game.respawn_position) < 30.0 and game.collected[0])
 		for spark_index: int in range(game.level["shards"].size()):
 			var spark: Vector2 = game.level["shards"][spark_index]
 			var required_phases: Array = game.level["shard_phases"]

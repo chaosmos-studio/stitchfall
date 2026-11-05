@@ -36,6 +36,7 @@ static func get_level(index: int) -> Dictionary:
 		"gate_window": 2.2,
 		"bloom_pads": [],
 		"ferries": [],
+		"mechanisms": [],
 		"hazards": [],
 		"crate": Vector2.ZERO,
 		"pad": Vector2.ZERO,
@@ -79,7 +80,7 @@ static func get_level(index: int) -> Dictionary:
 		3:
 			base.merge({
 				"name": "Needle Clock",
-				"hint": "Open each seam with Shift. Ride the moving hem for the high button.",
+				"hint": "Shift wakes the cutter. Ride the hem under its pass.",
 				"accent": Color("8e7ae8"),
 				"width": 2600.0,
 				"start": Vector2(310, 822),
@@ -92,6 +93,7 @@ static func get_level(index: int) -> Dictionary:
 				"checkpoint": Vector2(1530, 810),
 				"sentries": [{"from": Vector2(1150, 715), "to": Vector2(1290, 715), "period": 3.2, "offset": 0.4}],
 				"ferries": [{"from": Vector2(1630, 735), "to": Vector2(1990, 560), "size": Vector2(210, 28), "period": 4.8}],
+				"mechanisms": [{"kind": "cutter", "from": Vector2(1560, 580), "to": Vector2(1980, 580), "period": 3.6, "shift_armed": true}],
 				"shards": [Vector2(475, 770), Vector2(1990, 485), Vector2(2350, 755)],
 			}, true)
 		4:
@@ -119,7 +121,7 @@ static func get_level(index: int) -> Dictionary:
 		6:
 			base.merge({
 				"name": "Sand Drift",
-				"hint": "Catch the moving hem above the long gust.",
+				"hint": "Catch the moving hem while the hanging weight rises.",
 				"backdrop": 5,
 				"width": 2500.0,
 				"environment": "dunes",
@@ -128,6 +130,7 @@ static func get_level(index: int) -> Dictionary:
 				"walls": wide_frame(2500) + [Rect2(605, 700, 38, 198), Rect2(1140, 560, 44, 338), Rect2(2030, 550, 230, 28)],
 				"hazards": [Rect2(1590, 870, 325, 28)],
 				"ferries": [{"from": Vector2(1490, 720), "to": Vector2(1870, 560), "size": Vector2(205, 28), "period": 4.2}],
+				"mechanisms": [{"kind": "pulley", "from": Vector2(1770, 280), "to": Vector2(1770, 720), "anchor": Vector2(1770, 210), "period": 4.1}],
 				"checkpoint": Vector2(1270, 815),
 				"shards": [Vector2(400, 755), Vector2(890, 525), Vector2(1840, 490)],
 			}, true)
@@ -149,7 +152,7 @@ static func get_level(index: int) -> Dictionary:
 		8:
 			base.merge({
 				"name": "Green Canopy",
-				"hint": "Bloom, rise with the canopy, then catch the travelling hem.",
+				"hint": "The copper spring skips the lower canopy.",
 				"backdrop": 6,
 				"width": 2850.0,
 				"environment": "forest",
@@ -159,6 +162,7 @@ static func get_level(index: int) -> Dictionary:
 				"walls": wide_frame(2850) + [Rect2(760, 620, 315, 30), Rect2(1320, 420, 285, 30), Rect2(2350, 390, 310, 30)],
 				"hazards": [Rect2(2040, 870, 190, 28)],
 				"ferries": [{"from": Vector2(1860, 660), "to": Vector2(2240, 440), "size": Vector2(220, 28), "period": 5.0}],
+				"mechanisms": [{"kind": "spring", "from": Vector2(1130, 850)}],
 				"checkpoint": Vector2(1510, 510),
 				"shards": [Vector2(385, 755), Vector2(1450, 340), Vector2(2470, 315)],
 			}, true)
@@ -210,7 +214,7 @@ static func get_level(index: int) -> Dictionary:
 		12:
 			base.merge({
 				"name": "Rainline",
-				"hint": "Cross two timed seams and ride the rain-swept hem between them.",
+				"hint": "Shift starts the chain. Cross before the hanging weight falls.",
 				"backdrop": 8,
 				"width": 2800.0,
 				"environment": "rain",
@@ -220,6 +224,10 @@ static func get_level(index: int) -> Dictionary:
 				"timed_gates": [Rect2(1510, 198, 36, 700), Rect2(2420, 198, 36, 700)],
 				"hazards": [Rect2(770, 870, 370, 28), Rect2(1850, 870, 220, 28)],
 				"ferries": [{"from": Vector2(1700, 735), "to": Vector2(2150, 545), "size": Vector2(215, 28), "period": 5.2}],
+				"mechanisms": [
+					{"kind": "chain", "from": Vector2(1690, 600), "to": Vector2(2020, 600), "period": 4.6, "shift_armed": true},
+					{"kind": "pulley", "from": Vector2(2290, 280), "to": Vector2(2290, 690), "anchor": Vector2(2290, 210), "period": 3.9},
+				],
 				"checkpoint": Vector2(1100, 565),
 				"shards": [Vector2(410, 750), Vector2(965, 570), Vector2(2530, 755)],
 			}, true)
@@ -243,19 +251,20 @@ static func get_level(index: int) -> Dictionary:
 		14:
 			base.merge({
 				"name": "Frostline",
-				"hint": "The frost keeps your speed. Land in the safe strip and brake.",
+				"hint": "Brake before the cutter reaches the safe strip.",
 				"backdrop": 9,
 				"environment": "frost",
 				"environment_zone": Rect2(140, 198, 1640, 700),
 				"walls": FRAME + [Rect2(970, 580, 290, 28)],
 				"hazards": [Rect2(710, 870, 220, 28), Rect2(1270, 870, 220, 28)],
 				"checkpoint": Vector2(1090, 815),
+				"mechanisms": [{"kind": "cutter", "from": Vector2(1050, 710), "to": Vector2(1400, 710), "period": 3.3}],
 				"shards": [Vector2(430, 755), Vector2(1085, 755), Vector2(1630, 755)],
 			}, true)
 		15:
 			base.merge({
 				"name": "The Last Seam",
-				"hint": "Use every turn. Open the last seam before the moth wakes.",
+				"hint": "Bounce through the last seam before the chain wakes.",
 				"backdrop": 9,
 				"environment": "frost",
 				"environment_zone": Rect2(140, 198, 1640, 700),
@@ -271,6 +280,10 @@ static func get_level(index: int) -> Dictionary:
 				"sentries": [
 					{"from": Vector2(780, 390), "to": Vector2(920, 390), "period": 3.4, "offset": 0.4},
 					{"from": Vector2(1320, 680), "to": Vector2(1490, 680), "period": 2.9, "offset": 1.2},
+				],
+				"mechanisms": [
+					{"kind": "spring", "from": Vector2(875, 850)},
+					{"kind": "chain", "from": Vector2(790, 525), "to": Vector2(1110, 525), "period": 3.5, "shift_armed": true},
 				],
 				"shards": [Vector2(1510, 755), Vector2(1010, 475), Vector2(440, 285)],
 				"shard_phases": [-1, 1, -1],

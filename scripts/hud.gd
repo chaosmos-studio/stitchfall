@@ -80,11 +80,11 @@ func _ready() -> void:
 	pause_button = _tag(root, Rect2(0, 18, 112, 108), "", "pause", ACCENT)
 	pause_button.tooltip_text = "Pause"
 	pause_button.pressed.connect(func() -> void: pause_pressed.emit())
-	hint_back = _panel(root, Rect2(470, 112, 980, 126), Color("f5e8d1", 0.94))
+	hint_back = _panel(root, Rect2(470, 102, 980, 154), Color("f5e8d1", 0.94))
 	hint_back.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hint_title = _label(hint_back, Vector2(32, 6), Vector2(916, 52), 34, INK, true)
 	hint_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hint_body = _label(hint_back, Vector2(32, 57), Vector2(916, 56), 26, INK)
+	hint_body = _label(hint_back, Vector2(32, 57), Vector2(916, 80), 24, INK)
 	hint_body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_build_pages()

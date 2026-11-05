@@ -6,6 +6,8 @@ const WORLD_SCRIPT: Script = preload("res://scripts/world_view.gd")
 const HUD_SCRIPT: Script = preload("res://scripts/hud.gd")
 const SENTRY_SCRIPT: Script = preload("res://scripts/sentry.gd")
 const FERRY_SCRIPT: Script = preload("res://scripts/ferry.gd")
+const MECHANISM_SCRIPT: Script = preload("res://scripts/mechanism.gd")
+const UNRAVEL_SCRIPT: Script = preload("res://scripts/unravel.gd")
 const MUSIC_STREAM: AudioStreamOggVorbis = preload("res://assets/audio/music/stitched_home.ogg")
 const SEWING_CURSOR: Texture2D = preload("res://assets/art/sewing_cursor.png")
 
@@ -38,6 +40,8 @@ var gate_remaining: float = 0.0
 var gates_open: bool = false
 var sentries: Array[PalewheelWatcher] = []
 var ferries: Array[PalewheelFerry] = []
+var mechanisms: Array[PalewheelMechanism] = []
+var unravel: PalewheelUnravel
 var camera: Camera2D
 var hud: PalewheelHud
 var sound: AudioStreamPlayer
@@ -272,6 +276,15 @@ func _load_level(index: int) -> void:
 		room.add_child(ferry)
 		ferry.active = playing
 		ferries.append(ferry)
+	mechanisms.clear()
+	for data: Dictionary in level["mechanisms"]:
+		var mechanism: PalewheelMechanism = MECHANISM_SCRIPT.new() as PalewheelMechanism
+		mechanism.configure(data)
+		room.add_child(mechanism)
+		mechanism.active = playing
+		mechanism.struck.connect(_on_hazard_body)
+		mechanism.launched.connect(_on_mechanism_launch)
+		mechanisms.append(mechanism)
 	for spark_index: int in range(collected.size()):
 		_add_spark(level["shards"][spark_index], spark_index)
 	for bloom: Vector2 in level["bloom_pads"]:
@@ -364,9 +377,34 @@ func _on_hazard_body(body: Node2D) -> void:
 	if body == pilot and playing and not respawning:
 		respawning = true
 		pilot.control_enabled = false
+		pilot.velocity = Vector2.ZERO
+		pilot.set_physics_process(false)
+		pilot.visible = false
 		deaths += 1
 		_play_sound("hit")
-		call_deferred("_respawn")
+		unravel = UNRAVEL_SCRIPT.new() as PalewheelUnravel
+		room.add_child(unravel)
+		unravel.scatter(pilot)
+		_respawn_after_unravel(pilot, room)
+
+
+func _respawn_after_unravel(hit_pilot: PalewheelCourier, hit_room: Node2D) -> void:
+	await get_tree().create_timer(0.68).timeout
+	if pilot != hit_pilot or room != hit_room:
+		return
+	if is_instance_valid(unravel):
+		unravel.queue_free()
+	_respawn()
+
+
+func _on_mechanism_launch(body: Node2D) -> void:
+	if body != pilot or not playing or respawning:
+		return
+	pilot.velocity = pilot.velocity.slide(gravity_direction) - gravity_direction * 1040.0
+	pilot.coyote = 0.0
+	pilot.jump_buffer = 0.0
+	pilot.takeoff_time = 0.18
+	_play_sound("jump")
 
 
 func _on_checkpoint_body(body: Node2D) -> void:
@@ -387,6 +425,8 @@ func _respawn() -> void:
 	phase = 0
 	pilot.set_gravity_direction(gravity_direction)
 	pilot.position = respawn_position
+	pilot.visible = true
+	pilot.set_physics_process(true)
 	pilot.velocity = Vector2.ZERO
 	pilot.jump_buffer = 0.0
 	pilot.jump_cut_requested = false
@@ -408,6 +448,8 @@ func _respawn() -> void:
 	world.shift_age = 0.0
 	for sentry: PalewheelWatcher in sentries:
 		sentry.freeze_for(0.7)
+	for mechanism: PalewheelMechanism in mechanisms:
+		mechanism.reset()
 	respawning = false
 	_update_hud()
 
@@ -479,6 +521,8 @@ func _shift(step: int) -> void:
 		cargo.sleeping = false
 	for sentry: PalewheelWatcher in sentries:
 		sentry.freeze_for(0.55)
+	for mechanism: PalewheelMechanism in mechanisms:
+		mechanism.arm()
 	for bridge: CollisionShape2D in bridges:
 		bridge.set_deferred("disabled", phase == 0)
 	if not timed_gate_shapes.is_empty():
@@ -515,6 +559,8 @@ func _advance() -> void:
 		sentry.active = true
 	for ferry: PalewheelFerry in ferries:
 		ferry.active = true
+	for mechanism: PalewheelMechanism in mechanisms:
+		mechanism.active = true
 
 
 func _restart() -> void:
@@ -525,6 +571,8 @@ func _restart() -> void:
 		sentry.active = true
 	for ferry: PalewheelFerry in ferries:
 		ferry.active = true
+	for mechanism: PalewheelMechanism in mechanisms:
+		mechanism.active = true
 	hud.hide_panel()
 	print("PALEWHEEL_START ", level_index)
 
@@ -542,6 +590,8 @@ func _on_pause() -> void:
 		sentry.active = false
 	for ferry: PalewheelFerry in ferries:
 		ferry.active = false
+	for mechanism: PalewheelMechanism in mechanisms:
+		mechanism.active = false
 	hud.show_pause()
 
 
@@ -554,6 +604,8 @@ func _on_home() -> void:
 		sentry.active = false
 	for ferry: PalewheelFerry in ferries:
 		ferry.active = false
+	for mechanism: PalewheelMechanism in mechanisms:
+		mechanism.active = false
 	playing = false
 	touch_starts.clear()
 	mobile_crouched = false
@@ -591,6 +643,8 @@ func _on_begin() -> void:
 		sentry.active = true
 	for ferry: PalewheelFerry in ferries:
 		ferry.active = true
+	for mechanism: PalewheelMechanism in mechanisms:
+		mechanism.active = true
 	hud.hide_panel()
 	hud.set_room_intro(level["name"], level["hint"])
 	print("PALEWHEEL_START ", level_index)
