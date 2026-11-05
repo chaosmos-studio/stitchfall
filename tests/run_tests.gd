@@ -19,7 +19,9 @@ func _run() -> void:
 	await _test_environment_forces()
 	await _test_gesture_controls()
 	await _test_phase_buttons()
+	_test_room_clearance()
 	await _test_cargo_route()
+	await _test_opening_route()
 	await _test_palewheel_playthrough()
 	print("\n==== TESTS: %d passed, %d failed ====" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
@@ -234,6 +236,46 @@ func _test_cargo_route() -> void:
 	for frame: int in range(95):
 		await physics_frame
 	_check("the upward pull seats the patch on the ceiling mark", game.pad_armed)
+	game._load_level(9)
+	game._on_begin()
+	game.pilot.touch_axis = -1.0
+	for frame: int in range(120):
+		await physics_frame
+	game.pilot.touch_axis = 0.0
+	_check("the forest route seats the patch against the root", game.pad_armed)
+	game.queue_free()
+	await process_frame
+
+
+func _test_room_clearance() -> void:
+	for index: int in range(PalewheelLevels.count()):
+		var level: Dictionary = PalewheelLevels.get_level(index)
+		for point: Vector2 in [level["start"], level["exit"]] + level["shards"]:
+			var blocked: bool = false
+			for wall: Rect2 in level["walls"]:
+				blocked = blocked or wall.grow(12.0).has_point(point)
+			for hazard: Rect2 in level["hazards"]:
+				blocked = blocked or hazard.grow(12.0).has_point(point)
+			_check("room %d keeps a goal point clear" % index, not blocked)
+
+
+func _test_opening_route() -> void:
+	var game: Node2D = load("res://scenes/game/game.tscn").instantiate() as Node2D
+	game.audio_enabled = false
+	root.add_child(game)
+	await process_frame
+	game._on_begin()
+	game.pilot.touch_axis = 1.0
+	for frame: int in range(36):
+		await physics_frame
+	_check("the opening button can be collected while running", game.collected[0])
+	game.last_shift = -1.0
+	game._shift(1)
+	game.last_shift = -1.0
+	game._shift(1)
+	for frame: int in range(180):
+		await physics_frame
+	_check("the ceiling route reaches its button without teleporting", game.collected[1])
 	game.queue_free()
 	await process_frame
 

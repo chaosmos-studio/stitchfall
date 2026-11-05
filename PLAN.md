@@ -155,3 +155,12 @@ The worlds cover gravity, phase seams, cargo, water, dunes and wind, canopy, rai
 This is a production target, not permission to fill a world with repeated routes.
 Ship the first 12 revised rooms as one coherent world, then build and playtest in batches of 12.
 Keep the campaign count private until the authored rooms and replay validation prove the target is worth keeping.
+
+## Room revision, 5 November 2026
+
+The current 16 rooms now use different start and exit sides, ceiling routes, wall turns, cargo placements, environmental fields, and landing shapes.
+Mint buttons require a lit seam and make the phase change part of the route.
+The runner can push cargo into a corner before a gravity turn moves it to a ceiling mark.
+The opening ceiling button and both cargo marks have physics-driven checks.
+All room goals have a basic geometry clearance check.
+The remaining rooms still need full manual playthroughs and route replays before the campaign expands.

@@ -6,7 +6,10 @@ Running follows the tangent to gravity, so the same left and right controls work
 Jumping pushes against gravity.
 
 The cargo applies force along the same gravity vector each physics frame.
+When the runner presses into the cargo, a contact impulse points along the surface tangent.
+The impulse is scaled by cargo mass so changing its mass does not change the immediate speed gain.
 Light bridge collisions swap state on each shift.
+Mint buttons collect only in the lit bridge phase, which occurs after an odd number of gravity turns.
 Each clock eye moves between authored endpoints with a sine curve.
 A gravity shift pauses its patrol and contact hazard briefly, which creates a safe crossing window.
 The pilot keeps a short jump buffer and coyote window so a button press near an edge still feels responsive.

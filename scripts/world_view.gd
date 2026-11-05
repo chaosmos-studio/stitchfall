@@ -128,10 +128,18 @@ func _draw_environment() -> void:
 				var pos: Vector2 = Vector2(zone.position.x + fposmod(float(index * 93), zone.size.x), zone.end.y - fposmod(float(index * 113) + time * 15.0, zone.size.y))
 				draw_arc(pos, 5.0 + float(index % 3) * 2.0, 0.0, TAU, 20, Color("d9e4cf", 0.55), 2.0, true)
 		"dunes":
+			draw_rect(zone, Color("e2b47b", 0.09))
+			_draw_field_edge(zone, Color("b88961", 0.65))
 			for index: int in range(23):
 				var pos: Vector2 = Vector2(zone.position.x + fposmod(float(index * 101) + time * 35.0, zone.size.x), zone.position.y + fposmod(float(index * 127), zone.size.y))
 				draw_line(pos, pos + Vector2(26, -4), Color("9e764d", 0.55), 2.0, true)
 		"forest":
+			draw_rect(zone, Color("829d72", 0.13))
+			_draw_field_edge(zone, Color("708967", 0.7))
+			for column: int in range(5):
+				var x: float = zone.position.x + 65.0 + float(column) * (zone.size.x - 130.0) / 4.0
+				var sway: float = sin(time * 1.1 + float(column)) * 11.0
+				draw_line(Vector2(x, zone.end.y - 20.0), Vector2(x + sway, zone.position.y + 30.0), Color("e9e5b7", 0.24), 5.0, true)
 			for index: int in range(16):
 				var pos: Vector2 = Vector2(zone.position.x + fposmod(float(index * 79) + sin(time + index) * 9.0, zone.size.x), zone.end.y - fposmod(float(index * 109) + time * 15.0, zone.size.y))
 				draw_circle(pos, 3.0 + float(index % 3), Color("e9dba8", 0.8))
@@ -154,6 +162,14 @@ func _draw_environment() -> void:
 				var pos: Vector2 = Vector2(x, y)
 				draw_line(pos + Vector2(-3, -3), pos + Vector2(3, 3), Color("ffffff", 0.62), 1.5, true)
 				draw_line(pos + Vector2(3, -3), pos + Vector2(-3, 3), Color("ffffff", 0.62), 1.5, true)
+
+
+func _draw_field_edge(zone: Rect2, color: Color) -> void:
+	for x: int in [int(zone.position.x), int(zone.end.x)]:
+		for y: int in range(int(zone.position.y + 12.0), int(zone.end.y - 9.0), 22):
+			draw_line(Vector2(x, y), Vector2(x, y + 10.0), color, 2.0, true)
+	for x: int in range(int(zone.position.x + 12.0), int(zone.end.x - 9.0), 22):
+		draw_line(Vector2(x, zone.position.y), Vector2(x + 10.0, zone.position.y), color, 2.0, true)
 
 
 func _draw_wall(wall: Rect2) -> void:
@@ -184,15 +200,37 @@ func _draw_bridge(bridge: Rect2) -> void:
 
 
 func _draw_hazard(area: Rect2) -> void:
-	var base: float = area.position.y - 13.0
-	draw_rect(Rect2(area.position.x - 7, base + 25, area.size.x + 14, 18), INK)
-	draw_rect(Rect2(area.position.x - 5, base + 27, area.size.x + 10, 13), RUST)
-	for x: int in range(int(area.position.x + 14), int(area.end.x - 4), 31):
-		var tip: Vector2 = Vector2(x + 8, base - 15 + sin(time * 2.0 + x) * 1.5)
-		draw_colored_polygon(PackedVector2Array([Vector2(x, base + 26), tip, Vector2(x + 16, base + 26)]), Color("5b5451"))
-		draw_line(tip + Vector2(2, 8), Vector2(x + 8, base + 23), Color("f5ead5"), 2.0, true)
-		draw_circle(Vector2(x + 8, base + 19), 2.0, Color("d5bf98"))
-	_draw_stitches(Vector2(area.position.x, base + 34), Vector2(area.end.x, base + 34), THREAD, 17.0)
+	var thorn: Color = Color("5b6256")
+	match int(level.get("backdrop", 0)):
+		4:
+			thorn = Color("466d72")
+		5:
+			thorn = Color("846348")
+		6:
+			thorn = Color("506e54")
+		7:
+			thorn = Color("777082")
+		8:
+			thorn = Color("587477")
+		9:
+			thorn = Color("6b7a83")
+	var root_y: float = area.end.y - 5.0
+	draw_rect(Rect2(area.position.x - 5.0, root_y - 7.0, area.size.x + 10.0, 17.0), INK)
+	draw_rect(Rect2(area.position.x - 2.0, root_y - 5.0, area.size.x + 4.0, 12.0), thorn)
+	for index: int in range(ceili(area.size.x / 31.0)):
+		var x: float = area.position.x + 13.0 + float(index) * 31.0
+		var height: float = 22.0 + float((index * 17 + 11) % 19)
+		var bend: float = sin(time * 1.8 + float(index) * 1.4) * 3.0
+		var root: Vector2 = Vector2(x, root_y - 5.0)
+		var tip: Vector2 = Vector2(x + bend + float(index % 3 - 1) * 5.0, root_y - height)
+		draw_line(root, tip, INK, 5.0, true)
+		draw_line(root + Vector2(1, -2), tip + Vector2(1, 2), thorn.lightened(0.25), 2.5, true)
+		for side: float in [-1.0, 1.0]:
+			var origin: Vector2 = root.lerp(tip, 0.58) + Vector2(side * 2.0, 0)
+			var leaf: Vector2 = origin + Vector2(side * 11.0, -8.0)
+			draw_colored_polygon(PackedVector2Array([origin, leaf, origin + Vector2(side * 5.0, 5.0)]), thorn.darkened(0.14))
+			draw_line(origin, leaf, Color("e9ddc2", 0.55), 1.0, true)
+	_draw_stitches(Vector2(area.position.x, root_y + 4.0), Vector2(area.end.x, root_y + 4.0), THREAD, 17.0)
 
 
 func _draw_sentry_tracks() -> void:
