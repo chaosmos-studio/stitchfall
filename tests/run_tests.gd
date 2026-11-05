@@ -18,7 +18,6 @@ func _run() -> void:
 	await _test_movement_feel()
 	await _test_environment_forces()
 	await _test_gesture_controls()
-	await _test_mobile_buttons()
 	await _test_timed_gate_and_bloom()
 	await _test_phase_buttons()
 	_test_room_clearance()
@@ -126,6 +125,11 @@ func _test_gesture_controls() -> void:
 	game.audio_enabled = false
 	root.add_child(game)
 	await process_frame
+	var guide_count: int = 0
+	for child: Node in game.hud.help_page.find_children("*", "Control", true, false):
+		if child is PalewheelGestureGuide:
+			guide_count += 1
+	_check("the guide illustrates all four phone gestures", guide_count == 4)
 	game._on_begin()
 	var press: InputEventScreenTouch = InputEventScreenTouch.new()
 	press.index = 0
@@ -197,30 +201,6 @@ func _test_gesture_controls() -> void:
 		_check("crouching lowers the collision shape", (shape.shape as CapsuleShape2D).height < 78.0)
 		game.pilot.call("_set_crouch", false)
 		_check("standing restores the collision shape", (shape.shape as CapsuleShape2D).height == 78.0)
-	game.queue_free()
-	await process_frame
-
-
-func _test_mobile_buttons() -> void:
-	var game: Node2D = load("res://scenes/game/game.tscn").instantiate() as Node2D
-	game.audio_enabled = false
-	root.add_child(game)
-	await process_frame
-	game._on_begin()
-	var start_x: float = game.pilot.position.x
-	game.hud.mobile_buttons[1].button_down.emit()
-	for frame: int in range(20):
-		await physics_frame
-	_check("the sewn right control walks the runner", game.pilot.position.x > start_x + 35.0)
-	game.hud.mobile_buttons[1].button_up.emit()
-	_check("releasing the sewn control stops its input", game.pilot.touch_axis == 0.0)
-	game.hud.mobile_buttons[3].button_down.emit()
-	await physics_frame
-	_check("the sewn jump control launches the runner", game.pilot.velocity.y < -250.0)
-	game.hud.mobile_buttons[3].button_up.emit()
-	game.last_shift = -1.0
-	game.hud.mobile_buttons[4].button_down.emit()
-	_check("the sewn shift control turns gravity", game.gravity_direction == Vector2.LEFT)
 	game.queue_free()
 	await process_frame
 

@@ -171,6 +171,6 @@ Needle Clock, Rainline, and the finale now use timed seams that open on Shift an
 The runner can stay inside a seam without being crushed when the window expires.
 Forest, night, and finale rooms use bloom pads that launch the runner opposite the current pull.
 The forest pad teaches the launch before a canopy lift, while later pads combine it with longer arcs or a timed seam.
-Five sewn controls cover movement, crouch, jump, and Shift on a phone, while gestures remain available.
+The first phone Play opens a guide that illustrates movement, crouch, jump, and Shift with animated gestures.
 The first compressed Web export transfers about 45.2 MB instead of the previous 83.4 MB on browsers with stream decompression, with the same art and a raw fallback.
 The new mechanics have physics checks, but the full campaign still needs manual phone and desktop playthroughs.
