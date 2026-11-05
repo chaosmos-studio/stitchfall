@@ -74,6 +74,31 @@ The current wider-room pass extends Needle Clock, Sand Drift, Green Canopy, and 
 These rooms still need human route playtests before they count as finished campaign stages.
 The next pass should change the route structure in the remaining rooms, then add short family-specific interactions and physics replay checks before increasing the room count.
 
+## Surprise and mechanism pass, 5 November 2026
+
+[Level Devil's official site](https://playleveldevil.com/) presents disappearing floors, falling blocks, shifting doors, and immediate retries as its core pacing.
+Palewheel takes the pacing idea, then uses visible cloth machinery that reacts to a gravity shift.
+A trap must show its track or anchor before it moves, give the player a short wind-up, and restart quickly after a hit.
+
+The first trap vocabulary is a spinning cutter, a moving chain, a hanging pulley weight, and a sewn spring launcher.
+Needle Clock and Rainline wake a moving hazard when the player shifts.
+Sand Drift puts a pulley weight over the ferry crossing.
+Green Canopy uses a spring to change the climb.
+Frostline combines momentum with a moving cutter.
+The Last Seam combines a spring with a shift-armed chain.
+
+On a hit, the runner's drawn fabric image separates into patches and thread for a short beat, then reappears at the pin.
+This is a non-graphic cloth effect with no blood or human injury detail.
+Before an Android release, complete the current [Google Play content rating questionnaire](https://support.google.com/googleplay/android-developer/answer/9859655) for the actual build and review its [violence policy](https://support.google.com/googleplay/android-developer/answer/9878810).
+The [itch.io quality guidelines](https://itch.io/docs/creators/quality-guidelines) require the listing and AI disclosure to match the game.
+
+- [x] Make the first four mechanism types playable in selected authored rooms.
+- [x] Add a cloth-scatter hit animation and a timed retry.
+- [ ] Play the whole route through each new mechanism on keyboard and touch, then tune the wind-up and safe gaps.
+- [ ] Add one new route rule per room and reject layouts that share the same route shape.
+- [ ] Develop more trap families, including seams that fold, bridges with counterweights, and flowers that open only during a shift.
+- [ ] Build and validate new rooms in reviewed batches before increasing the campaign count.
+
 ## Campaign decisions, 3 November 2026
 
 | Decision | Choice | Revisit when |
