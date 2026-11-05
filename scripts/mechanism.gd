@@ -7,6 +7,10 @@ signal launched(body: Node2D)
 const INK: Color = Color("493a37")
 const BRASS: Color = Color("b88052")
 const THREAD: Color = Color("f6e6c9")
+const CUTTER: Texture2D = preload("res://assets/art/props/rotary_cutter.png")
+const WEIGHT: Texture2D = preload("res://assets/art/props/pulley_weight.png")
+const SPRING: Texture2D = preload("res://assets/art/props/spring_pad.png")
+const CHAIN: Texture2D = preload("res://assets/art/props/chain_cutter.png")
 
 var kind: String = "cutter"
 var start_point: Vector2
@@ -89,8 +93,8 @@ func _draw() -> void:
 		return
 	var line_to_anchor: Vector2 = anchor - position
 	if kind == "pulley":
-		draw_line(Vector2.ZERO, line_to_anchor, INK, 7.0, true)
-		draw_line(Vector2.ZERO, line_to_anchor, THREAD, 3.0, true)
+		draw_line(Vector2(0, -47), line_to_anchor, INK, 7.0, true)
+		draw_line(Vector2(0, -47), line_to_anchor, THREAD, 3.0, true)
 		draw_circle(line_to_anchor, 16.0, INK)
 		draw_circle(line_to_anchor, 10.0, BRASS)
 		_draw_weight()
@@ -106,51 +110,19 @@ func _draw() -> void:
 
 
 func _draw_cutter() -> void:
-	var angle: float = elapsed * TAU * 1.9
-	draw_circle(Vector2.ZERO, 38.0, INK)
-	for index: int in range(12):
-		var a: float = angle + float(index) * TAU / 12.0
-		var root: Vector2 = Vector2.from_angle(a) * 34.0
-		var tip: Vector2 = Vector2.from_angle(a + 0.12) * 50.0
-		draw_colored_polygon(PackedVector2Array([root, tip, Vector2.from_angle(a + 0.37) * 35.0]), Color("a4a9a0"))
-		draw_line(root, tip, THREAD, 1.5, true)
-	draw_circle(Vector2.ZERO, 27.0, BRASS)
-	draw_arc(Vector2.ZERO, 24.0, 0.0, TAU, 24, THREAD, 2.0, true)
-	draw_circle(Vector2.ZERO, 8.0, INK)
-	draw_circle(Vector2.ZERO, 4.0, THREAD)
+	draw_set_transform(Vector2.ZERO, elapsed * TAU * 1.9)
+	draw_texture_rect(CUTTER, Rect2(-52, -52, 104, 104), false)
+	draw_set_transform(Vector2.ZERO)
 
 
 func _draw_weight() -> void:
-	draw_colored_polygon(PackedVector2Array([Vector2(-44, -32), Vector2(44, -32), Vector2(39, 36), Vector2(-39, 36)]), INK)
-	draw_colored_polygon(PackedVector2Array([Vector2(-38, -27), Vector2(38, -27), Vector2(33, 29), Vector2(-33, 29)]), Color("af8b70"))
-	for x: int in [-24, 0, 24]:
-		draw_line(Vector2(x, -22), Vector2(x, 23), Color("d7ba95"), 2.0, true)
-	draw_circle(Vector2.ZERO, 8.0, INK)
-	draw_circle(Vector2.ZERO, 4.0, THREAD)
+	draw_texture_rect(WEIGHT, Rect2(-55, -55, 110, 110), false)
 
 
 func _draw_chain() -> void:
-	draw_rect(Rect2(-62, -25, 124, 50), INK)
-	draw_rect(Rect2(-55, -18, 110, 36), BRASS)
-	for index: int in range(8):
-		var x: float = -52.0 + float(index) * 15.0
-		var move: float = fmod(elapsed * 38.0, 15.0)
-		draw_arc(Vector2(x + move, -21), 6.0, PI, TAU, 7, Color("a6aca5"), 5.0, true)
-		draw_arc(Vector2(x - move, 21), 6.0, 0.0, PI, 7, Color("a6aca5"), 5.0, true)
-	draw_circle(Vector2(-40, 0), 12.0, INK)
-	draw_circle(Vector2(40, 0), 12.0, INK)
-	draw_circle(Vector2(-40, 0), 5.0, THREAD)
-	draw_circle(Vector2(40, 0), 5.0, THREAD)
+	draw_texture_rect(CHAIN, Rect2(-75, -34, 150, 68), false)
 
 
 func _draw_spring() -> void:
-	draw_rect(Rect2(-53, 8, 106, 18), INK)
-	draw_rect(Rect2(-48, 10, 96, 12), BRASS)
-	var top: float = 1.5 + sin(elapsed * 11.0) * 1.5
-	for index: int in range(5):
-		var x: float = -43.0 + float(index) * 21.0
-		draw_polyline(PackedVector2Array([Vector2(x, 9), Vector2(x + 6, -10 + top), Vector2(x + 13, 8)]), INK, 4.0, true)
-	draw_rect(Rect2(-58, -17 + top, 116, 12), INK)
-	draw_rect(Rect2(-52, -15 + top, 104, 7), Color("d9a983"))
-	for x: int in range(-43, 48, 18):
-		draw_line(Vector2(x, -10 + top), Vector2(x + 7, -10 + top), THREAD, 1.5, true)
+	var bounce: float = sin(elapsed * 10.0) * 1.5
+	draw_texture_rect(SPRING, Rect2(-70, -36 + bounce, 140, 70), false)
