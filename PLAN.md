@@ -70,6 +70,10 @@ Palewheel needs the same discipline for movement routes, with a replayable physi
 - [ ] Play every family on desktop and phone, tune checkpoints, then expand the campaign in reviewed batches.
 - [ ] Finish transitions, ending, accessibility, performance, Android export, and Game Off submission review.
 
+The current wider-room pass extends Needle Clock, Sand Drift, Green Canopy, and Rainline with a following camera, moving cloth platforms, new route targets, and longer crossings.
+These rooms still need human route playtests before they count as finished campaign stages.
+The next pass should change the route structure in the remaining rooms, then add short family-specific interactions and physics replay checks before increasing the room count.
+
 ## Campaign decisions, 3 November 2026
 
 | Decision | Choice | Revisit when |
