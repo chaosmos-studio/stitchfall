@@ -26,6 +26,9 @@ var shift_origin: Vector2 = Vector2.ZERO
 var shift_age: float = 1.0
 var door_progress: float = 0.0
 var spark_bursts: Array[Dictionary] = []
+var bloom_bursts: Array[Dictionary] = []
+var gate_open: bool = false
+var gate_fraction: float = 0.0
 
 
 func _ready() -> void:
@@ -40,6 +43,10 @@ func _process(delta: float) -> void:
 		spark_bursts[index]["age"] += delta
 		if spark_bursts[index]["age"] > 0.55:
 			spark_bursts.remove_at(index)
+	for index: int in range(bloom_bursts.size() - 1, -1, -1):
+		bloom_bursts[index]["age"] += delta
+		if bloom_bursts[index]["age"] > 0.55:
+			bloom_bursts.remove_at(index)
 	queue_redraw()
 
 
@@ -53,6 +60,10 @@ func _draw() -> void:
 		_draw_wall(wall)
 	for bridge: Rect2 in level["phase_walls"]:
 		_draw_bridge(bridge)
+	for gate: Rect2 in level["timed_gates"]:
+		_draw_timed_gate(gate)
+	for bloom: Vector2 in level["bloom_pads"]:
+		_draw_bloom_pad(bloom)
 	_draw_sentry_tracks()
 	for hazard: Rect2 in level["hazards"]:
 		_draw_hazard(hazard)
@@ -66,6 +77,7 @@ func _draw() -> void:
 	_draw_door(level["exit"])
 	_draw_loose_threads()
 	_draw_spark_bursts()
+	_draw_bloom_bursts()
 	if shift_age < 0.68:
 		_draw_shift_seam()
 
@@ -199,6 +211,45 @@ func _draw_bridge(bridge: Rect2) -> void:
 		draw_line(Vector2(x, bridge.end.y - 5), Vector2(x + 7, bridge.end.y - 5), Color(0.2, 0.35, 0.34, opacity), 2.0, true)
 
 
+func _draw_timed_gate(gate: Rect2) -> void:
+	var opacity: float = 0.2 if gate_open else 0.96
+	draw_rect(gate.grow(5.0), Color("4b514b", opacity))
+	draw_texture_rect(FELT, gate, true, Color("d4ab86", opacity))
+	for y: int in range(int(gate.position.y + 14.0), int(gate.end.y - 8.0), 28):
+		var left: Vector2 = Vector2(gate.position.x + 5.0, float(y))
+		var right: Vector2 = Vector2(gate.end.x - 5.0, float(y) + 18.0)
+		draw_line(left, right, Color("f6e6c5", opacity), 3.0, true)
+		draw_line(Vector2(right.x, left.y), Vector2(left.x, right.y), Color("6f7161", opacity), 2.0, true)
+	if gate_open:
+		var remaining: float = gate.size.y * gate_fraction
+		draw_line(gate.position + Vector2(-11, 0), gate.position + Vector2(-11, remaining), Color("f4d9a4", 0.86), 5.0, true)
+
+
+func _draw_bloom_pad(pos: Vector2) -> void:
+	var center: Vector2 = pos + Vector2(0, -10.0)
+	var bloom_color: Color = Color("e8c98d") if int(level["backdrop"]) == 7 else Color("d9a88f")
+	draw_rect(Rect2(pos + Vector2(-59, 7), Vector2(118, 13)), INK)
+	draw_rect(Rect2(pos + Vector2(-55, 8), Vector2(110, 9)), Color("7a8c71"))
+	for petal: int in range(5):
+		var spread: float = float(petal - 2)
+		var sway: float = sin(time * 1.4 + float(petal) * 0.5) * 1.8
+		var tip: Vector2 = center + Vector2(spread * 13.0 + sway, -33.0 + absf(spread) * 7.0)
+		var root: Vector2 = center + Vector2(spread * 5.0, 4.0)
+		var petal_shape: PackedVector2Array = PackedVector2Array([
+			root + Vector2(-5, 0),
+			tip + Vector2(-9, 2),
+			tip + Vector2(-5, -7),
+			tip + Vector2(5, -7),
+			tip + Vector2(9, 2),
+			root + Vector2(5, 0),
+		])
+		draw_colored_polygon(petal_shape, INK)
+		draw_colored_polygon(petal_shape, bloom_color.lerp(Color.WHITE, 0.16 + float(petal % 2) * 0.12))
+		draw_line(root + Vector2(0, -3), tip + Vector2(0, 3), Color("f7e7ca", 0.7), 1.5, true)
+	draw_arc(center + Vector2(0, 2), 14.0, PI, TAU, 12, INK, 4.0, true)
+	draw_arc(center + Vector2(0, 2), 11.0, PI, TAU, 12, Color("e9d78f"), 8.0, true)
+
+
 func _draw_hazard(area: Rect2) -> void:
 	var thorn: Color = Color("5b6256")
 	match int(level.get("backdrop", 0)):
@@ -304,6 +355,21 @@ func _draw_loose_threads() -> void:
 
 func collect_spark(pos: Vector2) -> void:
 	spark_bursts.append({"position": pos, "age": 0.0})
+
+
+func burst_bloom(pos: Vector2) -> void:
+	bloom_bursts.append({"position": pos, "age": 0.0})
+
+
+func _draw_bloom_bursts() -> void:
+	for burst: Dictionary in bloom_bursts:
+		var age: float = burst["age"]
+		var center: Vector2 = burst["position"] + Vector2(0, -16.0)
+		var opacity: float = 1.0 - age / 0.55
+		draw_arc(center, 34.0 + age * 135.0, PI, TAU, 32, Color("f0d7a5", opacity), 4.0, true)
+		for petal: int in range(6):
+			var outward: Vector2 = Vector2.from_angle(float(petal) * TAU / 6.0)
+			draw_line(center + outward * (25.0 + age * 70.0), center + outward * (35.0 + age * 90.0), Color("f7e8c9", opacity), 3.0, true)
 
 
 func _draw_spark_bursts() -> void:

@@ -35,6 +35,9 @@ var world: PalewheelWorldView
 var pilot: PalewheelCourier
 var cargo: PalewheelCargo
 var bridges: Array[CollisionShape2D] = []
+var timed_gate_shapes: Array[CollisionShape2D] = []
+var gate_remaining: float = 0.0
+var gates_open: bool = false
 var sentries: Array[PalewheelWatcher] = []
 var camera: Camera2D
 var hud: PalewheelHud
@@ -229,10 +232,20 @@ func _clear_mobile_controls() -> void:
 	mobile_button_crouched = false
 
 
-func _physics_process(_delta: float) -> void:
-	if playing and not finished and is_instance_valid(pilot) and world.door_open:
-		if pilot.position.distance_to(level["exit"]) < 65.0:
-			_advance()
+func _physics_process(delta: float) -> void:
+	if not playing or finished or not is_instance_valid(pilot):
+		return
+	if gates_open:
+		gate_remaining = maxf(0.0, gate_remaining - delta)
+		world.gate_fraction = gate_remaining / float(level["gate_window"])
+		if gate_remaining == 0.0:
+			var occupied: bool = false
+			for gate: Rect2 in level["timed_gates"]:
+				occupied = occupied or gate.grow(48.0).has_point(pilot.position)
+			if not occupied:
+				_close_timed_gates()
+	if world.door_open and pilot.position.distance_to(level["exit"]) < 65.0:
+		_advance()
 
 
 func _load_level(index: int) -> void:
@@ -258,10 +271,15 @@ func _load_level(index: int) -> void:
 	room.name = "Compartment"
 	add_child(room)
 	bridges.clear()
+	timed_gate_shapes.clear()
+	gate_remaining = 0.0
+	gates_open = false
 	for wall: Rect2 in level["walls"]:
 		_add_wall(wall, false)
 	for bridge: Rect2 in level["phase_walls"]:
 		_add_wall(bridge, true)
+	for gate: Rect2 in level["timed_gates"]:
+		timed_gate_shapes.append(_add_wall(gate, false))
 	for hazard: Rect2 in level["hazards"]:
 		_add_hazard(hazard)
 	sentries.clear()
@@ -273,6 +291,9 @@ func _load_level(index: int) -> void:
 		sentries.append(sentry)
 	for spark_index: int in range(collected.size()):
 		_add_spark(level["shards"][spark_index], spark_index)
+	for bloom: Vector2 in level["bloom_pads"]:
+		var bloom_area: Area2D = _make_area(bloom + Vector2(0, -9), Vector2(112, 45), 2)
+		bloom_area.body_entered.connect(_on_bloom_body.bind(bloom))
 	if level["checkpoint"] != Vector2.ZERO:
 		var checkpoint: Area2D = _make_area(level["checkpoint"], Vector2(88, 106), 2)
 		checkpoint.body_entered.connect(_on_checkpoint_body)
@@ -299,13 +320,16 @@ func _load_level(index: int) -> void:
 	world.door_open = false
 	world.door_progress = 0.0
 	world.spark_bursts.clear()
+	world.bloom_bursts.clear()
+	world.gate_open = false
+	world.gate_fraction = 0.0
 	world.gravity_direction = gravity_direction
 	hud.set_room_intro(level["name"], level["hint"])
 	_update_hud()
 	print("PALEWHEEL_ROOM ", index)
 
 
-func _add_wall(rect: Rect2, is_bridge: bool) -> void:
+func _add_wall(rect: Rect2, is_bridge: bool) -> CollisionShape2D:
 	var body: StaticBody2D = StaticBody2D.new()
 	body.position = rect.get_center()
 	body.collision_layer = 1
@@ -319,6 +343,7 @@ func _add_wall(rect: Rect2, is_bridge: bool) -> void:
 	room.add_child(body)
 	if is_bridge:
 		bridges.append(shape)
+	return shape
 
 
 func _add_hazard(rect: Rect2) -> void:
@@ -391,6 +416,8 @@ func _respawn() -> void:
 		cargo.gravity_direction = gravity_direction
 	for bridge: CollisionShape2D in bridges:
 		bridge.set_deferred("disabled", true)
+	gate_remaining = 0.0
+	_close_timed_gates()
 	world.phase = phase
 	world.gravity_direction = gravity_direction
 	world.shift_origin = respawn_position
@@ -427,6 +454,27 @@ func _on_pad_body(body: Node2D) -> void:
 	_update_hud()
 
 
+func _on_bloom_body(body: Node2D, bloom: Vector2) -> void:
+	if body != pilot or not playing or respawning:
+		return
+	pilot.velocity = pilot.velocity.slide(gravity_direction) - gravity_direction * 870.0
+	pilot.coyote = 0.0
+	pilot.jump_buffer = 0.0
+	pilot.takeoff_time = 0.18
+	pilot.landing_time = 0.0
+	world.burst_bloom(bloom)
+	_play_sound("jump")
+	print("PALEWHEEL_BLOOM ", level_index)
+
+
+func _close_timed_gates() -> void:
+	gates_open = false
+	world.gate_open = false
+	world.gate_fraction = 0.0
+	for shape: CollisionShape2D in timed_gate_shapes:
+		shape.set_deferred("disabled", false)
+
+
 func _update_door() -> void:
 	world.door_open = not collected.has(false) and (level["pad"] == Vector2.ZERO or pad_armed)
 	if world.door_open:
@@ -449,6 +497,13 @@ func _shift(step: int) -> void:
 		sentry.freeze_for(0.55)
 	for bridge: CollisionShape2D in bridges:
 		bridge.set_deferred("disabled", phase == 0)
+	if not timed_gate_shapes.is_empty():
+		gate_remaining = float(level["gate_window"])
+		gates_open = true
+		world.gate_open = true
+		world.gate_fraction = 1.0
+		for shape: CollisionShape2D in timed_gate_shapes:
+			shape.set_deferred("disabled", true)
 	world.phase = phase
 	world.gravity_direction = gravity_direction
 	world.shift_origin = pilot.position

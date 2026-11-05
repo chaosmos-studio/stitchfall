@@ -22,6 +22,9 @@ static func get_level(index: int) -> Dictionary:
 		"exit": Vector2(1705, 815),
 		"walls": FRAME.duplicate(),
 		"phase_walls": [],
+		"timed_gates": [],
+		"gate_window": 2.2,
+		"bloom_pads": [],
 		"hazards": [],
 		"crate": Vector2.ZERO,
 		"pad": Vector2.ZERO,
@@ -65,11 +68,13 @@ static func get_level(index: int) -> Dictionary:
 		3:
 			base.merge({
 				"name": "Needle Clock",
-				"hint": "Shift to still the moth. Cross its track before the wings wake.",
+				"hint": "Shift to open the seam. Cross before its stitches close.",
 				"accent": Color("8e7ae8"),
 				"start": Vector2(310, 822),
 				"exit": Vector2(1610, 815),
-				"walls": FRAME + [Rect2(740, 645, 32, 253), Rect2(1150, 525, 280, 30)],
+				"walls": FRAME + [Rect2(1150, 525, 280, 30)],
+				"timed_gates": [Rect2(740, 198, 36, 700)],
+				"gate_window": 3.0,
 				"phase_walls": [Rect2(845, 515, 220, 28)],
 				"hazards": [Rect2(915, 870, 150, 28)],
 				"checkpoint": Vector2(815, 265),
@@ -127,10 +132,11 @@ static func get_level(index: int) -> Dictionary:
 		8:
 			base.merge({
 				"name": "Green Canopy",
-				"hint": "The canopy lifts you. Catch the high ledge before it lets go.",
+				"hint": "Touch the bloom to leap into the canopy lift.",
 				"backdrop": 6,
 				"environment": "forest",
 				"environment_zone": Rect2(450, 340, 790, 558),
+				"bloom_pads": [Vector2(390, 870)],
 				"exit": Vector2(1620, 290),
 				"walls": FRAME + [Rect2(760, 620, 315, 30), Rect2(1320, 420, 285, 30)],
 				"checkpoint": Vector2(975, 550),
@@ -139,10 +145,11 @@ static func get_level(index: int) -> Dictionary:
 		9:
 			base.merge({
 				"name": "Rootwork",
-				"hint": "Push the patch left to the root. Ride the lift back across.",
+				"hint": "Seat the patch, then catch the bloom on the return.",
 				"backdrop": 6,
 				"environment": "forest",
 				"environment_zone": Rect2(700, 340, 470, 558),
+				"bloom_pads": [Vector2(610, 870)],
 				"start": Vector2(1650, 820),
 				"exit": Vector2(310, 285),
 				"crate": Vector2(1510, 835),
@@ -154,10 +161,11 @@ static func get_level(index: int) -> Dictionary:
 		10:
 			base.merge({
 				"name": "Night Quilt",
-				"hint": "Low gravity carries a jump across three stepping ledges.",
+				"hint": "Catch the bloom on the first ledge to reach the stars.",
 				"backdrop": 7,
 				"environment": "space",
 				"environment_zone": Rect2(140, 198, 1640, 700),
+				"bloom_pads": [Vector2(735, 645)],
 				"exit": Vector2(1650, 285),
 				"walls": FRAME + [Rect2(520, 670, 290, 28), Rect2(925, 515, 280, 28), Rect2(1335, 365, 285, 28)],
 				"checkpoint": Vector2(1030, 440),
@@ -182,14 +190,15 @@ static func get_level(index: int) -> Dictionary:
 		12:
 			base.merge({
 				"name": "Rainline",
-				"hint": "Shift above the tear. Let the gust carry you.",
+				"hint": "Shift across the tear, then race through the open seam.",
 				"backdrop": 8,
 				"environment": "rain",
 				"environment_zone": Rect2(430, 230, 1090, 668),
 				"walls": FRAME + [Rect2(735, 640, 470, 28), Rect2(1240, 545, 245, 28)],
+				"timed_gates": [Rect2(1510, 198, 36, 700)],
 				"hazards": [Rect2(770, 870, 370, 28)],
 				"checkpoint": Vector2(1100, 565),
-				"shards": [Vector2(410, 750), Vector2(965, 570), Vector2(1500, 760)],
+				"shards": [Vector2(410, 750), Vector2(965, 570), Vector2(1610, 760)],
 			}, true)
 		13:
 			base.merge({
@@ -223,7 +232,7 @@ static func get_level(index: int) -> Dictionary:
 		15:
 			base.merge({
 				"name": "The Last Seam",
-				"hint": "Cross the frozen cloth, light the middle seam, and evade the moths.",
+				"hint": "Use every turn. Open the last seam before the moth wakes.",
 				"backdrop": 9,
 				"environment": "frost",
 				"environment_zone": Rect2(140, 198, 1640, 700),
@@ -231,6 +240,9 @@ static func get_level(index: int) -> Dictionary:
 				"exit": Vector2(300, 285),
 				"walls": FRAME + [Rect2(1230, 570, 40, 328), Rect2(710, 630, 40, 268)],
 				"phase_walls": [Rect2(950, 340, 40, 410)],
+				"timed_gates": [Rect2(650, 198, 36, 700)],
+				"gate_window": 1.7,
+				"bloom_pads": [Vector2(1410, 870)],
 				"hazards": [Rect2(1050, 870, 125, 28), Rect2(470, 870, 125, 28)],
 				"checkpoint": Vector2(1040, 275),
 				"sentries": [

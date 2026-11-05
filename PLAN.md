@@ -164,3 +164,13 @@ The runner can push cargo into a corner before a gravity turn moves it to a ceil
 The opening ceiling button and both cargo marks have physics-driven checks.
 All room goals have a basic geometry clearance check.
 The remaining rooms still need full manual playthroughs and route replays before the campaign expands.
+
+## Interaction pass, 5 November 2026
+
+Needle Clock, Rainline, and the finale now use timed seams that open on Shift and close after a room-specific window.
+The runner can stay inside a seam without being crushed when the window expires.
+Forest, night, and finale rooms use bloom pads that launch the runner opposite the current pull.
+The forest pad teaches the launch before a canopy lift, while later pads combine it with longer arcs or a timed seam.
+Five sewn controls cover movement, crouch, jump, and Shift on a phone, while gestures remain available.
+The first compressed Web export transfers about 45.2 MB instead of the previous 83.4 MB on browsers with stream decompression, with the same art and a raw fallback.
+The new mechanics have physics checks, but the full campaign still needs manual phone and desktop playthroughs.

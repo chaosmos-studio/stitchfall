@@ -114,6 +114,16 @@ async function main() {
     await marker;
     await page.waitForTimeout(300);
     if (shifts.length !== 1) throw new Error(`One tap turned gravity ${shifts.length} times`);
+    marker = page.waitForEvent('console', { predicate: message => message.text().includes('PALEWHEEL_SHIFT'), timeout: 10000 });
+    await page.touchscreen.tap(800, 350);
+    await marker;
+    if (shifts.length !== 2) throw new Error(`The sewn Shift control turned gravity ${shifts.length - 1} times`);
+    await page.locator('#canvas').focus();
+    await page.keyboard.press('r');
+    await page.waitForTimeout(500);
+    marker = page.waitForEvent('console', { predicate: message => message.text().includes('PALEWHEEL_JUMP'), timeout: 10000 });
+    await page.touchscreen.tap(735, 350);
+    await marker;
     if (errors.length) throw new Error(errors.join('\n'));
     await page.screenshot({ path: path.join(results, 'mobile.png') });
     await page.close();
@@ -136,9 +146,8 @@ async function main() {
     await desktop.keyboard.press('Shift');
     await desktopShift;
     await desktop.screenshot({ path: path.join(results, 'desktop.png') });
-    await page.close();
     await desktop.close();
-    for (const [room, world] of [[4, 'water'], [5, 'water-vent'], [6, 'dunes'], [8, 'forest'], [10, 'night'], [12, 'rain'], [14, 'frost']]) {
+    for (const [room, world] of [[3, 'timed-gate'], [4, 'cargo'], [5, 'water'], [6, 'dunes'], [8, 'forest'], [10, 'night'], [12, 'rain'], [14, 'frost']]) {
       const preview = await browser.newPage({ viewport: { width: 844, height: 390 }, isMobile: true, hasTouch: true });
       const previewErrors = [];
       preview.on('pageerror', error => previewErrors.push(String(error)));

@@ -2,7 +2,8 @@
 
 Palewheel is the working title for a 2D action puzzle game in a world made of cloth and thread.
 Run, jump, and shift gravity to collect buttons and reach each open seam.
-Each shift also changes sewn bridges, moves weighted patches, and briefly stills needle moths.
+Each shift also changes sewn bridges, opens timed seams, moves weighted patches, and briefly stills needle moths.
+Some rooms add blooming launch pads to the route.
 
 ## Play
 
