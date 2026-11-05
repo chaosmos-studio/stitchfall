@@ -368,6 +368,9 @@ func _respawn() -> void:
 func _on_spark_body(body: Node2D, index: int, area: Area2D) -> void:
 	if body != pilot or not playing or collected[index]:
 		return
+	var required_phases: Array = level.get("shard_phases", [])
+	if index < required_phases.size() and int(required_phases[index]) >= 0 and phase != int(required_phases[index]):
+		return
 	collected[index] = true
 	print("PALEWHEEL_SPARK ", level_index, " ", index)
 	world.collected = collected.duplicate()

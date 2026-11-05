@@ -18,6 +18,8 @@ func _run() -> void:
 	await _test_movement_feel()
 	await _test_environment_forces()
 	await _test_gesture_controls()
+	await _test_phase_buttons()
+	await _test_cargo_route()
 	await _test_palewheel_playthrough()
 	print("\n==== TESTS: %d passed, %d failed ====" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
@@ -195,6 +197,47 @@ func _test_gesture_controls() -> void:
 	await process_frame
 
 
+func _test_phase_buttons() -> void:
+	var game: Node2D = load("res://scenes/game/game.tscn").instantiate() as Node2D
+	game.audio_enabled = false
+	root.add_child(game)
+	await process_frame
+	game._load_level(2)
+	game._on_begin()
+	var button: Area2D = Area2D.new()
+	game.room.add_child(button)
+	game._on_spark_body(game.pilot, 1, button)
+	_check("mint button rejects the unlit seam", not game.collected[1])
+	game._shift(1)
+	game._on_spark_body(game.pilot, 1, button)
+	_check("mint button collects in the lit seam", game.collected[1])
+	game.queue_free()
+	await process_frame
+
+
+func _test_cargo_route() -> void:
+	var game: Node2D = load("res://scenes/game/game.tscn").instantiate() as Node2D
+	game.audio_enabled = false
+	root.add_child(game)
+	await process_frame
+	game._load_level(4)
+	game._on_begin()
+	game.pilot.touch_axis = 1.0
+	for frame: int in range(125):
+		await physics_frame
+	game.pilot.touch_axis = 0.0
+	_check("the runner can move the weighted patch toward its mark", game.cargo.position.x > 720.0)
+	game.last_shift = -1.0
+	game._shift(1)
+	game.last_shift = -1.0
+	game._shift(1)
+	for frame: int in range(95):
+		await physics_frame
+	_check("the upward pull seats the patch on the ceiling mark", game.pad_armed)
+	game.queue_free()
+	await process_frame
+
+
 func _test_palewheel_playthrough() -> void:
 	var game: Node2D = load("res://scenes/game/game.tscn").instantiate() as Node2D
 	game.audio_enabled = false
@@ -215,7 +258,7 @@ func _test_palewheel_playthrough() -> void:
 	for level_number: int in range(PalewheelLevels.count()):
 		if level_number > 0:
 			game._on_begin()
-		if level_number == 1:
+		if level_number == 3:
 			var sentry_start: Vector2 = game.sentries[0].position
 			for frame: int in range(12):
 				await physics_frame
@@ -245,7 +288,12 @@ func _test_palewheel_playthrough() -> void:
 			await physics_frame
 			await process_frame
 			_check("a hazard sends the runner to the pin and keeps buttons", game.pilot.position.distance_to(game.respawn_position) < 30.0 and game.collected[0])
-		for spark: Vector2 in game.level["shards"]:
+		for spark_index: int in range(game.level["shards"].size()):
+			var spark: Vector2 = game.level["shards"][spark_index]
+			var required_phases: Array = game.level["shard_phases"]
+			if spark_index < required_phases.size() and int(required_phases[spark_index]) >= 0 and game.phase != int(required_phases[spark_index]):
+				game.last_shift = -1.0
+				game._shift(1)
 			game.pilot.position = spark
 			game.pilot.velocity = Vector2.ZERO
 			game.pilot.reset_physics_interpolation()

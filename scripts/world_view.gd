@@ -215,14 +215,20 @@ func _draw_checkpoint(pos: Vector2) -> void:
 
 func _draw_shard(point: Vector2, index: int) -> void:
 	var center: Vector2 = point + Vector2(0, sin(time * 4.4 + index * 1.7) * 3.0)
-	draw_circle(center, 36.0, Color("f0ce84", 0.19))
+	var required_phases: Array = level.get("shard_phases", [])
+	var required_phase: int = int(required_phases[index]) if index < required_phases.size() else -1
+	var ready: bool = required_phase < 0 or required_phase == phase
+	var tint: Color = Color("e4c77f") if required_phase < 0 else (Color("8cd1be") if required_phase == 1 else Color("d7a998"))
+	draw_circle(center, 36.0, Color(tint, 0.25 if ready else 0.08))
 	for spoke: int in range(8):
 		var angle: float = float(spoke) * TAU / 8.0 + time * 0.25
-		draw_line(center + Vector2.from_angle(angle) * 27.0, center + Vector2.from_angle(angle) * 35.0, Color("af8862", 0.75), 2.0, true)
+		draw_line(center + Vector2.from_angle(angle) * 27.0, center + Vector2.from_angle(angle) * 35.0, Color(tint, 0.78 if ready else 0.28), 2.0, true)
 	draw_circle(center, 18.0, INK)
-	draw_circle(center, 15.0, Color("e4c77f"))
+	draw_circle(center, 15.0, tint.darkened(0.43) if not ready else tint)
 	for hole: int in range(4):
 		draw_circle(center + Vector2.from_angle(float(hole) * TAU / 4.0 + PI * 0.25) * 7.0, 2.2, INK)
+	if required_phase >= 0:
+		_draw_stitches(center + Vector2(-33, 42), center + Vector2(33, 42), tint, 11.0)
 
 
 func _draw_pad(pos: Vector2) -> void:
