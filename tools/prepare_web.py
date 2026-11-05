@@ -51,8 +51,10 @@ loader = """// Stream the engine and game pack from static-host-friendly chunks.
   const nativeFetch = window.fetch.bind(window);
   const assets = ASSETS;
   const base = new URL('.', document.currentScript.src);
+  // itch's HTML host expands gzip chunks while extracting the uploaded ZIP.
+  const useGzip = typeof DecompressionStream === 'function' && !location.hostname.endsWith('.itch.zone');
   const selected = Object.fromEntries(Object.entries(assets).map(([name, asset]) => [name,
-    typeof DecompressionStream === 'function' && asset.gzip_parts
+    useGzip && asset.gzip_parts
       ? {parts: asset.gzip_parts, size: asset.gzip_size, gzip: true}
       : {parts: asset.parts, size: asset.size, gzip: false}
   ]));
