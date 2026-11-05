@@ -5,6 +5,7 @@ const CARGO_SCRIPT: Script = preload("res://scripts/cargo.gd")
 const WORLD_SCRIPT: Script = preload("res://scripts/world_view.gd")
 const HUD_SCRIPT: Script = preload("res://scripts/hud.gd")
 const SENTRY_SCRIPT: Script = preload("res://scripts/sentry.gd")
+const FERRY_SCRIPT: Script = preload("res://scripts/ferry.gd")
 const MUSIC_STREAM: AudioStreamOggVorbis = preload("res://assets/audio/music/stitched_home.ogg")
 const SEWING_CURSOR: Texture2D = preload("res://assets/art/sewing_cursor.png")
 
@@ -36,6 +37,7 @@ var timed_gate_shapes: Array[CollisionShape2D] = []
 var gate_remaining: float = 0.0
 var gates_open: bool = false
 var sentries: Array[PalewheelWatcher] = []
+var ferries: Array[PalewheelFerry] = []
 var camera: Camera2D
 var hud: PalewheelHud
 var sound: AudioStreamPlayer
@@ -105,8 +107,18 @@ func _process(delta: float) -> void:
 		run_time += delta
 		_update_hud()
 	if is_instance_valid(pilot):
-		var target: Vector2 = Vector2(960, 540) + (pilot.position - Vector2(960, 540)) * 0.34
-		camera.position = camera.position.lerp(target, minf(delta * 3.0, 1.0))
+		camera.position = camera.position.lerp(_camera_target(), minf(delta * 4.0, 1.0))
+
+
+func _camera_target() -> Vector2:
+	if float(level.get("width", 1920.0)) <= 1920.0:
+		return Vector2(960, 540) + (pilot.position - Vector2(960, 540)) * 0.34
+	var half_view: Vector2 = get_viewport_rect().size / camera.zoom * 0.5
+	var ahead: float = clampf(pilot.velocity.x * 0.22, -120.0, 120.0)
+	return Vector2(
+		clampf(pilot.position.x + ahead, half_view.x, float(level["width"]) - half_view.x),
+		clampf(540.0 + (pilot.position.y - 540.0) * 0.6, half_view.y, 1080.0 - half_view.y)
+	)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -253,6 +265,13 @@ func _load_level(index: int) -> void:
 		room.add_child(sentry)
 		sentry.body_entered.connect(_on_hazard_body)
 		sentries.append(sentry)
+	ferries.clear()
+	for data: Dictionary in level["ferries"]:
+		var ferry: PalewheelFerry = FERRY_SCRIPT.new() as PalewheelFerry
+		ferry.configure(data)
+		room.add_child(ferry)
+		ferry.active = playing
+		ferries.append(ferry)
 	for spark_index: int in range(collected.size()):
 		_add_spark(level["shards"][spark_index], spark_index)
 	for bloom: Vector2 in level["bloom_pads"]:
@@ -276,6 +295,7 @@ func _load_level(index: int) -> void:
 	pilot.jumped.connect(_on_pilot_jumped)
 	pilot.stepped.connect(func() -> void: _play_step(-17.0))
 	pilot.landed.connect(func() -> void: _play_step(-11.0))
+	camera.position = _camera_target()
 	world.level = level
 	world.phase = phase
 	world.collected = collected.duplicate()
@@ -493,6 +513,8 @@ func _advance() -> void:
 	pilot.control_enabled = true
 	for sentry: PalewheelWatcher in sentries:
 		sentry.active = true
+	for ferry: PalewheelFerry in ferries:
+		ferry.active = true
 
 
 func _restart() -> void:
@@ -501,6 +523,8 @@ func _restart() -> void:
 	pilot.control_enabled = true
 	for sentry: PalewheelWatcher in sentries:
 		sentry.active = true
+	for ferry: PalewheelFerry in ferries:
+		ferry.active = true
 	hud.hide_panel()
 	print("PALEWHEEL_START ", level_index)
 
@@ -516,6 +540,8 @@ func _on_pause() -> void:
 	pilot.control_enabled = false
 	for sentry: PalewheelWatcher in sentries:
 		sentry.active = false
+	for ferry: PalewheelFerry in ferries:
+		ferry.active = false
 	hud.show_pause()
 
 
@@ -526,6 +552,8 @@ func _on_home() -> void:
 		pilot.set_touch_crouch(false)
 	for sentry: PalewheelWatcher in sentries:
 		sentry.active = false
+	for ferry: PalewheelFerry in ferries:
+		ferry.active = false
 	playing = false
 	touch_starts.clear()
 	mobile_crouched = false
@@ -561,6 +589,8 @@ func _on_begin() -> void:
 	pilot.control_enabled = true
 	for sentry: PalewheelWatcher in sentries:
 		sentry.active = true
+	for ferry: PalewheelFerry in ferries:
+		ferry.active = true
 	hud.hide_panel()
 	hud.set_room_intro(level["name"], level["hint"])
 	print("PALEWHEEL_START ", level_index)

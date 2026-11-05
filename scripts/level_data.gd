@@ -13,8 +13,18 @@ static func count() -> int:
 	return 16
 
 
+static func wide_frame(width: float) -> Array[Rect2]:
+	return [
+		Rect2(110, 168, width - 220, 30),
+		Rect2(110, 898, width - 220, 30),
+		Rect2(110, 168, 30, 760),
+		Rect2(width - 140, 168, 30, 760),
+	]
+
+
 static func get_level(index: int) -> Dictionary:
 	var base: Dictionary = {
+		"width": 1920.0,
 		"backdrop": mini(index, 3),
 		"environment": "",
 		"environment_zone": Rect2(),
@@ -25,6 +35,7 @@ static func get_level(index: int) -> Dictionary:
 		"timed_gates": [],
 		"gate_window": 2.2,
 		"bloom_pads": [],
+		"ferries": [],
 		"hazards": [],
 		"crate": Vector2.ZERO,
 		"pad": Vector2.ZERO,
@@ -68,18 +79,20 @@ static func get_level(index: int) -> Dictionary:
 		3:
 			base.merge({
 				"name": "Needle Clock",
-				"hint": "Shift to open the seam. Cross before its stitches close.",
+				"hint": "Open each seam with Shift. Ride the moving hem for the high button.",
 				"accent": Color("8e7ae8"),
+				"width": 2600.0,
 				"start": Vector2(310, 822),
-				"exit": Vector2(1610, 815),
-				"walls": FRAME + [Rect2(1150, 525, 280, 30)],
-				"timed_gates": [Rect2(740, 198, 36, 700)],
+				"exit": Vector2(2430, 815),
+				"walls": wide_frame(2600) + [Rect2(1150, 525, 280, 30), Rect2(2020, 510, 270, 28)],
+				"timed_gates": [Rect2(740, 198, 36, 700), Rect2(2250, 198, 36, 700)],
 				"gate_window": 3.0,
 				"phase_walls": [Rect2(845, 515, 220, 28)],
-				"hazards": [Rect2(915, 870, 150, 28)],
-				"checkpoint": Vector2(815, 265),
+				"hazards": [Rect2(915, 870, 150, 28), Rect2(1760, 870, 170, 28)],
+				"checkpoint": Vector2(1530, 810),
 				"sentries": [{"from": Vector2(1150, 715), "to": Vector2(1290, 715), "period": 3.2, "offset": 0.4}],
-				"shards": [Vector2(475, 770), Vector2(980, 630), Vector2(1440, 660)],
+				"ferries": [{"from": Vector2(1630, 735), "to": Vector2(1990, 560), "size": Vector2(210, 28), "period": 4.8}],
+				"shards": [Vector2(475, 770), Vector2(1990, 485), Vector2(2350, 755)],
 			}, true)
 		4:
 			base.merge({
@@ -106,13 +119,17 @@ static func get_level(index: int) -> Dictionary:
 		6:
 			base.merge({
 				"name": "Sand Drift",
-				"hint": "Ride the gust over two dunes.",
+				"hint": "Catch the moving hem above the long gust.",
 				"backdrop": 5,
+				"width": 2500.0,
 				"environment": "dunes",
-				"environment_zone": Rect2(540, 280, 930, 618),
-				"walls": FRAME + [Rect2(605, 700, 38, 198), Rect2(1140, 560, 44, 338)],
-				"checkpoint": Vector2(1010, 265),
-				"shards": [Vector2(400, 755), Vector2(890, 525), Vector2(1510, 745)],
+				"environment_zone": Rect2(540, 280, 1560, 618),
+				"exit": Vector2(2310, 815),
+				"walls": wide_frame(2500) + [Rect2(605, 700, 38, 198), Rect2(1140, 560, 44, 338), Rect2(2030, 550, 230, 28)],
+				"hazards": [Rect2(1590, 870, 325, 28)],
+				"ferries": [{"from": Vector2(1490, 720), "to": Vector2(1870, 560), "size": Vector2(205, 28), "period": 4.2}],
+				"checkpoint": Vector2(1270, 815),
+				"shards": [Vector2(400, 755), Vector2(890, 525), Vector2(1840, 490)],
 			}, true)
 		7:
 			base.merge({
@@ -132,15 +149,18 @@ static func get_level(index: int) -> Dictionary:
 		8:
 			base.merge({
 				"name": "Green Canopy",
-				"hint": "Touch the bloom to leap into the canopy lift.",
+				"hint": "Bloom, rise with the canopy, then catch the travelling hem.",
 				"backdrop": 6,
+				"width": 2850.0,
 				"environment": "forest",
-				"environment_zone": Rect2(450, 340, 790, 558),
-				"bloom_pads": [Vector2(390, 870)],
-				"exit": Vector2(1620, 290),
-				"walls": FRAME + [Rect2(760, 620, 315, 30), Rect2(1320, 420, 285, 30)],
-				"checkpoint": Vector2(975, 550),
-				"shards": [Vector2(385, 755), Vector2(840, 520), Vector2(1440, 290)],
+				"environment_zone": Rect2(450, 340, 1120, 558),
+				"bloom_pads": [Vector2(390, 870), Vector2(1780, 870)],
+				"exit": Vector2(2650, 290),
+				"walls": wide_frame(2850) + [Rect2(760, 620, 315, 30), Rect2(1320, 420, 285, 30), Rect2(2350, 390, 310, 30)],
+				"hazards": [Rect2(2040, 870, 190, 28)],
+				"ferries": [{"from": Vector2(1860, 660), "to": Vector2(2240, 440), "size": Vector2(220, 28), "period": 5.0}],
+				"checkpoint": Vector2(1510, 510),
+				"shards": [Vector2(385, 755), Vector2(1450, 340), Vector2(2470, 315)],
 			}, true)
 		9:
 			base.merge({
@@ -190,15 +210,18 @@ static func get_level(index: int) -> Dictionary:
 		12:
 			base.merge({
 				"name": "Rainline",
-				"hint": "Shift across the tear, then race through the open seam.",
+				"hint": "Cross two timed seams and ride the rain-swept hem between them.",
 				"backdrop": 8,
+				"width": 2800.0,
 				"environment": "rain",
-				"environment_zone": Rect2(430, 230, 1090, 668),
-				"walls": FRAME + [Rect2(735, 640, 470, 28), Rect2(1240, 545, 245, 28)],
-				"timed_gates": [Rect2(1510, 198, 36, 700)],
-				"hazards": [Rect2(770, 870, 370, 28)],
+				"environment_zone": Rect2(430, 230, 2060, 668),
+				"exit": Vector2(2600, 815),
+				"walls": wide_frame(2800) + [Rect2(735, 640, 470, 28), Rect2(1240, 545, 245, 28), Rect2(2140, 500, 270, 28)],
+				"timed_gates": [Rect2(1510, 198, 36, 700), Rect2(2420, 198, 36, 700)],
+				"hazards": [Rect2(770, 870, 370, 28), Rect2(1850, 870, 220, 28)],
+				"ferries": [{"from": Vector2(1700, 735), "to": Vector2(2150, 545), "size": Vector2(215, 28), "period": 5.2}],
 				"checkpoint": Vector2(1100, 565),
-				"shards": [Vector2(410, 750), Vector2(965, 570), Vector2(1610, 760)],
+				"shards": [Vector2(410, 750), Vector2(965, 570), Vector2(2530, 755)],
 			}, true)
 		13:
 			base.merge({

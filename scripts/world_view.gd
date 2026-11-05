@@ -9,6 +9,7 @@ const FOREST_CLOTH: Texture2D = preload("res://assets/art/cloth_forest.webp")
 const NIGHT_CLOTH: Texture2D = preload("res://assets/art/cloth_night.webp")
 const RAIN_CLOTH: Texture2D = preload("res://assets/art/cloth_rain.webp")
 const FROST_CLOTH: Texture2D = preload("res://assets/art/cloth_frost.webp")
+const CHECKPOINT: Texture2D = preload("res://assets/art/sewn_checkpoint.png")
 const INK: Color = Color("493a37")
 const THREAD: Color = Color("f9e9ca")
 const RUST: Color = Color("b45d4c")
@@ -51,9 +52,14 @@ func _process(delta: float) -> void:
 
 
 func _draw() -> void:
-	draw_texture_rect(_backdrop_texture(), Rect2(-330, -180, 2580, 1440), false)
+	var backdrop: Texture2D = _backdrop_texture()
+	draw_texture_rect(backdrop, Rect2(-330, -180, 2580, 1440), false)
 	if level.is_empty():
 		return
+	var width: float = float(level["width"])
+	if width > 1920.0:
+		var source: Rect2 = Rect2(Vector2(backdrop.get_width() * 330.0 / 2580.0, 0), Vector2(backdrop.get_width() * 2250.0 / 2580.0, backdrop.get_height()))
+		draw_texture_rect_region(backdrop, Rect2(1920, -180, width - 1920.0 + 330.0, 1440), source)
 	_draw_chamber()
 	_draw_environment()
 	for wall: Rect2 in level["walls"]:
@@ -64,6 +70,7 @@ func _draw() -> void:
 		_draw_timed_gate(gate)
 	for bloom: Vector2 in level["bloom_pads"]:
 		_draw_bloom_pad(bloom)
+	_draw_ferry_tracks()
 	_draw_sentry_tracks()
 	for hazard: Rect2 in level["hazards"]:
 		_draw_hazard(hazard)
@@ -117,12 +124,17 @@ func _cloth_color() -> Color:
 
 
 func _draw_chamber() -> void:
-	var inset: Rect2 = Rect2(110, 168, 1700, 760)
+	var width: float = float(level["width"])
+	var inset: Rect2 = Rect2(110, 168, width - 220.0, 760)
 	draw_rect(inset.grow(12.0), Color("644f43", 0.15))
 	draw_rect(inset, Color("f7efdc", 0.2))
-	for x: int in range(170, 1770, 48):
+	for x: int in range(170, int(width - 150.0), 48):
 		var sway: float = sin(float(x) * 0.021 + time * 1.2) * 2.0
 		draw_line(Vector2(x, 205 + sway), Vector2(x + 19, 198 + sway), Color("9c8471", 0.36), 2.0, true)
+	if width > 1920.0:
+		draw_rect(Rect2(1907, 198, 26, 700), Color("a78c72", 0.23))
+		for y: int in range(210, 895, 24):
+			draw_line(Vector2(1913, y), Vector2(1927, y + 9), Color("f7e5c6", 0.8), 2.0, true)
 
 
 func _draw_environment() -> void:
@@ -294,12 +306,21 @@ func _draw_sentry_tracks() -> void:
 		draw_circle(to, 5.0, RUST)
 
 
+func _draw_ferry_tracks() -> void:
+	for data: Dictionary in level["ferries"]:
+		var from: Vector2 = data["from"]
+		var to: Vector2 = data["to"]
+		draw_line(from, to, Color("705f50", 0.35), 4.0, true)
+		_draw_stitches(from, to, Color("f7e3c7", 0.75), 22.0)
+		for end: Vector2 in [from, to]:
+			draw_circle(end, 10.0, INK)
+			draw_circle(end, 5.0, Color("d6b78d"))
+
+
 func _draw_checkpoint(pos: Vector2) -> void:
-	var color: Color = TEAL if checkpoint_active else Color("a9a18e")
-	draw_line(pos + Vector2(0, 36), pos + Vector2(0, -47), INK, 4.0, true)
-	draw_colored_polygon(PackedVector2Array([pos + Vector2(0, -48), pos + Vector2(53, -36), pos + Vector2(0, -15)]), color)
-	_draw_stitches(pos + Vector2(4, -40), pos + Vector2(40, -33), THREAD, 13.0)
-	draw_circle(pos + Vector2(0, 37), 8.0, Color("c4a67e"))
+	if checkpoint_active:
+		draw_circle(pos + Vector2(0, -37), 46.0 + sin(time * 3.0) * 3.0, Color("f6dda0", 0.2))
+	draw_texture_rect(CHECKPOINT, Rect2(pos + Vector2(-52, -76), Vector2(104, 130)), false, Color.WHITE if checkpoint_active else Color("c5b8a5"))
 
 
 func _draw_shard(point: Vector2, index: int) -> void:

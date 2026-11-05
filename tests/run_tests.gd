@@ -19,6 +19,7 @@ func _run() -> void:
 	await _test_environment_forces()
 	await _test_gesture_controls()
 	await _test_timed_gate_and_bloom()
+	await _test_moving_ferry_lifecycle()
 	await _test_phase_buttons()
 	_test_room_clearance()
 	await _test_cargo_route()
@@ -80,6 +81,35 @@ func _test_movement_feel() -> void:
 	await physics_frame
 	_check("a right slide moves right on the ceiling", inverted.velocity.x > 0.0)
 	inverted.queue_free()
+	await process_frame
+
+
+func _test_moving_ferry_lifecycle() -> void:
+	var game: Node2D = load("res://scenes/game/game.tscn").instantiate() as Node2D
+	game.audio_enabled = false
+	root.add_child(game)
+	await process_frame
+	game._load_level(3)
+	game._on_begin()
+	_check("the wide room starts its moving hem", game.ferries.size() == 1 and game.ferries[0].active)
+	var start: Vector2 = game.ferries[0].position
+	for frame: int in range(20):
+		await physics_frame
+	_check("the moving hem travels after play begins", game.ferries[0].position.distance_to(start) > 10.0)
+	game.pilot.position = game.ferries[0].position + Vector2(0, -55)
+	game.pilot.velocity = Vector2.ZERO
+	game.pilot.reset_physics_interpolation()
+	for frame: int in range(14):
+		await physics_frame
+	var rider_offset: float = game.pilot.position.x - game.ferries[0].position.x
+	for frame: int in range(20):
+		await physics_frame
+	_check("the moving hem carries its rider", absf((game.pilot.position.x - game.ferries[0].position.x) - rider_offset) < 35.0)
+	game._on_pause()
+	_check("the moving hem stops while paused", not game.ferries[0].active)
+	game._restart()
+	_check("the moving hem restarts with the room", game.ferries[0].active)
+	game.queue_free()
 	await process_frame
 
 
