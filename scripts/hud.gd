@@ -404,7 +404,7 @@ func _build_pause() -> void:
 	pause_body = _label(pause_page, Vector2(600, 355), Vector2(720, 95), 32, INK)
 	pause_body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	pause_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	restart_button = _tag(pause_page, Rect2(620, 500, 230, 255), "RESTART", "restart", Color("dbe5d1"))
+	restart_button = _tag(pause_page, Rect2(620, 500, 230, 255), "RETRY", "restart", Color("dbe5d1"))
 	restart_button.pause_action = true
 	restart_button.pressed.connect(func() -> void: restart_pressed.emit())
 	resume_button = _tag(pause_page, Rect2(850, 472, 270, 290), "RESUME", "play", Color("e0a278"))
