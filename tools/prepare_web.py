@@ -1,6 +1,7 @@
 """Prepare a Godot web export for static hosting with a per-file size limit."""
 
 import hashlib
+import gzip
 import json
 import shutil
 from pathlib import Path
@@ -19,6 +20,8 @@ for file_name, content_type in (("index.wasm", "application/wasm"), ("index.pck"
         assert b"ECFG" in raw, "The game pack has no project configuration"
     for old in root.glob(f"{file_name}.part*"):
         old.unlink()
+    for old in root.glob(f"{file_name}.gz.part*"):
+        old.unlink()
     parts = []
     for offset in range(0, len(raw), chunk_size):
         name = f"{file_name}.part{offset // chunk_size}"
@@ -31,6 +34,16 @@ for file_name, content_type in (("index.wasm", "application/wasm"), ("index.pck"
         "sha256": hashlib.sha256(raw).hexdigest(),
         "content_type": content_type,
     }
+    if file_name.endswith(".wasm"):
+        compressed = gzip.compress(raw, compresslevel=9, mtime=0)
+        compressed_parts = []
+        for offset in range(0, len(compressed), chunk_size):
+            name = f"{file_name}.gz.part{offset // chunk_size}"
+            (root / name).write_bytes(compressed[offset : offset + chunk_size])
+            compressed_parts.append(name)
+        assert gzip.decompress(b"".join((root / name).read_bytes() for name in compressed_parts)) == raw
+        assets[file_name]["gzip_parts"] = compressed_parts
+        assets[file_name]["gzip_size"] = len(compressed)
     source.unlink()
 
 loader = """// Stream the engine and game pack from static-host-friendly chunks.
@@ -38,8 +51,13 @@ loader = """// Stream the engine and game pack from static-host-friendly chunks.
   const nativeFetch = window.fetch.bind(window);
   const assets = ASSETS;
   const base = new URL('.', document.currentScript.src);
+  const selected = Object.fromEntries(Object.entries(assets).map(([name, asset]) => [name,
+    typeof DecompressionStream === 'function' && asset.gzip_parts
+      ? {parts: asset.gzip_parts, size: asset.gzip_size, gzip: true}
+      : {parts: asset.parts, size: asset.size, gzip: false}
+  ]));
   const received = Object.fromEntries(Object.keys(assets).map(name => [name, 0]));
-  const total = Object.values(assets).reduce((sum, asset) => sum + asset.size, 0);
+  const total = Object.values(selected).reduce((sum, asset) => sum + asset.size, 0);
   const report = () => window.palewheelDownload?.(Object.values(received).reduce((sum, size) => sum + size, 0), total);
   report();
   window.fetch = async function(resource, options) {
@@ -47,26 +65,27 @@ loader = """// Stream the engine and game pack from static-host-friendly chunks.
     const name = Object.keys(assets).find(candidate => url.href === new URL(candidate, base).href);
     if (!name) return nativeFetch(resource, options);
     const asset = assets[name];
+    const download = selected[name];
     const stream = new ReadableStream({async start(controller) {
       try {
         const prefetchWindow = 2;
         const pending = new Map();
         const requestPart = index => {
-          const partUrl = new URL(asset.parts[index], base);
+          const partUrl = new URL(download.parts[index], base);
           partUrl.searchParams.set('v', asset.sha256.slice(0, 12));
           return nativeFetch(partUrl, options).then(response => ({response}), error => ({error}));
         };
-        for (let index = 0; index < Math.min(prefetchWindow, asset.parts.length); index++) {
+        for (let index = 0; index < Math.min(prefetchWindow, download.parts.length); index++) {
           pending.set(index, requestPart(index));
         }
-        for (let index = 0; index < asset.parts.length; index++) {
+        for (let index = 0; index < download.parts.length; index++) {
           const result = await pending.get(index);
           pending.delete(index);
           if (result.error) throw result.error;
           const response = result.response;
           if (!response.ok) throw new Error('Game download failed: ' + response.status);
           const next = index + prefetchWindow;
-          if (next < asset.parts.length) pending.set(next, requestPart(next));
+          if (next < download.parts.length) pending.set(next, requestPart(next));
           const reader = response.body.getReader();
           while (true) {
             const {done, value} = await reader.read();
@@ -79,7 +98,8 @@ loader = """// Stream the engine and game pack from static-host-friendly chunks.
         controller.close();
       } catch (error) {controller.error(error);}
     }});
-    return new Response(stream, {headers: {'Content-Type': asset.content_type, 'Content-Length': String(asset.size)}});
+    const decoded = download.gzip ? stream.pipeThrough(new DecompressionStream('gzip')) : stream;
+    return new Response(decoded, {headers: {'Content-Type': asset.content_type, 'Content-Length': String(asset.size)}});
   };
 })();
 """.replace("ASSETS", json.dumps(assets))
