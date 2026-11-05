@@ -18,11 +18,11 @@ Platforms, hazards, pickups, exits, enemies, cargo, and HUD elements are drawn i
 The HUD keeps button progress and pause available during play.
 Each room name and its instruction appear briefly when the room begins.
 The HUD cloth palette follows the setting.
-The Home screen plays a slower front-facing dance loop made from 62 sprite frames.
+The Home screen plays a slow front-facing loop from four high-resolution poses.
 Its sewn woodland stage has a quiet fabric pocket for the menu.
-The title uses Darn Display, reading text uses Darn UI, and stitched controls use Threadline Satin.
+The title uses Darn Display, reading text uses Darn UI, the main menu uses Threadline Woven, and other stitched controls use Threadline Satin.
 An original music loop accompanies the dance and continues into play.
-Level Select presents the rooms as two pages of larger textile cards with setting symbols.
+Level Select presents the current rooms as two pages of textile patches.
 Help uses sewn gesture diagrams, and Pause uses a stitched icon during play.
 
 ## Settings and rules
@@ -146,3 +146,12 @@ Difficulty rises through route reasoning, timing, and recovery pressure, not by 
 
 The first families are gravity routing, phase seams, cargo, water currents, dunes wind, canopy lift, low gravity, rain gusts, and frost momentum.
 New nature settings should earn a place by changing movement or interaction, not by changing the backdrop alone.
+
+## Campaign scope, 5 November 2026
+
+Target 120 curated rooms across 10 worlds of 12 rooms each.
+Each world has three introduction rooms, three variations, three combinations with earlier rules, two mastery rooms, and one finale.
+The worlds cover gravity, phase seams, cargo, water, dunes and wind, canopy, rain, frost, low gravity, and a final world that recombines the strongest ideas.
+This is a production target, not permission to fill a world with repeated routes.
+Ship the first 12 revised rooms as one coherent world, then build and playtest in batches of 12.
+Keep the campaign count private until the authored rooms and replay validation prove the target is worth keeping.
