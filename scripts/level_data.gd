@@ -10,7 +10,7 @@ const FRAME: Array[Rect2] = [
 
 
 static func count() -> int:
-	return 16
+	return 26
 
 
 static func wide_frame(width: float) -> Array[Rect2]:
@@ -263,7 +263,7 @@ static func get_level(index: int) -> Dictionary:
 			}, true)
 		15:
 			base.merge({
-				"name": "The Last Seam",
+				"name": "Cold Seam",
 				"hint": "Bounce through the last seam before the chain wakes.",
 				"backdrop": 9,
 				"environment": "frost",
@@ -287,5 +287,146 @@ static func get_level(index: int) -> Dictionary:
 				],
 				"shards": [Vector2(1510, 755), Vector2(1010, 475), Vector2(440, 285)],
 				"shard_phases": [-1, 1, -1],
+			}, true)
+		16:
+			base.merge({
+				"name": "Threadfall",
+				"hint": "Start at the high hem. Drop past the shelves, then turn the last fall.",
+				"backdrop": 3,
+				"start": Vector2(290, 275),
+				"exit": Vector2(1610, 815),
+				"walls": FRAME + [Rect2(280, 380, 300, 28), Rect2(810, 555, 305, 28), Rect2(1360, 705, 260, 28)],
+				"checkpoint": Vector2(1010, 480),
+				"shards": [Vector2(480, 300), Vector2(980, 485), Vector2(1480, 635)],
+			}, true)
+		17:
+			base.merge({
+				"name": "Backstitch",
+				"hint": "The wall hides the button. Run past it on the ceiling, then come back.",
+				"backdrop": 2,
+				"start": Vector2(1595, 820),
+				"exit": Vector2(1510, 285),
+				"walls": FRAME + [Rect2(1180, 495, 42, 403), Rect2(670, 630, 42, 268), Rect2(850, 455, 235, 28)],
+				"phase_walls": [Rect2(800, 305, 230, 28)],
+				"checkpoint": Vector2(520, 285),
+				"shards": [Vector2(1430, 755), Vector2(530, 750), Vector2(970, 275)],
+			}, true)
+		18:
+			base.merge({
+				"name": "Pond Stitch",
+				"hint": "Sink for the low button. Turn the pull before you leave the water.",
+				"backdrop": 4,
+				"environment": "water",
+				"environment_zone": Rect2(520, 500, 820, 398),
+				"start": Vector2(310, 275),
+				"exit": Vector2(1600, 815),
+				"walls": FRAME + [Rect2(540, 420, 340, 28), Rect2(1240, 390, 42, 508)],
+				"checkpoint": Vector2(1000, 765),
+				"shards": [Vector2(460, 365), Vector2(930, 770), Vector2(1450, 280)],
+			}, true)
+		19:
+			base.merge({
+				"name": "Countercurrent",
+				"hint": "Cross the pool against the pull. Catch the hem as it rises.",
+				"backdrop": 4,
+				"width": 2350.0,
+				"environment": "water",
+				"environment_zone": Rect2(625, 300, 1110, 598),
+				"start": Vector2(2140, 820),
+				"exit": Vector2(285, 285),
+				"walls": wide_frame(2350) + [Rect2(1730, 570, 42, 328), Rect2(670, 480, 42, 418)],
+				"ferries": [{"from": Vector2(1350, 730), "to": Vector2(1010, 390), "size": Vector2(210, 28), "period": 5.1}],
+				"checkpoint": Vector2(1050, 825),
+				"shards": [Vector2(1980, 750), Vector2(1250, 590), Vector2(440, 360)],
+			}, true)
+		20:
+			base.merge({
+				"name": "Kite Thread",
+				"hint": "Let the warm gust carry you, then turn onto the upper ledge.",
+				"backdrop": 5,
+				"width": 2450.0,
+				"environment": "dunes",
+				"environment_zone": Rect2(425, 250, 1530, 648),
+				"exit": Vector2(2220, 280),
+				"walls": wide_frame(2450) + [Rect2(560, 700, 240, 28), Rect2(1130, 535, 300, 28), Rect2(1830, 385, 280, 28)],
+				"bloom_pads": [Vector2(680, 870)],
+				"checkpoint": Vector2(1350, 460),
+				"shards": [Vector2(450, 750), Vector2(1230, 455), Vector2(2010, 310)],
+			}, true)
+		21:
+			base.merge({
+				"name": "Still Sand",
+				"hint": "Move left against the gust. Shift to stop the cutter at the narrow hem.",
+				"backdrop": 5,
+				"environment": "dunes",
+				"environment_zone": Rect2(430, 240, 1160, 658),
+				"start": Vector2(1590, 265),
+				"exit": Vector2(295, 815),
+				"walls": FRAME + [Rect2(1220, 380, 290, 28), Rect2(730, 555, 305, 28)],
+				"mechanisms": [{"kind": "cutter", "from": Vector2(690, 765), "to": Vector2(1050, 765), "period": 3.8, "shift_armed": true}],
+				"checkpoint": Vector2(940, 480),
+				"shards": [Vector2(1470, 275), Vector2(960, 485), Vector2(440, 755)],
+			}, true)
+		22:
+			base.merge({
+				"name": "Bloom Ladder",
+				"hint": "Each flower lifts you one shelf. Turn at the top to reach the zipper.",
+				"backdrop": 6,
+				"environment": "forest",
+				"environment_zone": Rect2(490, 290, 970, 608),
+				"start": Vector2(940, 820),
+				"exit": Vector2(300, 275),
+				"walls": FRAME + [Rect2(520, 700, 280, 28), Rect2(1040, 525, 280, 28), Rect2(480, 355, 300, 28)],
+				"bloom_pads": [Vector2(920, 870), Vector2(1160, 500)],
+				"checkpoint": Vector2(1190, 460),
+				"shards": [Vector2(1080, 765), Vector2(620, 625), Vector2(600, 280)],
+			}, true)
+		23:
+			base.merge({
+				"name": "Root Pocket",
+				"hint": "The mint button hides below the root. Light the seam, then climb out.",
+				"backdrop": 6,
+				"environment": "forest",
+				"environment_zone": Rect2(490, 290, 1000, 608),
+				"start": Vector2(1590, 820),
+				"exit": Vector2(335, 285),
+				"walls": FRAME + [Rect2(1280, 585, 42, 313), Rect2(460, 500, 360, 28)],
+				"phase_walls": [Rect2(900, 675, 350, 28)],
+				"bloom_pads": [Vector2(650, 870)],
+				"checkpoint": Vector2(1050, 775),
+				"shards": [Vector2(1480, 755), Vector2(1040, 760), Vector2(565, 425)],
+				"shard_phases": [-1, 1, -1],
+			}, true)
+		24:
+			base.merge({
+				"name": "Rain Reversal",
+				"hint": "Cross the high seam before it closes. The storm pushes you back.",
+				"backdrop": 8,
+				"width": 2300.0,
+				"environment": "rain",
+				"environment_zone": Rect2(340, 210, 1650, 688),
+				"start": Vector2(290, 275),
+				"exit": Vector2(2060, 815),
+				"walls": wide_frame(2300) + [Rect2(450, 400, 310, 28), Rect2(1250, 600, 290, 28)],
+				"timed_gates": [Rect2(980, 198, 36, 700)],
+				"gate_window": 2.5,
+				"ferries": [{"from": Vector2(1580, 735), "to": Vector2(1830, 470), "size": Vector2(200, 28), "period": 4.7}],
+				"checkpoint": Vector2(1380, 525),
+				"shards": [Vector2(560, 325), Vector2(1130, 285), Vector2(1880, 745)],
+			}, true)
+		25:
+			base.merge({
+				"name": "Frost Brake",
+				"hint": "Gather speed, then brake on the tiny dry patch before shifting up.",
+				"backdrop": 9,
+				"environment": "frost",
+				"environment_zone": Rect2(600, 540, 1000, 358),
+				"start": Vector2(1590, 820),
+				"exit": Vector2(285, 280),
+				"walls": FRAME + [Rect2(620, 545, 320, 28), Rect2(1100, 640, 235, 28)],
+				"hazards": [Rect2(745, 870, 260, 28), Rect2(1170, 870, 170, 28)],
+				"mechanisms": [{"kind": "cutter", "from": Vector2(970, 710), "to": Vector2(1250, 710), "period": 3.1}],
+				"checkpoint": Vector2(1060, 470),
+				"shards": [Vector2(1510, 750), Vector2(1090, 590), Vector2(480, 285)],
 			}, true)
 	return base
