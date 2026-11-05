@@ -19,7 +19,12 @@ const HOME_CLEAN_PLATE: Texture2D = preload("res://assets/art/home_clean_plate.p
 const HOME_REVEAL_MASK: Texture2D = preload("res://assets/art/home_reveal_mask.png")
 const HOME_BOTANICALS: GDScript = preload("res://scripts/home_botanicals.gd")
 const PAUSE_CLOTH: Texture2D = preload("res://assets/art/pause_cloth.webp")
-const DANCE_SHEET_4: Texture2D = preload("res://assets/art/seam_runner_dance_front_4.png")
+const DANCE_POSES: Array[Texture2D] = [
+	preload("res://assets/art/hero_pose_0.png"),
+	preload("res://assets/art/hero_pose_1.png"),
+	preload("res://assets/art/hero_pose_2.png"),
+	preload("res://assets/art/hero_pose_3.png"),
+]
 const BORDER_SCRIPT: GDScript = preload("res://scripts/stitch_border.gd")
 const CLEANUP_SHADER: Shader = preload("res://shaders/runner_cleanup.gdshader")
 const HOME_REVEAL_SHADER: Shader = preload("res://shaders/home_reveal.gdshader")
@@ -128,6 +133,17 @@ func _panel(parent: Control, rect: Rect2, color: Color) -> Panel:
 	return value
 
 
+func _cloth_page(parent: Control, rect: Rect2) -> void:
+	var cloth: TextureRect = TextureRect.new()
+	cloth.texture = PAUSE_CLOTH
+	cloth.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	cloth.stretch_mode = TextureRect.STRETCH_SCALE
+	cloth.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cloth.position = rect.position
+	cloth.size = rect.size
+	parent.add_child(cloth)
+
+
 func _label(parent: Control, pos: Vector2, extent: Vector2, size_px: int, color: Color, heavy: bool = false) -> Label:
 	var value: Label = Label.new()
 	value.position = pos
@@ -225,7 +241,7 @@ func _build_home() -> void:
 			3: button.pressed.connect(show_settings)
 	hero = AnimatedSprite2D.new()
 	hero.sprite_frames = _dance_frames()
-	hero.scale = Vector2.ONE * 2.0
+	hero.scale = Vector2.ONE * 0.92
 	hero.position = Vector2(1410, 574)
 	var material: ShaderMaterial = ShaderMaterial.new()
 	material.shader = CLEANUP_SHADER
@@ -239,22 +255,17 @@ func _dance_frames() -> SpriteFrames:
 	frames.remove_animation("default")
 	frames.add_animation("dance")
 	frames.set_animation_loop("dance", true)
-	frames.set_animation_speed("dance", 5.0)
-	var sheet: Texture2D = DANCE_SHEET_4
-	var cell: Vector2 = Vector2(float(sheet.get_width()) / 4.0, float(sheet.get_height()) / 4.0)
-	for step: PackedInt32Array in [PackedInt32Array([0, 4]), PackedInt32Array([1, 2]), PackedInt32Array([2, 2]), PackedInt32Array([3, 3]), PackedInt32Array([2, 2]), PackedInt32Array([1, 2])]:
-		var frame: AtlasTexture = AtlasTexture.new()
-		frame.atlas = sheet
-		frame.region = Rect2(Vector2(float(step[0] % 4) * cell.x, float(step[0] / 4) * cell.y), cell)
-		frames.add_frame("dance", frame, float(step[1]))
+	frames.set_animation_speed("dance", 1.0)
+	for pose: Texture2D in DANCE_POSES:
+		frames.add_frame("dance", pose, 1.45)
 	return frames
 
 
 func _build_levels() -> void:
 	level_page = _page()
-	var card: Panel = _panel(level_page, Rect2(69, 68, 1782, 944), Color("f7edda", 0.95))
-	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var heading: Label = _label(level_page, Vector2(150, 99), Vector2(1230, 105), 77, INK, true)
+	_cloth_page(level_page, Rect2(65, 50, 1790, 970))
+	var heading: Label = _label(level_page, Vector2(290, 107), Vector2(1100, 105), 77, INK, true)
+	heading.add_theme_font_override("font", FONT_DISPLAY)
 	heading.text = "CHOOSE A SEAM"
 	level_previous = _tag(level_page, Rect2(1460, 102, 100, 101), "", "back", Color("e5d5bc"))
 	level_previous.pressed.connect(func() -> void: _set_level_page(level_page_index - 1))
@@ -262,9 +273,10 @@ func _build_levels() -> void:
 	level_next.pressed.connect(func() -> void: _set_level_page(level_page_index + 1))
 	_tag(level_page, Rect2(1700, 102, 100, 101), "", "home", Color("e5d5bc")).pressed.connect(show_home)
 	for slot: int in range(8):
-		var column: int = slot % 2
-		var row: int = slot / 2
-		var button: StitchedButton = _tag(level_page, Rect2(145 + column * 835, 230 + row * 182, 785, 162), "", "seam", Color("f1e1c8"))
+		var column: int = slot % 4
+		var row: int = slot / 4
+		var button: StitchedButton = _tag(level_page, Rect2(165 + column * 405, 250 + row * 330, 385, 280), "", "seam", Color("f1e1c8"))
+		button.level_tile = true
 		button.pressed.connect(_select_visible_level.bind(slot))
 		level_buttons.append(button)
 	_set_level_page(0)
@@ -294,67 +306,78 @@ func _set_level_page(value: int) -> void:
 
 func _build_help() -> void:
 	help_page = _page()
-	var card: Panel = _panel(help_page, Rect2(170, 95, 1580, 875), Color("f7edda", 0.96))
-	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var heading: Label = _label(help_page, Vector2(260, 142), Vector2(1200, 104), 67, INK, true)
+	_cloth_page(help_page, Rect2(170, 70, 1580, 910))
+	var heading: Label = _label(help_page, Vector2(315, 135), Vector2(1150, 104), 67, INK, true)
+	heading.add_theme_font_override("font", FONT_DISPLAY)
 	heading.text = "HOW TO PLAY"
-	_tag(help_page, Rect2(1560, 136, 112, 105), "", "back", Color("e5d5bc")).pressed.connect(show_home)
+	_tag(help_page, Rect2(1560, 130, 112, 105), "", "back", Color("e5d5bc")).pressed.connect(show_home)
+	var introduction: Label = _label(help_page, Vector2(266, 244), Vector2(1250, 60), 35, ACCENT)
+	introduction.text = "Four gestures. A world that turns."
 	var instructions: Array[PackedStringArray] = [
-		PackedStringArray(["MOVE", "A / D / arrows  |  slide", "move"]),
-		PackedStringArray(["JUMP", "W / Space / up  |  swipe up", "jump"]),
-		PackedStringArray(["CROUCH", "S / down  |  swipe down", "crouch"]),
-		PackedStringArray(["SHIFT", "Shift / click  |  tap", "shift"]),
+		PackedStringArray(["MOVE", "A / D, arrows, or slide", "move"]),
+		PackedStringArray(["JUMP", "W / Space or swipe up", "jump"]),
+		PackedStringArray(["CROUCH", "S / down or swipe down", "crouch"]),
+		PackedStringArray(["SHIFT", "Shift / click or tap", "shift"]),
 	]
 	for index: int in range(instructions.size()):
 		var column: int = index % 2
 		var row: int = index / 2
 		var instruction: PackedStringArray = instructions[index]
-		var diagram: StitchedButton = _tag(help_page, Rect2(255 + column * 715, 310 + row * 245, 660, 200), instruction[0], instruction[2], Color("ecdfc7") if index != 3 else Color("e2b18f"))
+		var diagram: StitchedButton = _tag(help_page, Rect2(250 + column * 720, 335 + row * 250, 660, 185), instruction[0], instruction[2], Color("ecdfc7") if index != 3 else Color("e2b18f"))
 		diagram.subcaption = instruction[1]
+		diagram.guide_card = true
 		diagram.focus_mode = Control.FOCUS_NONE
 		diagram.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var footer: Label = _label(help_page, Vector2(265, 839), Vector2(1300, 70), 31, ACCENT, true)
-	footer.text = "Enter: play  |  Esc / P: pause  |  R: retry  |  M: sound  |  F: fullscreen"
+	var footer: Label = _label(help_page, Vector2(265, 800), Vector2(1300, 70), 31, ACCENT)
+	footer.text = "Esc pauses. R retries. M changes sound. F goes fullscreen."
 
 
 func _build_about() -> void:
 	about_page = _page()
-	var card: Panel = _panel(about_page, Rect2(210, 95, 1500, 875), Color("f7edda", 0.96))
-	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var heading: Label = _label(about_page, Vector2(300, 145), Vector2(1110, 110), 78, INK, true)
+	_cloth_page(about_page, Rect2(210, 90, 1500, 880))
+	var heading: Label = _label(about_page, Vector2(355, 145), Vector2(1080, 110), 78, INK, true)
+	heading.add_theme_font_override("font", FONT_DISPLAY)
 	heading.text = "A WORLD IN THREAD"
 	_tag(about_page, Rect2(1510, 138, 112, 105), "", "back", Color("e5d5bc")).pressed.connect(show_home)
-	var note: Label = _label(about_page, Vector2(320, 310), Vector2(1260, 210), 48, INK)
+	var note: Label = _label(about_page, Vector2(320, 305), Vector2(820, 210), 48, INK)
 	note.text = "A few brave steps can turn a whole world upside down."
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	var studio: Label = _label(about_page, Vector2(320, 565), Vector2(1250, 190), 38, INK)
+	var studio: Label = _label(about_page, Vector2(320, 565), Vector2(790, 190), 38, INK)
 	studio.text = "Made by Chaosmos, a small studio making calm, clever games, one at a time."
 	studio.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	var signoff: Label = _label(about_page, Vector2(320, 805), Vector2(1100, 65), 34, ACCENT, true)
+	var portrait: TextureRect = TextureRect.new()
+	portrait.texture = DANCE_POSES[0]
+	portrait.position = Vector2(1140, 300)
+	portrait.size = Vector2(350, 560)
+	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	about_page.add_child(portrait)
+	var signoff: Label = _label(about_page, Vector2(320, 755), Vector2(790, 65), 34, ACCENT, true)
 	signoff.text = "Thanks for spending a little time here."
 
 
 func _build_settings() -> void:
 	settings_page = _page()
-	var card: Panel = _panel(settings_page, Rect2(430, 105, 1060, 850), Color("f7edda", 0.96))
-	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var heading: Label = _label(settings_page, Vector2(530, 153), Vector2(760, 110), 72, INK, true)
+	_cloth_page(settings_page, Rect2(425, 110, 1070, 825))
+	var heading: Label = _label(settings_page, Vector2(570, 176), Vector2(780, 110), 72, INK, true)
+	heading.add_theme_font_override("font", FONT_DISPLAY)
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	heading.text = "SETTINGS"
-	_tag(settings_page, Rect2(1325, 148, 105, 105), "", "back", Color("e5d5bc")).pressed.connect(show_home)
-	var sound_button: StitchedButton = _tag(settings_page, Rect2(545, 340, 385, 192), "SOUND", "sound", Color("e8d8bd"))
-	sound_button.compact = true
+	_tag(settings_page, Rect2(1345, 181, 105, 105), "", "back", Color("e5d5bc")).pressed.connect(show_home)
+	var sound_button: StitchedButton = _tag(settings_page, Rect2(540, 426, 260, 270), "SOUND", "sound", Color("e8d8bd"))
+	sound_button.pause_action = true
 	sound_buttons.append(sound_button)
 	sound_button.pressed.connect(_toggle_sound)
-	var fullscreen_button: StitchedButton = _tag(settings_page, Rect2(990, 340, 385, 192), "FULLSCREEN", "fullscreen", Color("dbe5d1"))
-	fullscreen_button.compact = true
+	var fullscreen_button: StitchedButton = _tag(settings_page, Rect2(830, 426, 260, 270), "FULLSCREEN", "fullscreen", Color("dbe5d1"))
+	fullscreen_button.pause_action = true
 	fullscreen_button.pressed.connect(_toggle_fullscreen)
-	var about_button: StitchedButton = _tag(settings_page, Rect2(765, 625, 390, 155), "ABOUT", "seam", Color("e4d0b1"))
-	about_button.compact = true
+	var about_button: StitchedButton = _tag(settings_page, Rect2(1120, 426, 260, 270), "ABOUT", "seam", Color("e4d0b1"))
+	about_button.pause_action = true
 	about_button.pressed.connect(show_about)
-	var note: Label = _label(settings_page, Vector2(570, 798), Vector2(780, 55), 30, ACCENT)
+	var note: Label = _label(settings_page, Vector2(570, 774), Vector2(780, 55), 30, ACCENT)
 	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	note.text = "M: sound     F: fullscreen"
+	note.text = "M changes sound. F goes fullscreen."
 
 
 func _toggle_fullscreen() -> void:

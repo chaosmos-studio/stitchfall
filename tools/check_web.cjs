@@ -56,23 +56,23 @@ async function main() {
     await page.waitForTimeout(220);
     await page.screenshot({ path: path.join(results, 'settings.png') });
     if (await page.evaluate(() => document.fullscreenEnabled)) {
-      await page.touchscreen.tap(500, 155);
+      await page.touchscreen.tap(420, 190);
       await page.waitForFunction(() => document.fullscreenElement, null, { timeout: 5000 });
-      await page.keyboard.press('Escape');
+      await page.evaluate(() => document.exitFullscreen());
     }
-    await page.touchscreen.tap(420, 248);
+    await page.touchscreen.tap(530, 190);
     await page.waitForTimeout(220);
     await page.screenshot({ path: path.join(results, 'about.png') });
-    await page.touchscreen.tap(640, 65);
+    await page.touchscreen.tap(640, 70);
     await page.waitForTimeout(220);
     await page.touchscreen.tap(110, 230);
     await page.waitForTimeout(220);
     await page.screenshot({ path: path.join(results, 'levels.png') });
-    await page.touchscreen.tap(665, 54);
+    await page.touchscreen.tap(665, 55);
     await page.waitForTimeout(220);
     await page.screenshot({ path: path.join(results, 'levels-second.png') });
     let marker = page.waitForEvent('console', { predicate: message => message.text().includes('PALEWHEEL_START 9'), timeout: 10000 });
-    await page.touchscreen.tap(490, 110);
+    await page.touchscreen.tap(335, 180);
     await marker;
     await page.touchscreen.tap(805, 27);
     await page.waitForTimeout(220);

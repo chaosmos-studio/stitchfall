@@ -3,8 +3,11 @@ extends Button
 
 const FONT: FontFile = preload("res://assets/fonts/Threadline-Satin.ttf")
 const BODY_FONT: FontFile = preload("res://assets/fonts/Darn-UI.ttf")
+const MENU_FONT: FontFile = preload("res://assets/fonts/Threadline-Woven.ttf")
 const PLATE: Texture2D = preload("res://assets/art/linen_button_plate.png")
 const ICON_PATCH: Texture2D = preload("res://assets/art/linen_icon_patch.png")
+const ICONS: Texture2D = preload("res://assets/art/stitched_icons.png")
+const WORLD_ICONS: Texture2D = preload("res://assets/art/stitched_world_icons.png")
 
 var caption: String = ""
 var subcaption: String = ""
@@ -15,6 +18,8 @@ var ink: Color = Color("493a37")
 var compact: bool = false
 var home_link: bool = false
 var pause_action: bool = false
+var level_tile: bool = false
+var guide_card: bool = false
 
 
 func _ready() -> void:
@@ -37,6 +42,12 @@ func _draw() -> void:
 		return
 	if pause_action:
 		_draw_pause_action(hovered)
+		return
+	if level_tile:
+		_draw_level_tile(hovered)
+		return
+	if guide_card:
+		_draw_guide_card(hovered)
 		return
 	var lift: float = -3.0 if hovered else 0.0
 	var tint: Color = cloth.lightened(0.13) if hovered else cloth
@@ -65,9 +76,9 @@ func _draw_home_link(hovered: bool) -> void:
 	draw_texture_rect(ICON_PATCH, Rect2(icon_position, Vector2.ONE * icon_size), false, tint)
 	_draw_icon(icon_position + Vector2.ONE * icon_size * 0.5, icon_size * 0.24, ink)
 	var baseline: float = size.y * 0.68
-	var font_size: int = 62 if glyph == "play" else 50
+	var font_size: int = 59 if glyph == "play" else 48
 	var label_color: Color = ink.lightened(0.1) if hovered else ink
-	draw_string(BODY_FONT, Vector2(121, baseline), caption, HORIZONTAL_ALIGNMENT_LEFT, size.x - 135.0, font_size, label_color)
+	draw_string(MENU_FONT, Vector2(121, baseline), caption, HORIZONTAL_ALIGNMENT_LEFT, size.x - 135.0, font_size, label_color)
 
 
 func _draw_pause_action(hovered: bool) -> void:
@@ -77,8 +88,24 @@ func _draw_pause_action(hovered: bool) -> void:
 	var tint: Color = cloth.lightened(0.12) if hovered else cloth
 	draw_texture_rect(ICON_PATCH, Rect2(patch_position, Vector2.ONE * patch_size), false, tint)
 	_draw_icon(patch_position + Vector2.ONE * patch_size * 0.5, patch_size * 0.23, ink)
-	var font_size: int = 47 if size.x > 260.0 else 42
-	draw_string(BODY_FONT, Vector2(0, size.y - 8.0 + lift), caption, HORIZONTAL_ALIGNMENT_CENTER, size.x, font_size, ink)
+	var font_size: int = 32 if caption.length() > 8 else (46 if size.x > 260.0 else 42)
+	draw_string(MENU_FONT, Vector2(0, size.y - 8.0 + lift), caption, HORIZONTAL_ALIGNMENT_CENTER, size.x, font_size, ink)
+
+
+func _draw_level_tile(hovered: bool) -> void:
+	var lift: float = -4.0 if hovered else 0.0
+	var tint: Color = cloth.lightened(0.1) if hovered else cloth
+	draw_texture_rect(ICON_PATCH, Rect2(Vector2(12, lift), Vector2(size.x - 24.0, size.y - 42.0)), false, tint)
+	draw_string(MENU_FONT, Vector2(0, size.y * 0.59 + lift), caption, HORIZONTAL_ALIGNMENT_CENTER, size.x, 88, ink)
+	draw_string(BODY_FONT, Vector2(0, size.y - 1.0 + lift), subcaption, HORIZONTAL_ALIGNMENT_CENTER, size.x, 34, ink)
+
+
+func _draw_guide_card(hovered: bool) -> void:
+	var tint: Color = cloth.lightened(0.1) if hovered else cloth
+	draw_texture_rect(ICON_PATCH, Rect2(20, 16, 148, 148), false, tint)
+	_draw_icon(Vector2(94, 90), 44.0, ink)
+	draw_string(MENU_FONT, Vector2(195, 82), caption, HORIZONTAL_ALIGNMENT_LEFT, size.x - 210.0, 50, ink)
+	draw_string(BODY_FONT, Vector2(195, 140), subcaption, HORIZONTAL_ALIGNMENT_LEFT, size.x - 210.0, 32, ink)
 
 
 func _draw_plate(lift: float, tint: Color) -> void:
@@ -98,6 +125,20 @@ func _draw_plate(lift: float, tint: Color) -> void:
 func _draw_icon(center: Vector2, radius: float, color: Color) -> void:
 	var p: Vector2 = center
 	var r: float = radius
+	var icon_index: int = ["play", "home", "help", "settings", "pause", "restart", "levels", "back", "next", "sound", "mute", "fullscreen"].find(glyph)
+	if icon_index >= 0:
+		var cell: Vector2 = Vector2(float(ICONS.get_width()) / 4.0, float(ICONS.get_height()) / 3.0)
+		var source: Rect2 = Rect2(Vector2(float(icon_index % 4) * cell.x, float(icon_index / 4) * cell.y), cell)
+		var extent: Vector2 = Vector2.ONE * r * 2.65
+		draw_texture_rect_region(ICONS, Rect2(p - extent * 0.5, extent), source)
+		return
+	var world_index: int = ["move", "jump", "crouch", "shift", "seam", "water", "dunes", "forest", "night", "rain", "frost", "knot"].find(glyph)
+	if world_index >= 0:
+		var world_cell: Vector2 = Vector2(float(WORLD_ICONS.get_width()) / 4.0, float(WORLD_ICONS.get_height()) / 3.0)
+		var world_source: Rect2 = Rect2(Vector2(float(world_index % 4) * world_cell.x, float(world_index / 4) * world_cell.y), world_cell)
+		var world_extent: Vector2 = Vector2.ONE * r * 2.65
+		draw_texture_rect_region(WORLD_ICONS, Rect2(p - world_extent * 0.5, world_extent), world_source)
+		return
 	match glyph:
 		"pause":
 			draw_line(p + Vector2(-r * 0.34, -r * 0.62), p + Vector2(-r * 0.34, r * 0.62), color, 7.0, true)
