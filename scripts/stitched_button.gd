@@ -140,6 +140,15 @@ func _draw_icon(center: Vector2, radius: float, color: Color) -> void:
 		draw_texture_rect_region(WORLD_ICONS, Rect2(p - world_extent * 0.5, world_extent), world_source)
 		return
 	match glyph:
+		"left", "right":
+			var side: float = -1.0 if glyph == "left" else 1.0
+			var tip: Vector2 = p + Vector2(side * r * 0.7, 0)
+			var base: Vector2 = p + Vector2(-side * r * 0.1, 0)
+			draw_line(p + Vector2(-side * r * 0.62, 0), tip, color, 8.0, true)
+			draw_colored_polygon(PackedVector2Array([tip, base + Vector2(0, -r * 0.46), base + Vector2(0, r * 0.46)]), color)
+			draw_line(p + Vector2(-side * r * 0.42, 0), p + Vector2(side * r * 0.08, 0), Color("f7e8cc"), 2.5, true)
+			for offset: float in [-0.28, -0.05, 0.18]:
+				draw_circle(p + Vector2(side * r * offset, 0), 1.8, Color("f7e8cc"))
 		"pause":
 			draw_line(p + Vector2(-r * 0.34, -r * 0.62), p + Vector2(-r * 0.34, r * 0.62), color, 7.0, true)
 			draw_line(p + Vector2(r * 0.34, -r * 0.62), p + Vector2(r * 0.34, r * 0.62), color, 7.0, true)

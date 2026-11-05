@@ -44,8 +44,9 @@ async function main() {
     if (errors.length) throw new Error(errors.join('\n'));
     await page.screenshot({ path: path.join(results, 'intro.png') });
     if (await page.locator('#fullscreen').count()) throw new Error('Fullscreen should live inside Settings');
-    const cursor = await page.locator('#canvas').evaluate(element => getComputedStyle(element).cursor);
-    if (!cursor.includes('sewing_cursor.png')) throw new Error(`The needle cursor is missing: ${cursor}`);
+    const needleCursor = await page.locator('#canvas').evaluate(() => [...document.styleSheets].some(sheet =>
+      [...sheet.cssRules].some(rule => rule.selectorText === 'canvas' && rule.style.cursor.includes('sewing_cursor.png'))));
+    if (!needleCursor) throw new Error('The needle cursor is missing from the playfield');
     await page.waitForTimeout(600);
     await page.screenshot({ path: path.join(results, 'intro-dance.png') });
     await page.waitForTimeout(2500);

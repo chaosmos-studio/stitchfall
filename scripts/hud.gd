@@ -7,6 +7,10 @@ signal restart_pressed
 signal home_pressed
 signal level_selected(index: int)
 signal sound_toggled(enabled: bool)
+signal mobile_axis_changed(direction: int, pressed: bool)
+signal mobile_jump_changed(pressed: bool)
+signal mobile_crouch_changed(pressed: bool)
+signal mobile_shift_pressed
 
 const INK: Color = Color("493a37")
 const PAPER: Color = Color("f7edda")
@@ -61,6 +65,7 @@ var current_biome: int = -1
 var screen: String = "home"
 var audio_enabled: bool = true
 var borders: Array[StitchBorder] = []
+var mobile_buttons: Array[StitchedButton] = []
 
 
 func _ready() -> void:
@@ -86,6 +91,7 @@ func _ready() -> void:
 	hint_body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_build_pages()
+	_build_mobile_controls()
 	get_viewport().size_changed.connect(_layout)
 	call_deferred("_layout")
 
@@ -95,6 +101,13 @@ func _layout() -> void:
 	meter.scale = Vector2.ONE * mobile_scale
 	pause_button.scale = Vector2.ONE * mobile_scale
 	pause_button.position.x = root.size.x - pause_button.size.x * mobile_scale - 28.0
+	if mobile_buttons.size() == 5:
+		var bottom: float = root.size.y - 182.0
+		mobile_buttons[0].position = Vector2(32.0, bottom)
+		mobile_buttons[1].position = Vector2(204.0, bottom)
+		mobile_buttons[2].position = Vector2(root.size.x - 552.0, bottom + 28.0)
+		mobile_buttons[3].position = Vector2(root.size.x - 393.0, bottom)
+		mobile_buttons[4].position = Vector2(root.size.x - 214.0, bottom - 10.0)
 	hint_back.position.x = (root.size.x - hint_back.size.x) * 0.5
 	hero.position.x = root.size.x * 0.735
 	level_page.position.x = (root.size.x - 1920.0) * 0.5
@@ -102,6 +115,29 @@ func _layout() -> void:
 	about_page.position.x = (root.size.x - 1920.0) * 0.5
 	settings_page.position.x = (root.size.x - 1920.0) * 0.5
 	pause_page.position.x = (root.size.x - 1920.0) * 0.5
+
+
+func _build_mobile_controls() -> void:
+	var glyphs: Array[String] = ["left", "right", "crouch", "jump", "shift"]
+	var names: Array[String] = ["Move left", "Move right", "Crouch", "Jump", "Shift gravity"]
+	for index: int in range(glyphs.size()):
+		var edge: float = 128.0 if index == 2 else 178.0 if index == 4 else 156.0
+		var button: StitchedButton = _tag(root, Rect2(0, 0, edge, edge), "", glyphs[index], Color("f3e2c6") if index != 4 else Color("e7b9a0"))
+		button.tooltip_text = names[index]
+		button.focus_mode = Control.FOCUS_NONE
+		button.modulate.a = 0.88
+		mobile_buttons.append(button)
+	mobile_buttons[0].button_down.connect(func() -> void: mobile_axis_changed.emit(-1, true))
+	mobile_buttons[0].button_up.connect(func() -> void: mobile_axis_changed.emit(-1, false))
+	mobile_buttons[1].button_down.connect(func() -> void: mobile_axis_changed.emit(1, true))
+	mobile_buttons[1].button_up.connect(func() -> void: mobile_axis_changed.emit(1, false))
+	mobile_buttons[2].button_down.connect(func() -> void: mobile_crouch_changed.emit(true))
+	mobile_buttons[2].button_up.connect(func() -> void: mobile_crouch_changed.emit(false))
+	mobile_buttons[3].button_down.connect(func() -> void: mobile_jump_changed.emit(true))
+	mobile_buttons[3].button_up.connect(func() -> void: mobile_jump_changed.emit(false))
+	mobile_buttons[4].button_down.connect(func() -> void: mobile_shift_pressed.emit())
+	for button: StitchedButton in mobile_buttons:
+		button.visible = false
 
 
 func _style(color: Color, border: Color, width: int) -> StyleBoxFlat:
@@ -312,12 +348,12 @@ func _build_help() -> void:
 	heading.text = "HOW TO PLAY"
 	_tag(help_page, Rect2(1560, 130, 112, 105), "", "back", Color("e5d5bc")).pressed.connect(show_home)
 	var introduction: Label = _label(help_page, Vector2(266, 244), Vector2(1250, 60), 35, ACCENT)
-	introduction.text = "Four gestures. A world that turns."
+	introduction.text = "Use the sewn controls or play with gestures."
 	var instructions: Array[PackedStringArray] = [
-		PackedStringArray(["MOVE", "A / D, arrows, or slide", "move"]),
-		PackedStringArray(["JUMP", "W / Space or swipe up", "jump"]),
-		PackedStringArray(["CROUCH", "S / down or swipe down", "crouch"]),
-		PackedStringArray(["SHIFT", "Shift / click or tap", "shift"]),
+		PackedStringArray(["MOVE", "Arrows, A / D, or slide", "move"]),
+		PackedStringArray(["JUMP", "Space, W, or swipe up", "jump"]),
+		PackedStringArray(["CROUCH", "Down, S, or swipe down", "crouch"]),
+		PackedStringArray(["SHIFT", "Shift, tap, or sewn patch", "shift"]),
 	]
 	for index: int in range(instructions.size()):
 		var column: int = index % 2
@@ -463,6 +499,8 @@ func _show_screen(name: String) -> void:
 	pause_page.visible = name in ["pause", "finish"]
 	meter.visible = false
 	pause_button.visible = false
+	for button: StitchedButton in mobile_buttons:
+		button.visible = false
 	hint_back.visible = false
 	if name == "home":
 		hero.play("dance")
@@ -522,6 +560,8 @@ func hide_panel() -> void:
 	panel.visible = false
 	meter.visible = true
 	pause_button.visible = true
+	for button: StitchedButton in mobile_buttons:
+		button.visible = DisplayServer.is_touchscreen_available()
 	hero.stop()
 
 

@@ -25,6 +25,9 @@ var shifts: int = 0
 var last_shift: float = -1.0
 var touch_starts: Dictionary[int, Dictionary] = {}
 var mobile_crouched: bool = false
+var mobile_button_left: bool = false
+var mobile_button_right: bool = false
+var mobile_button_crouched: bool = false
 var last_touch_msec: int = -1000
 var last_start_msec: int = -1000
 var room: Node2D
@@ -82,6 +85,10 @@ func _ready() -> void:
 	hud.home_pressed.connect(_on_home)
 	hud.level_selected.connect(_on_level_selected)
 	hud.sound_toggled.connect(_on_sound_toggled)
+	hud.mobile_axis_changed.connect(_on_mobile_axis_changed)
+	hud.mobile_jump_changed.connect(_on_mobile_jump_changed)
+	hud.mobile_crouch_changed.connect(_on_mobile_crouch_changed)
+	hud.mobile_shift_pressed.connect(func() -> void: _shift(1))
 	var initial_room: int = 0
 	if OS.has_feature("web"):
 		var requested_room: Variant = JavaScriptBridge.eval("new URLSearchParams(window.location.search).get('room')")
@@ -186,12 +193,40 @@ func _handle_drag(event: InputEventScreenDrag) -> void:
 func _sync_touch_controls() -> void:
 	if not is_instance_valid(pilot):
 		return
-	pilot.touch_axis = 0.0
+	pilot.touch_axis = float(int(mobile_button_right) - int(mobile_button_left))
 	for touch: Dictionary in touch_starts.values():
-		if touch["mode"] == "move":
+		if touch["mode"] == "move" and pilot.touch_axis == 0.0:
 			pilot.touch_axis = touch["axis"]
 			break
-	pilot.set_touch_crouch(mobile_crouched)
+	pilot.set_touch_crouch(mobile_crouched or mobile_button_crouched)
+
+
+func _on_mobile_axis_changed(direction: int, pressed: bool) -> void:
+	if direction < 0:
+		mobile_button_left = pressed and playing
+	else:
+		mobile_button_right = pressed and playing
+	_sync_touch_controls()
+
+
+func _on_mobile_jump_changed(pressed: bool) -> void:
+	if not playing or not is_instance_valid(pilot):
+		return
+	if pressed:
+		pilot.queue_touch_jump()
+	else:
+		pilot.release_touch_jump()
+
+
+func _on_mobile_crouch_changed(pressed: bool) -> void:
+	mobile_button_crouched = pressed and playing
+	_sync_touch_controls()
+
+
+func _clear_mobile_controls() -> void:
+	mobile_button_left = false
+	mobile_button_right = false
+	mobile_button_crouched = false
 
 
 func _physics_process(_delta: float) -> void:
@@ -203,6 +238,7 @@ func _physics_process(_delta: float) -> void:
 func _load_level(index: int) -> void:
 	touch_starts.clear()
 	mobile_crouched = false
+	_clear_mobile_controls()
 	level_index = index
 	level = PalewheelLevels.get_level(index)
 	gravity_direction = Vector2.DOWN
@@ -455,6 +491,7 @@ func _on_pause() -> void:
 		return
 	touch_starts.clear()
 	mobile_crouched = false
+	_clear_mobile_controls()
 	pilot.touch_axis = 0.0
 	pilot.set_touch_crouch(false)
 	playing = false
@@ -474,6 +511,7 @@ func _on_home() -> void:
 	playing = false
 	touch_starts.clear()
 	mobile_crouched = false
+	_clear_mobile_controls()
 	hud.show_home()
 
 

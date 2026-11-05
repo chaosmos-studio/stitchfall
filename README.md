@@ -9,8 +9,9 @@ Each shift also changes sewn bridges, moves weighted patches, and briefly stills
 [Play Palewheel in your browser](https://chaosmos.studio/palewheel/play/).
 Turn a phone sideways.
 Use the Home screen to play, choose a seam, or open the illustrated controls.
-Slide left or right to walk, swipe up to jump, swipe down to crouch, and tap the playfield to turn gravity.
-Preview the [water](https://chaosmos.studio/palewheel/play/?room=4), [dunes](https://chaosmos.studio/palewheel/play/?room=6), [forest](https://chaosmos.studio/palewheel/play/?room=8), [night quilt](https://chaosmos.studio/palewheel/play/?room=10), [rain meadow](https://chaosmos.studio/palewheel/play/?room=12), or [frost woodland](https://chaosmos.studio/palewheel/play/?room=14).
+Use the sewn left, right, crouch, jump, and Shift controls at the bottom of the playfield.
+You can also slide left or right to walk, swipe up to jump, swipe down to crouch, and tap the playfield to turn gravity.
+Preview the [water](https://chaosmos.studio/palewheel/play/?room=5), [dunes](https://chaosmos.studio/palewheel/play/?room=6), [forest](https://chaosmos.studio/palewheel/play/?room=8), [night quilt](https://chaosmos.studio/palewheel/play/?room=10), [rain meadow](https://chaosmos.studio/palewheel/play/?room=12), or [frost woodland](https://chaosmos.studio/palewheel/play/?room=14).
 Run `./play.sh` from this directory to play locally with Godot 4.7.
 
 On desktop, use A and D or the arrow keys to move, W, Up, or Space to jump, S or Down to crouch, and Shift or a mouse click to turn gravity.
