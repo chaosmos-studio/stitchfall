@@ -64,6 +64,7 @@ Each chapter is one room layout played five times, each with a new prank, and th
 
 A chapter is built, proved by its routes, then played on a phone before the next one starts.
 
-## Art still needed
+## Art
 
-The new parts are drawn in code for now. Their textile art is requested in the prompts kept with this plan, and is wired in when it lands in `assets/art/props/`.
+The needle strips (`needle_strip_raised.png`, `needle_strip_flat.png`) and the zipper track (`zipper_track.png`) are drawn by `scripts/world_view.gd`, tiled along any surface and turned to face it.
+The pincushion, the turning seam and the unpinned patch are in `assets/art/props/` for chapters 2 to 4, and are wired in with their parts.

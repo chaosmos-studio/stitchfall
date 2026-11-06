@@ -10,6 +10,16 @@ const NIGHT_CLOTH: Texture2D = preload("res://assets/art/cloth_night.webp")
 const RAIN_CLOTH: Texture2D = preload("res://assets/art/cloth_rain.webp")
 const FROST_CLOTH: Texture2D = preload("res://assets/art/cloth_frost.webp")
 const CHECKPOINT: Texture2D = preload("res://assets/art/sewn_checkpoint.png")
+const NEEDLES_RAISED: Texture2D = preload("res://assets/art/props/needle_strip_raised.png")
+const NEEDLES_FLAT: Texture2D = preload("res://assets/art/props/needle_strip_flat.png")
+const ZIPPER_TRACK: Texture2D = preload("res://assets/art/props/zipper_track.png")
+const NEEDLE_SCALE: float = 0.3
+const NEEDLE_BAND_TOP: float = 112.0
+const NEEDLE_BAND_BOTTOM: float = 152.0
+const NEEDLE_SINK: float = 4.0
+const NEEDLE_OUTLINE: float = 3.0
+const TRACK_SCALE: float = 0.3
+const TRACK_OVERHANG: float = 24.0
 const INK: Color = Color("493a37")
 const THREAD: Color = Color("f9e9ca")
 const RUST: Color = Color("b45d4c")
@@ -318,41 +328,53 @@ func _draw_hazard(area: Rect2) -> void:
 	_draw_stitches(Vector2(area.position.x, root_y + 4.0), Vector2(area.end.x, root_y + 4.0), THREAD, 17.0)
 
 
-# Steel needles sewn into a band, tips along dir. A pop-up strip at rise 0 shows only its band and a row of
-# needle eyes peeking through the cloth: the tell that the strip is there.
+# Steel needles sewn into a band, tips along dir. The art points up, so it is turned to face dir with its
+# band sunk a little into the surface. A pop-up strip at rise 0 shows only its band with the needle eyes
+# peeking through the cloth, the tell that the strip is there, and grows its needles out of it as it rises.
 func _draw_needles(area: Rect2, dir: Vector2, rise: float) -> void:
-	var along: Vector2 = Vector2(-dir.y, dir.x).abs()
-	var length: float = area.size.dot(along)
-	var base_center: Vector2 = area.get_center() - dir * (area.size.dot(dir.abs()) * 0.5 - 5.0)
-	var start: Vector2 = base_center - along * length * 0.5
-	var band: PackedVector2Array = PackedVector2Array([
-		start - along * 5.0 + dir * 8.0, start + along * (length + 5.0) + dir * 8.0,
-		start + along * (length + 5.0) - dir * 6.0, start - along * 5.0 - dir * 6.0,
-	])
-	draw_colored_polygon(band, INK)
-	var steel: Color = Color("8c938f")
-	for index: int in range(ceili(length / 26.0)):
-		var root: Vector2 = start + along * (13.0 + float(index) * 26.0) + dir * 4.0
-		if rise < 0.05:
-			draw_circle(root + dir * 3.0, 3.2, Color("cdbf9f"))
-			draw_circle(root + dir * 3.0, 1.4, INK)
-			continue
-		var height: float = (24.0 + float((index * 7 + 3) % 9)) * rise
-		var tip: Vector2 = root + dir * height
-		draw_line(root, tip, INK, 5.0, true)
-		draw_line(root, tip - dir * 2.0, steel.lightened(0.3), 2.5, true)
-		draw_circle(root + dir * 5.0, 2.0, INK)
-	_draw_stitches(start - dir * 2.0, start + along * length - dir * 2.0, THREAD, 17.0)
+	var length: float = area.size.dot(Vector2(-dir.y, dir.x).abs()) / NEEDLE_SCALE
+	var surface: Vector2 = area.get_center() - dir * area.size.dot(dir.abs()) * 0.5
+	var band_height: float = NEEDLE_BAND_BOTTOM - NEEDLE_BAND_TOP
+	var band_y: float = NEEDLE_SINK / NEEDLE_SCALE - band_height
+	draw_set_transform(surface, dir.angle() + PI * 0.5, Vector2.ONE * NEEDLE_SCALE)
+	if rise > 0.02:
+		var tall: float = NEEDLE_BAND_TOP * rise
+		var src: Rect2 = Rect2(0, 0, NEEDLES_RAISED.get_width(), NEEDLE_BAND_TOP)
+		var dest: Rect2 = Rect2(-length * 0.5, band_y - tall, length, tall)
+		for side: float in [-NEEDLE_OUTLINE, NEEDLE_OUTLINE]:
+			_tile(NEEDLES_RAISED, src, Rect2(dest.position + Vector2(side, 0), dest.size), false, Color(INK, 0.45))
+		_tile(NEEDLES_RAISED, src, dest, false)
+	var band: Texture2D = NEEDLES_RAISED if rise > 0.98 else NEEDLES_FLAT
+	_tile(band, Rect2(0, NEEDLE_BAND_TOP, band.get_width(), band_height), Rect2(-length * 0.5, band_y, length, band_height), false)
+	draw_set_transform(Vector2.ZERO)
 
 
 # A zipper that can run is sewn on a track, drawn from where it starts through every point it runs to.
 func _draw_exit_track() -> void:
 	var points: Array = [level["exit"]] + level["exit_flee"]
+	var width: float = ZIPPER_TRACK.get_width()
 	for index: int in range(points.size() - 1):
 		var from: Vector2 = points[index]
 		var to: Vector2 = points[index + 1]
-		draw_line(from, to, Color("6a5147", 0.35), 16.0, true)
-		_draw_stitches(from, to, Color("e8c989", 0.85), 14.0)
+		var span: Vector2 = to - from
+		var length: float = (span.length() + TRACK_OVERHANG * 2.0) / TRACK_SCALE
+		draw_set_transform(from - span.normalized() * TRACK_OVERHANG, span.angle() - PI * 0.5, Vector2.ONE * TRACK_SCALE)
+		_tile(ZIPPER_TRACK, Rect2(Vector2.ZERO, ZIPPER_TRACK.get_size()), Rect2(-width * 0.5, 0, width, length), true)
+	draw_set_transform(Vector2.ZERO)
+
+
+# Repeats a tileable strip of src over dest, along x or down y, cutting the last tile short.
+func _tile(texture: Texture2D, src: Rect2, dest: Rect2, vertical: bool, tint: Color = Color.WHITE) -> void:
+	var step: float = src.size.y if vertical else src.size.x
+	var total: float = dest.size.y if vertical else dest.size.x
+	var offset: float = 0.0
+	while offset < total:
+		var piece: float = minf(step, total - offset)
+		if vertical:
+			draw_texture_rect_region(texture, Rect2(dest.position + Vector2(0, offset), Vector2(dest.size.x, piece)), Rect2(src.position, Vector2(src.size.x, piece)), tint)
+		else:
+			draw_texture_rect_region(texture, Rect2(dest.position + Vector2(offset, 0), Vector2(piece, dest.size.y)), Rect2(src.position, Vector2(piece, src.size.y)), tint)
+		offset += step
 
 
 func _draw_sentry_tracks() -> void:
