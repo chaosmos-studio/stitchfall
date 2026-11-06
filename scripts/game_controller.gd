@@ -43,8 +43,15 @@ var sentries: Array[StitchfallWatcher] = []
 var ferries: Array[StitchfallFerry] = []
 var fray_ledges: Array[StitchfallFrayLedge] = []
 var mechanisms: Array[StitchfallMechanism] = []
+# A pop-up strip's needles stay flat until the runner walks into its trigger.
+var popup_areas: Array[Area2D] = []
+var popup_raised: Array[bool] = []
+# Where the zipper is now, and how many of its flee points it has already run to.
+var exit_position: Vector2 = Vector2.ZERO
+var exit_flees: int = 0
 var unravel: StitchfallUnravel
 var camera: Camera2D
+var default_zoom: Vector2 = Vector2.ONE
 var hud: StitchfallHud
 var sound: AudioStreamPlayer
 var step_sound: AudioStreamPlayer
@@ -72,7 +79,8 @@ func _ready() -> void:
 	add_child(world)
 	camera = Camera2D.new()
 	camera.position = Vector2(960, 540)
-	camera.zoom = Vector2.ONE * (2.0 if DisplayServer.is_touchscreen_available() else 1.6)
+	default_zoom = Vector2.ONE * (2.0 if DisplayServer.is_touchscreen_available() else 1.6)
+	camera.zoom = default_zoom
 	add_child(camera)
 	camera.make_current()
 	sound = AudioStreamPlayer.new()
@@ -117,6 +125,9 @@ func _process(delta: float) -> void:
 
 
 func _camera_target() -> Vector2:
+	if bool(level["screen"]):
+		var chamber: Rect2 = level["chamber"]
+		return chamber.get_center()
 	if float(level.get("width", 1920.0)) <= 1920.0:
 		return Vector2(960, 540) + (pilot.position - Vector2(960, 540)) * 0.34
 	var half_view: Vector2 = get_viewport_rect().size / camera.zoom * 0.5
@@ -227,8 +238,16 @@ func _physics_process(delta: float) -> void:
 				occupied = occupied or gate.grow(48.0).has_point(pilot.position)
 			if not occupied:
 				_close_timed_gates()
-	if world.door_open and pilot.position.distance_to(level["exit"]) < 65.0:
+	if world.door_open and pilot.position.distance_to(exit_position) < 65.0:
 		_advance()
+		return
+	var flee: Array = level["exit_flee"]
+	if world.door_open and exit_flees < flee.size() and pilot.position.distance_to(exit_position) < float(level["flee_radius"]):
+		exit_position = flee[exit_flees]
+		exit_flees += 1
+		world.exit_position = exit_position
+		_play_sound("door")
+		print("STITCHFALL_FLEE ", level_index, " ", exit_flees)
 
 
 func _load_level(index: int) -> void:
@@ -264,6 +283,24 @@ func _load_level(index: int) -> void:
 		timed_gate_shapes.append(_add_wall(gate, false))
 	for hazard: Rect2 in level["hazards"]:
 		_add_hazard(hazard)
+	for spike: Dictionary in level["spikes"]:
+		_add_hazard(spike["rect"])
+	popup_areas.clear()
+	popup_raised.clear()
+	for popup_index: int in range(level["popups"].size()):
+		var popup: Dictionary = level["popups"][popup_index]
+		var rect: Rect2 = popup["rect"]
+		var needles: Area2D = _make_area(rect.get_center(), rect.size + Vector2(0, 14), 2)
+		needles.monitoring = false
+		needles.body_entered.connect(_on_hazard_body)
+		popup_areas.append(needles)
+		popup_raised.append(false)
+		var trigger: Rect2 = popup["trigger"]
+		var tripwire: Area2D = _make_area(trigger.get_center(), trigger.size, 2)
+		tripwire.body_entered.connect(_on_popup_tripped.bind(popup_index))
+	exit_position = level["exit"]
+	exit_flees = 0
+	camera.zoom = Vector2.ONE * StitchfallLevels.SCREEN_ZOOM if bool(level["screen"]) else default_zoom
 	fray_ledges.clear()
 	for data: Dictionary in level["fray_ledges"]:
 		var ledge: StitchfallFrayLedge = FRAY_LEDGE_SCRIPT.new() as StitchfallFrayLedge
@@ -330,6 +367,8 @@ func _load_level(index: int) -> void:
 	world.gate_open = false
 	world.gate_fraction = 0.0
 	world.gravity_direction = gravity_direction
+	world.exit_position = exit_position
+	world.popup_raised = popup_raised.duplicate()
 	hud.set_room_intro(level["name"], level["hint"])
 	_update_hud()
 	print("STITCHFALL_ROOM ", index)
@@ -406,6 +445,19 @@ func _respawn_after_unravel(hit_pilot: StitchfallCourier, hit_room: Node2D) -> v
 	_respawn()
 
 
+func _on_popup_tripped(body: Node2D, index: int) -> void:
+	if body != pilot or not playing or respawning or popup_raised[index]:
+		return
+	popup_raised[index] = true
+	var tripped_room: Node2D = room
+	await get_tree().create_timer(float(level["popups"][index]["delay"])).timeout
+	if room != tripped_room or not popup_raised[index]:
+		return
+	popup_areas[index].monitoring = true
+	world.popup_raised = popup_raised.duplicate()
+	print("STITCHFALL_POPUP ", level_index, " ", index)
+
+
 func _on_mechanism_launch(body: Node2D) -> void:
 	if body != pilot or not playing or respawning:
 		return
@@ -461,6 +513,13 @@ func _respawn() -> void:
 		mechanism.reset()
 	for ledge: StitchfallFrayLedge in fray_ledges:
 		ledge.reset()
+	for popup_index: int in range(popup_areas.size()):
+		popup_raised[popup_index] = false
+		popup_areas[popup_index].set_deferred("monitoring", false)
+	world.popup_raised = popup_raised.duplicate()
+	exit_position = level["exit"]
+	exit_flees = 0
+	world.exit_position = exit_position
 	respawning = false
 	_update_hud()
 

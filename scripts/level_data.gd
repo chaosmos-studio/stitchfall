@@ -9,8 +9,122 @@ const FRAME: Array[Rect2] = [
 ]
 
 
+# The rooms that open the campaign, built the way LEVELS.md describes: small, seen whole, one prank each.
+# The older wide rooms follow them until each is rebuilt.
+const LINEN_ROOMS: int = 5
+const CLASSIC_ROOMS: int = 50
+
+# A screen room is seen whole at a fixed zoom, so every trap is on screen from the first frame.
+const SCREEN: Rect2 = Rect2(330, 250, 1260, 640)
+const SCREEN_ZOOM: float = 1.4
+const WALL: float = 30.0
+# The inside of a screen room, between its walls.
+const FLOOR_Y: float = 860.0
+const CEILING_Y: float = 280.0
+const LEFT_X: float = 360.0
+const RIGHT_X: float = 1560.0
+# Where the runner's centre is when standing on the floor or the ceiling.
+const STAND_FLOOR: float = 821.0
+const STAND_CEILING: float = 319.0
+# The zipper in the bottom and top right corners: it is drawn 158 tall around its point.
+const ZIP_FLOOR: Vector2 = Vector2(1500, 781)
+const ZIP_CEILING: Vector2 = Vector2(1500, 359)
+
+
 static func count() -> int:
-	return 50
+	return LINEN_ROOMS + CLASSIC_ROOMS
+
+
+static func get_level(index: int) -> Dictionary:
+	if index < LINEN_ROOMS:
+		return _linen(index)
+	return _classic(index - LINEN_ROOMS)
+
+
+static func screen_frame() -> Array[Rect2]:
+	return [
+		Rect2(SCREEN.position.x, SCREEN.position.y, SCREEN.size.x, WALL),
+		Rect2(SCREEN.position.x, SCREEN.end.y - WALL, SCREEN.size.x, WALL),
+		Rect2(SCREEN.position.x, SCREEN.position.y, WALL, SCREEN.size.y),
+		Rect2(SCREEN.end.x - WALL, SCREEN.position.y, WALL, SCREEN.size.y),
+	]
+
+
+# A needle strip lying on a surface, its tips pointing away from it.
+static func floor_needles(from_x: float, to_x: float) -> Dictionary:
+	return {"rect": Rect2(from_x, FLOOR_Y - 28.0, to_x - from_x, 28.0), "dir": Vector2.UP}
+
+
+static func ceiling_needles(from_x: float, to_x: float) -> Dictionary:
+	return {"rect": Rect2(from_x, CEILING_Y, to_x - from_x, 28.0), "dir": Vector2.DOWN}
+
+
+static func _screen_base() -> Dictionary:
+	var base: Dictionary = _classic(-1)
+	base.merge({
+		"screen": true,
+		"chamber": SCREEN,
+		"backdrop": 0,
+		"start": Vector2(430, STAND_FLOOR),
+		"exit": ZIP_FLOOR,
+		"walls": screen_frame(),
+		"hint": "",
+	}, true)
+	return base
+
+
+# Chapter one, Plain Linen: one room, five pranks. Each room's buttons sit on the route its prank asks for, so
+# where the buttons are is the clue. The jump strip in the middle never changes.
+static func _linen(index: int) -> Dictionary:
+	var room: Dictionary = _screen_base()
+	var strip: Dictionary = floor_needles(900, 1020)
+	match index:
+		0:
+			room.merge({
+				"name": "A Gentle Start",
+				"accent": Color("18c9df"),
+				"spikes": [strip],
+				"shards": [Vector2(680, STAND_FLOOR), Vector2(960, 745)],
+			}, true)
+		1:
+			# The landing pops up its needles as you jump, so the only way over is the ceiling.
+			room.merge({
+				"name": "Same Room",
+				"accent": Color("f46b42"),
+				"spikes": [strip],
+				"popups": [{"rect": Rect2(1020, FLOOR_Y - 28.0, 300, 28.0), "dir": Vector2.UP, "trigger": Rect2(760, 640, 260, 220), "delay": 0.12}],
+				"shards": [Vector2(680, STAND_FLOOR), Vector2(960, STAND_CEILING + 6.0)],
+			}, true)
+		2:
+			# The zipper is sewn on a track up the right wall, and runs up it once it opens.
+			room.merge({
+				"name": "Almost There",
+				"accent": Color("e9ab34"),
+				"spikes": [strip],
+				"exit_flee": [ZIP_CEILING],
+				"flee_radius": 230.0,
+				"shards": [Vector2(680, STAND_FLOOR), Vector2(960, 745)],
+			}, true)
+		3:
+			# Both the floor and the ceiling are needled across the middle. Falling sideways is the way over.
+			room.merge({
+				"name": "Nothing New",
+				"accent": Color("8e7ae8"),
+				"spikes": [strip, floor_needles(1020, 1320), ceiling_needles(700, 1320)],
+				"shards": [Vector2(680, STAND_FLOOR), Vector2(960, 510)],
+			}, true)
+		4:
+			room.merge({
+				"name": "One More Time",
+				"accent": Color("b45d4c"),
+				"spikes": [strip, ceiling_needles(700, 1320)],
+				"popups": [{"rect": Rect2(1020, FLOOR_Y - 28.0, 300, 28.0), "dir": Vector2.UP, "trigger": Rect2(760, 640, 260, 220), "delay": 0.12}],
+				"exit": ZIP_CEILING,
+				"exit_flee": [ZIP_FLOOR],
+				"flee_radius": 200.0,
+				"shards": [Vector2(680, STAND_FLOOR), Vector2(960, 510), Vector2(1521, 640)],
+			}, true)
+	return room
 
 
 static func wide_frame(width: float) -> Array[Rect2]:
@@ -22,7 +136,7 @@ static func wide_frame(width: float) -> Array[Rect2]:
 	]
 
 
-static func get_level(index: int) -> Dictionary:
+static func _classic(index: int) -> Dictionary:
 	var base: Dictionary = {
 		"width": 1920.0,
 		"backdrop": mini(index, 3),
@@ -45,6 +159,12 @@ static func get_level(index: int) -> Dictionary:
 		"sentries": [],
 		"shards": [],
 		"shard_phases": [],
+		"screen": false,
+		"chamber": Rect2(110, 168, 1700, 760),
+		"spikes": [],
+		"popups": [],
+		"exit_flee": [],
+		"flee_radius": 0.0,
 	}
 	match index:
 		0:

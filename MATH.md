@@ -23,5 +23,15 @@ The orbital rim uses 27 percent of normal gravity and slower air steering, exten
 Timed seams open for a room-specific window when gravity shifts and close after the runner leaves their opening.
 Touching a bloom keeps the runner's tangential speed and applies an impulse opposite gravity.
 
+## Falling sideways
+
+Turns only go one way, down, left, up, right, then down again.
+So to fall to the right from the left wall takes two turns, up and then right, and *Nothing New* is built on that.
+Stand on the left wall, run along it to the height you want, then turn twice.
+During the first turn's quarter second the pull is up, and the runner drifts about 0.5 × 1550 × 0.24² ≈ 45 pixels toward the ceiling.
+Then the pull points right and the runner falls across the whole room at nearly that height, reaching the far wall in under a second.
+So the height you pick on the wall is the height you cross at, which is why the room's mid-air button sits a little above the middle.
+`tools/route.gd` prints the crossing, and the room's route in `tests/run_tests.gd` proves it.
+
 The current movement constants and their actual behavior live in `scripts/player.gd` and `scripts/cargo.gd`.
 Tune them by playing through every room, especially after consecutive shifts.

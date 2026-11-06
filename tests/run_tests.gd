@@ -4,6 +4,27 @@ extends SceneTree
 # CI greps for "0 failed", so keep that wording.
 
 const InputMapGen: GDScript = preload("res://tools/make_input_map.gd")
+# The older rooms come after the screen rooms that open the campaign.
+const CLASSIC: int = StitchfallLevels.LINEN_ROOMS
+# Each screen room's proof: a route that finishes it, and the obvious run its prank is built to catch, with
+# what catching means ("hit": the runner is unravelled, "stuck": the room is not finished).
+const SCREEN_ROUTES: Array[Dictionary] = [
+	{"room": 0, "route": "0:+move_right,66:+jump,86:-jump"},
+	{"room": 1, "route": "0:+move_right,45:shift,60:shift,200:shift,215:shift", "naive": "0:+move_right,66:+jump,86:-jump", "caught": "hit"},
+	{
+		"room": 2,
+		"route": "0:+move_right,66:+jump,86:-jump,150:-move_right,152:+move_left,170:-move_left,172:+jump,182:shift,197:shift,210:-jump,215:+move_right",
+		"naive": "0:+move_right,66:+jump,86:-jump",
+		"caught": "stuck",
+	},
+	{"room": 3, "route": "0:+move_right,45:-move_right,46:shift,90:+move_left,125:-move_left,140:shift,155:shift,250:shift", "naive": "0:+move_right,66:+jump,86:-jump", "caught": "hit"},
+	{
+		"room": 4,
+		"route": "0:+move_right,45:-move_right,46:shift,90:+move_left,125:-move_left,140:shift,155:shift,260:+move_left,285:-move_left,290:+move_right,330:-move_right,335:shift",
+		"naive": "0:+move_right,66:+jump,86:-jump",
+		"caught": "hit",
+	},
+]
 
 var _passed: int = 0
 var _failed: int = 0
@@ -26,6 +47,7 @@ func _run() -> void:
 	_test_room_clearance()
 	await _test_cargo_route()
 	await _test_opening_route()
+	await _test_screen_routes()
 	await _test_stitchfall_playthrough()
 	print("\n==== TESTS: %d passed, %d failed ====" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
@@ -91,7 +113,7 @@ func _test_moving_ferry_lifecycle() -> void:
 	game.audio_enabled = false
 	root.add_child(game)
 	await process_frame
-	game._load_level(3)
+	game._load_level(CLASSIC + 3)
 	game._on_begin()
 	_check("the wide room starts its moving hem", game.ferries.size() == 1 and game.ferries[0].active)
 	var start: Vector2 = game.ferries[0].position
@@ -303,7 +325,7 @@ func _test_timed_gate_and_bloom() -> void:
 	game.audio_enabled = false
 	root.add_child(game)
 	await process_frame
-	game._load_level(3)
+	game._load_level(CLASSIC + 3)
 	game._on_begin()
 	_check("the timed seam begins closed", not game.timed_gate_shapes[0].disabled)
 	game._shift(1)
@@ -323,7 +345,7 @@ func _test_timed_gate_and_bloom() -> void:
 	for frame: int in range(3):
 		await physics_frame
 	_check("the timed seam closes after its window", not game.world.gate_open)
-	game._load_level(8)
+	game._load_level(CLASSIC + 8)
 	game._on_begin()
 	game.pilot.position = Vector2(390, 740)
 	game.pilot.velocity = Vector2.ZERO
@@ -340,7 +362,7 @@ func _test_phase_buttons() -> void:
 	game.audio_enabled = false
 	root.add_child(game)
 	await process_frame
-	game._load_level(2)
+	game._load_level(CLASSIC + 2)
 	game._on_begin()
 	var button: Area2D = Area2D.new()
 	game.room.add_child(button)
@@ -358,7 +380,7 @@ func _test_cargo_route() -> void:
 	game.audio_enabled = false
 	root.add_child(game)
 	await process_frame
-	game._load_level(4)
+	game._load_level(CLASSIC + 4)
 	game._on_begin()
 	game.pilot.touch_axis = 1.0
 	for frame: int in range(125):
@@ -372,7 +394,7 @@ func _test_cargo_route() -> void:
 	for frame: int in range(95):
 		await physics_frame
 	_check("the upward pull seats the patch on the ceiling mark", game.pad_armed)
-	game._load_level(9)
+	game._load_level(CLASSIC + 9)
 	game._on_begin()
 	game.pilot.touch_axis = -1.0
 	for frame: int in range(120):
@@ -400,6 +422,7 @@ func _test_opening_route() -> void:
 	game.audio_enabled = false
 	root.add_child(game)
 	await process_frame
+	game._load_level(CLASSIC)
 	game._on_begin()
 	game.pilot.touch_axis = 1.0
 	for frame: int in range(36):
@@ -423,9 +446,43 @@ func _test_opening_route() -> void:
 	game.pilot.touch_axis = 1.0
 	for frame: int in range(100):
 		await physics_frame
-	_check("the opening route reaches the zipper without teleporting", game.level_index == 1)
+	_check("the opening route reaches the zipper without teleporting", game.level_index == CLASSIC + 1)
 	game.queue_free()
 	await process_frame
+
+
+func _test_screen_routes() -> void:
+	_check("every screen room has a route", SCREEN_ROUTES.size() == StitchfallLevels.LINEN_ROOMS)
+	for proof: Dictionary in SCREEN_ROUTES:
+		var room: int = proof["room"]
+		var solved: Dictionary = await _replay(room, proof["route"], 600)
+		_check("screen room %d is finished by its route without a hit" % room, solved["finished"] and solved["deaths"] == 0)
+		if proof.has("naive"):
+			var naive: Dictionary = await _replay(room, proof["naive"], 300)
+			var caught: bool = naive["deaths"] > 0 if proof["caught"] == "hit" else not naive["finished"]
+			_check("screen room %d's prank catches the obvious run" % room, caught and not naive["finished"])
+
+
+func _replay(room: int, script: String, frames: int) -> Dictionary:
+	var game: Node2D = load("res://scenes/game/game.tscn").instantiate() as Node2D
+	game.audio_enabled = false
+	root.add_child(game)
+	await process_frame
+	game._load_level(room)
+	game._on_begin()
+	var steps: Dictionary[int, PackedStringArray] = StitchfallRoute.parse(script)
+	var finished: bool = false
+	for frame: int in range(frames):
+		StitchfallRoute.apply(game, steps, frame)
+		await physics_frame
+		if game.level_index != room:
+			finished = true
+			break
+	StitchfallRoute.release_all()
+	var result: Dictionary = {"finished": finished, "deaths": game.deaths}
+	game.queue_free()
+	await process_frame
+	return result
 
 
 func _test_stitchfall_playthrough() -> void:
@@ -448,7 +505,7 @@ func _test_stitchfall_playthrough() -> void:
 	for level_number: int in range(StitchfallLevels.count()):
 		if level_number > 0:
 			game._on_begin()
-		if level_number == 3:
+		if level_number == CLASSIC + 3:
 			var sentry_start: Vector2 = game.sentries[0].position
 			for frame: int in range(12):
 				await physics_frame

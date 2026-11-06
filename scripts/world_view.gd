@@ -30,6 +30,11 @@ var spark_bursts: Array[Dictionary] = []
 var bloom_bursts: Array[Dictionary] = []
 var gate_open: bool = false
 var gate_fraction: float = 0.0
+var exit_position: Vector2 = Vector2.ZERO
+var popup_raised: Array[bool] = []
+# Drawn positions, eased toward exit_position and the raised state so a move reads as motion.
+var exit_drawn: Vector2 = Vector2.ZERO
+var popup_rise: Array[float] = []
 
 
 func _ready() -> void:
@@ -40,6 +45,12 @@ func _process(delta: float) -> void:
 	time += delta
 	shift_age += delta
 	door_progress = move_toward(door_progress, 1.0 if door_open else 0.0, delta * 3.0)
+	if exit_drawn == Vector2.ZERO or exit_drawn.distance_to(exit_position) > 900.0:
+		exit_drawn = exit_position
+	exit_drawn = exit_drawn.move_toward(exit_position, delta * 2200.0)
+	popup_rise.resize(popup_raised.size())
+	for index: int in range(popup_raised.size()):
+		popup_rise[index] = move_toward(popup_rise[index], 1.0 if popup_raised[index] else 0.0, delta * 9.0)
 	for index: int in range(spark_bursts.size() - 1, -1, -1):
 		spark_bursts[index]["age"] += delta
 		if spark_bursts[index]["age"] > 0.55:
@@ -74,6 +85,12 @@ func _draw() -> void:
 	_draw_sentry_tracks()
 	for hazard: Rect2 in level["hazards"]:
 		_draw_hazard(hazard)
+	for spike: Dictionary in level["spikes"]:
+		_draw_needles(spike["rect"], spike["dir"], 1.0)
+	for index: int in range(level["popups"].size()):
+		var popup: Dictionary = level["popups"][index]
+		_draw_needles(popup["rect"], popup["dir"], popup_rise[index] if index < popup_rise.size() else 0.0)
+	_draw_exit_track()
 	for index: int in range(collected.size()):
 		if not collected[index]:
 			_draw_shard(level["shards"][index], index)
@@ -81,7 +98,7 @@ func _draw() -> void:
 		_draw_pad(level["pad"])
 	if level["checkpoint"] != Vector2.ZERO:
 		_draw_checkpoint(level["checkpoint"])
-	_draw_door(level["exit"])
+	_draw_door(exit_drawn)
 	_draw_loose_threads()
 	_draw_spark_bursts()
 	_draw_bloom_bursts()
@@ -124,6 +141,11 @@ func _cloth_color() -> Color:
 
 
 func _draw_chamber() -> void:
+	if bool(level["screen"]):
+		var chamber: Rect2 = level["chamber"]
+		draw_rect(chamber.grow(12.0), Color("644f43", 0.15))
+		draw_rect(chamber, Color("f7efdc", 0.2))
+		return
 	var width: float = float(level["width"])
 	var inset: Rect2 = Rect2(110, 168, width - 220.0, 760)
 	draw_rect(inset.grow(12.0), Color("644f43", 0.15))
@@ -294,6 +316,43 @@ func _draw_hazard(area: Rect2) -> void:
 			draw_colored_polygon(PackedVector2Array([origin, leaf, origin + Vector2(side * 5.0, 5.0)]), thorn.darkened(0.14))
 			draw_line(origin, leaf, Color("e9ddc2", 0.55), 1.0, true)
 	_draw_stitches(Vector2(area.position.x, root_y + 4.0), Vector2(area.end.x, root_y + 4.0), THREAD, 17.0)
+
+
+# Steel needles sewn into a band, tips along dir. A pop-up strip at rise 0 shows only its band and a row of
+# needle eyes peeking through the cloth: the tell that the strip is there.
+func _draw_needles(area: Rect2, dir: Vector2, rise: float) -> void:
+	var along: Vector2 = Vector2(-dir.y, dir.x).abs()
+	var length: float = area.size.dot(along)
+	var base_center: Vector2 = area.get_center() - dir * (area.size.dot(dir.abs()) * 0.5 - 5.0)
+	var start: Vector2 = base_center - along * length * 0.5
+	var band: PackedVector2Array = PackedVector2Array([
+		start - along * 5.0 + dir * 8.0, start + along * (length + 5.0) + dir * 8.0,
+		start + along * (length + 5.0) - dir * 6.0, start - along * 5.0 - dir * 6.0,
+	])
+	draw_colored_polygon(band, INK)
+	var steel: Color = Color("8c938f")
+	for index: int in range(ceili(length / 26.0)):
+		var root: Vector2 = start + along * (13.0 + float(index) * 26.0) + dir * 4.0
+		if rise < 0.05:
+			draw_circle(root + dir * 3.0, 3.2, Color("cdbf9f"))
+			draw_circle(root + dir * 3.0, 1.4, INK)
+			continue
+		var height: float = (24.0 + float((index * 7 + 3) % 9)) * rise
+		var tip: Vector2 = root + dir * height
+		draw_line(root, tip, INK, 5.0, true)
+		draw_line(root, tip - dir * 2.0, steel.lightened(0.3), 2.5, true)
+		draw_circle(root + dir * 5.0, 2.0, INK)
+	_draw_stitches(start - dir * 2.0, start + along * length - dir * 2.0, THREAD, 17.0)
+
+
+# A zipper that can run is sewn on a track, drawn from where it starts through every point it runs to.
+func _draw_exit_track() -> void:
+	var points: Array = [level["exit"]] + level["exit_flee"]
+	for index: int in range(points.size() - 1):
+		var from: Vector2 = points[index]
+		var to: Vector2 = points[index + 1]
+		draw_line(from, to, Color("6a5147", 0.35), 16.0, true)
+		_draw_stitches(from, to, Color("e8c989", 0.85), 14.0)
 
 
 func _draw_sentry_tracks() -> void:
