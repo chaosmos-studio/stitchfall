@@ -53,6 +53,9 @@ var flower_lit: Array[bool] = []
 var flower_bloom: Dictionary[int, float] = {}
 # Thread snips and petals thrown up when the zipper takes the runner.
 var confetti: Array[Dictionary] = []
+# The wardrobe's button colour and room fabric. A fabric of -1 keeps each room's own cloth.
+var button_colour: Color = Color("e4c77f")
+var fabric_backdrop: int = -1
 
 
 func _ready() -> void:
@@ -136,8 +139,14 @@ func _draw() -> void:
 		_draw_shift_seam()
 
 
+# A wardrobe fabric dresses the plain linen rooms. Rooms set in a world keep that world's cloth.
+func _backdrop() -> int:
+	var backdrop: int = int(level.get("backdrop", 0))
+	return fabric_backdrop if fabric_backdrop >= 0 and backdrop < 4 else backdrop
+
+
 func _backdrop_texture() -> Texture2D:
-	match int(level.get("backdrop", 0)):
+	match _backdrop():
 		4:
 			return WATER_CLOTH
 		5:
@@ -154,7 +163,7 @@ func _backdrop_texture() -> Texture2D:
 
 
 func _cloth_color() -> Color:
-	match int(level.get("backdrop", 0)):
+	match _backdrop():
 		4:
 			return Color("85aeb0")
 		5:
@@ -316,7 +325,7 @@ func _draw_bloom_pad(pos: Vector2) -> void:
 
 func _draw_hazard(area: Rect2) -> void:
 	var thorn: Color = Color("5b6256")
-	match int(level.get("backdrop", 0)):
+	match _backdrop():
 		4:
 			thorn = Color("466d72")
 		5:
@@ -477,7 +486,7 @@ func _draw_shard(point: Vector2, index: int) -> void:
 	var required_phases: Array = level.get("shard_phases", [])
 	var required_phase: int = int(required_phases[index]) if index < required_phases.size() else -1
 	var ready: bool = required_phase < 0 or required_phase == phase
-	var tint: Color = Color("e4c77f") if required_phase < 0 else (Color("8cd1be") if required_phase == 1 else Color("d7a998"))
+	var tint: Color = button_colour if required_phase < 0 else (Color("8cd1be") if required_phase == 1 else Color("d7a998"))
 	draw_circle(center, 36.0, Color(tint, 0.25 if ready else 0.08))
 	for spoke: int in range(8):
 		var angle: float = float(spoke) * TAU / 8.0 + time * 0.25
@@ -510,10 +519,13 @@ func _draw_door(pos: Vector2) -> void:
 	for y: int in range(int(outside.position.y + 8), int(outside.end.y - 8), 14):
 		draw_line(Vector2(outside.position.x + 9, y), Vector2(outside.position.x + 9, y + 7), THREAD, 2.0, true)
 		draw_line(Vector2(outside.end.x - 9, y), Vector2(outside.end.x - 9, y + 7), THREAD, 2.0, true)
-	if door_progress < 1.0:
-		for y: int in range(int(opening.position.y + 8), int(opening.end.y - 4), 12):
-			draw_line(Vector2(pos.x - 3, y), Vector2(pos.x + 3, y + 5), Color("e8c989", 1.0 - door_progress), 3.0, true)
-		draw_circle(pos + Vector2(0, 60), 9.0, RUST)
+	# The pull slides up as the zipper opens and back down as it closes, with the teeth still shut below it.
+	var pull_y: float = lerpf(60.0, -52.0, door_progress)
+	for y: int in range(int(opening.position.y + 8), int(opening.end.y - 4), 12):
+		if float(y) > pos.y + pull_y:
+			draw_line(Vector2(pos.x - 3, y), Vector2(pos.x + 3, y + 5), Color("e8c989"), 3.0, true)
+	draw_line(pos + Vector2(0, pull_y), pos + Vector2(0, pull_y + 16), INK, 4.0, true)
+	draw_circle(pos + Vector2(0, pull_y + 16), 9.0, RUST)
 
 
 func _draw_loose_threads() -> void:

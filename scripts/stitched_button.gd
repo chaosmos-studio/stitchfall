@@ -8,6 +8,14 @@ const PLATE: Texture2D = preload("res://assets/art/linen_button_plate.png")
 const ICON_PATCH: Texture2D = preload("res://assets/art/linen_icon_patch.png")
 const ICONS: Texture2D = preload("res://assets/art/stitched_icons.png")
 const WORLD_ICONS: Texture2D = preload("res://assets/art/stitched_world_icons.png")
+# The icons added with the wardrobe and the fuller menus, a 4 by 3 sheet in this order. Until the sheet is
+# drawn, each borrows the nearest icon already in the game.
+const EXTRA_ICONS: String = "res://assets/art/stitched_icons_extra.png"
+const EXTRA_GLYPHS: PackedStringArray = ["wardrobe", "music", "music_off", "shake", "shake_off", "stats", "credits", "star", "lock", "bag", "gift", "link"]
+const STAND_INS: Dictionary = {
+	"wardrobe": "knot", "music": "sound", "music_off": "mute", "shake": "shift", "shake_off": "shift", "stats": "levels",
+	"credits": "seam", "star": "seam", "lock": "knot", "bag": "knot", "gift": "knot", "link": "next",
+}
 
 var caption: String = ""
 var subcaption: String = ""
@@ -22,6 +30,8 @@ var level_tile: bool = false
 # A level tile shows its best stars, or none while it is -1, and fades out while locked.
 var stars: int = -1
 var locked: bool = false
+# A caption's font size, or 0 to size it from the button.
+var caption_size: int = 0
 var guide_card: bool = false
 
 
@@ -63,10 +73,10 @@ func _draw() -> void:
 	if not glyph.is_empty():
 		_draw_icon(icon_center, icon_scale, ink)
 	if not caption.is_empty():
-		var font_size: int = 43 if compact else (55 if size.x >= 680 else (44 if size.y > 110 else 38))
-		var text_left: float = 18.0 if compact else (40.0 if glyph.is_empty() else size.x * 0.33)
+		var font_size: int = caption_size if caption_size > 0 else (43 if compact else (55 if size.x >= 680 else (44 if size.y > 110 else 38)))
+		var text_left: float = 18.0 if compact or glyph.is_empty() else size.x * 0.33
 		var baseline: float = size.y * (0.74 if compact else (0.54 if subcaption.is_empty() else 0.42)) + lift
-		draw_string(FONT, Vector2(text_left, baseline), caption, HORIZONTAL_ALIGNMENT_CENTER if compact or subcaption.is_empty() else HORIZONTAL_ALIGNMENT_LEFT, size.x - text_left * 2.0 if compact else size.x - text_left - 34.0, font_size, ink)
+		draw_string(FONT, Vector2(text_left, baseline), caption, HORIZONTAL_ALIGNMENT_CENTER if compact or subcaption.is_empty() else HORIZONTAL_ALIGNMENT_LEFT, size.x - text_left * 2.0 if compact or glyph.is_empty() else size.x - text_left - 34.0, font_size, ink)
 		if not subcaption.is_empty():
 			var small_size: int = 43 if size.x > 720 else 32
 			draw_string(BODY_FONT, Vector2(text_left, size.y * 0.78 + lift), subcaption, HORIZONTAL_ALIGNMENT_LEFT, size.x - text_left - 34.0, small_size, ink)
@@ -91,7 +101,7 @@ func _draw_pause_action(hovered: bool) -> void:
 	var tint: Color = cloth.lightened(0.12) if hovered else cloth
 	draw_texture_rect(ICON_PATCH, Rect2(patch_position, Vector2.ONE * patch_size), false, tint)
 	_draw_icon(patch_position + Vector2.ONE * patch_size * 0.5, patch_size * 0.23, ink)
-	var font_size: int = 32 if caption.length() > 8 else (46 if size.x > 260.0 else 42)
+	var font_size: int = caption_size if caption_size > 0 else (32 if caption.length() > 8 else (46 if size.x > 260.0 else 42))
 	draw_string(MENU_FONT, Vector2(0, size.y - 8.0 + lift), caption, HORIZONTAL_ALIGNMENT_CENTER, size.x, font_size, ink)
 
 
@@ -134,14 +144,24 @@ func _draw_plate(lift: float, tint: Color) -> void:
 func _draw_icon(center: Vector2, radius: float, color: Color) -> void:
 	var p: Vector2 = center
 	var r: float = radius
-	var icon_index: int = ["play", "home", "help", "settings", "pause", "restart", "levels", "back", "next", "sound", "mute", "fullscreen"].find(glyph)
+	var shown: String = glyph
+	var extra_index: int = EXTRA_GLYPHS.find(glyph)
+	if extra_index >= 0:
+		if ResourceLoader.exists(EXTRA_ICONS):
+			var sheet: Texture2D = load(EXTRA_ICONS) as Texture2D
+			var extra_cell: Vector2 = Vector2(float(sheet.get_width()) / 4.0, float(sheet.get_height()) / 3.0)
+			var extra_source: Rect2 = Rect2(Vector2(float(extra_index % 4) * extra_cell.x, float(extra_index / 4) * extra_cell.y), extra_cell)
+			draw_texture_rect_region(sheet, Rect2(p - Vector2.ONE * r * 1.325, Vector2.ONE * r * 2.65), extra_source)
+			return
+		shown = STAND_INS[glyph]
+	var icon_index: int = ["play", "home", "help", "settings", "pause", "restart", "levels", "back", "next", "sound", "mute", "fullscreen"].find(shown)
 	if icon_index >= 0:
 		var cell: Vector2 = Vector2(float(ICONS.get_width()) / 4.0, float(ICONS.get_height()) / 3.0)
 		var source: Rect2 = Rect2(Vector2(float(icon_index % 4) * cell.x, float(icon_index / 4) * cell.y), cell)
 		var extent: Vector2 = Vector2.ONE * r * 2.65
 		draw_texture_rect_region(ICONS, Rect2(p - extent * 0.5, extent), source)
 		return
-	var world_index: int = ["move", "jump", "crouch", "shift", "seam", "water", "dunes", "forest", "night", "rain", "frost", "knot"].find(glyph)
+	var world_index: int = ["move", "jump", "crouch", "shift", "seam", "water", "dunes", "forest", "night", "rain", "frost", "knot"].find(shown)
 	if world_index >= 0:
 		var world_cell: Vector2 = Vector2(float(WORLD_ICONS.get_width()) / 4.0, float(WORLD_ICONS.get_height()) / 3.0)
 		var world_source: Rect2 = Rect2(Vector2(float(world_index % 4) * world_cell.x, float(world_index / 4) * world_cell.y), world_cell)

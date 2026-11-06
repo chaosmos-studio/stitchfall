@@ -3,7 +3,8 @@ extends Node
 # Plays a room by a short script and saves one frame, for the website, the blog and the press kit.
 # Run with --fixed-fps 60 so every frame steps the game by the same time:
 #   DISPLAY=:0 godot --path . --fixed-fps 60 res://tools/gallery.tscn -- <name> <room> "<frame>:<step>,..."
-# Steps: a route's steps (shift, +action, -action), levels to open the level select, and shot to save the frame.
+# Steps: a route's steps (shift, +action, -action), levels to open the level select, hud=<method>[/<arg>] to
+# open a page, wear=<kind>/<piece> to dress the runner, and shot to save the frame.
 # The PNG lands in user://gallery/<name>.png.
 
 func _ready() -> void:
@@ -29,6 +30,18 @@ func _ready() -> void:
 		for step: String in steps.get(frame, PackedStringArray()):
 			if step == "levels":
 				game._on_levels()
+			elif step.begins_with("hud="):
+				# hud=<method>/<argument>/..., to open a page for its picture. Whole-number arguments pass as ints.
+				var call: PackedStringArray = step.substr(4).split("/")
+				var arguments: Array = []
+				for argument: String in call.slice(1):
+					arguments.append(argument.to_int() if argument.is_valid_int() else argument)
+				game.hud.callv(call[0], arguments)
+			elif step.begins_with("wear="):
+				# wear=<kind>/<piece>, to dress the runner for a picture.
+				var piece: PackedStringArray = step.substr(5).split("/")
+				game.progress.wear[piece[0]] = piece[1]
+				game._apply_wardrobe()
 			elif step == "shot":
 				await RenderingServer.frame_post_draw
 				var img: Image = get_viewport().get_texture().get_image()

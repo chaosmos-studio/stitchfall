@@ -80,13 +80,19 @@ var step_streams: Array[AudioStream] = [
 	preload("res://assets/audio/sfx/step_1.wav"),
 	preload("res://assets/audio/sfx/step_2.wav"),
 ]
-var sound_paths: Dictionary = {
-	"shift": "res://assets/audio/sfx/shift.wav",
-	"jump": "res://assets/audio/sfx/jump.wav",
-	"spark": "res://assets/audio/sfx/spark.wav",
-	"hit": "res://assets/audio/sfx/hit.wav",
-	"door": "res://assets/audio/sfx/door.wav",
-}
+var sound_names: PackedStringArray = [
+	"shift", "jump", "spark", "door", "unravel", "sewn", "chapter", "bloom", "thud", "rip", "shing", "zip", "bank", "loose",
+]
+var sounds: Dictionary[String, AudioStream] = {}
+# A few voices, so the unravel's sting and the room's prank can sound at once.
+var voices: Array[AudioStreamPlayer] = []
+var next_voice: int = 0
+var music_tween: Tween
+var trail: StitchfallTrail
+const MUSIC_DB: float = -17.0
+const MUSIC_DUCK_DB: float = -32.0
+const PULL_IN_TIME: float = 0.42
+const CARD_DELAY: float = 0.95
 
 
 func _ready() -> void:
@@ -101,22 +107,33 @@ func _ready() -> void:
 	camera.zoom = default_zoom
 	add_child(camera)
 	camera.make_current()
-	sound = AudioStreamPlayer.new()
-	add_child(sound)
+	for name: String in sound_names:
+		sounds[name] = load("res://assets/audio/sfx/%s.wav" % name) as AudioStream
+	for index: int in range(4):
+		var voice: AudioStreamPlayer = AudioStreamPlayer.new()
+		add_child(voice)
+		voices.append(voice)
+	sound = voices[0]
 	step_sound = AudioStreamPlayer.new()
 	add_child(step_sound)
 	music = AudioStreamPlayer.new()
 	music.stream = MUSIC_STREAM
-	music.volume_db = -17.0
+	music.volume_db = MUSIC_DB
 	add_child(music)
 	if DisplayServer.get_name() != "headless":
 		music.play()
 	progress.load_saved()
+	audio_enabled = audio_enabled and progress.sound
+	music.stream_paused = not progress.music
 	hud = HUD_SCRIPT.new() as StitchfallHud
 	hud.progress = progress
 	add_child(hud)
 	hud.next_pressed.connect(_on_next)
 	hud.levels_pressed.connect(_on_levels)
+	hud.music_toggled.connect(_on_music_toggled)
+	hud.wardrobe_changed.connect(_apply_wardrobe)
+	hud.progress_reset.connect(_on_progress_reset)
+	hud.chapter_done.connect(_on_begin)
 	hud.begin_pressed.connect(_on_begin)
 	hud.pause_pressed.connect(_on_pause)
 	hud.restart_pressed.connect(_restart)
@@ -150,7 +167,8 @@ func _process(delta: float) -> void:
 
 
 func _shake(amount: float) -> void:
-	shake = maxf(shake, amount)
+	if progress.shake:
+		shake = maxf(shake, amount)
 
 
 func _camera_target() -> Vector2:
@@ -186,6 +204,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			if not DisplayServer.is_touchscreen_available() and Time.get_ticks_msec() - last_touch_msec > 2000 and Time.get_ticks_msec() - last_start_msec > 150:
 				_shift(1)
 		return
+	if not playing and hud.screen == "chapter" and event.is_pressed() and not event.is_echo():
+		hud.skip_chapter()
+		return
 	if not playing and hud.screen == "clear" and event is InputEventKey and event.pressed and not event.echo:
 		if event.physical_keycode in [KEY_ENTER, KEY_SPACE]:
 			_on_next()
@@ -197,8 +218,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif not playing and event.is_action_pressed("pause"):
 		if hud.screen == "pause":
 			_on_begin()
-		elif hud.screen in ["levels", "help", "about", "settings"]:
+		elif hud.screen in ["levels", "help", "settings", "wardrobe"]:
 			hud.show_home()
+		elif hud.screen in ["about", "credits", "stats"]:
+			hud.show_settings()
 	elif playing and event.is_action_pressed("shift_gravity"):
 		_shift(1)
 	elif playing and event.is_action_pressed("retry"):
@@ -281,7 +304,7 @@ func _physics_process(delta: float) -> void:
 		exit_position = flee[exit_flees]
 		exit_flees += 1
 		world.exit_position = exit_position
-		_play_sound("door")
+		_play_sound("zip")
 		_shake(SHAKE_PRANK)
 		print("STITCHFALL_FLEE ", level_index, " ", exit_flees)
 
@@ -352,7 +375,7 @@ func _load_level(index: int) -> void:
 		ledge.configure(data)
 		room.add_child(ledge)
 		ledge.active = playing
-		ledge.gave_way.connect(_shake.bind(SHAKE_LAND))
+		ledge.gave_way.connect(_on_patch_gave_way)
 		fray_ledges.append(ledge)
 	sentries.clear()
 	for sentry_data: Dictionary in level["sentries"]:
@@ -407,7 +430,11 @@ func _load_level(index: int) -> void:
 		cargo = null
 	pilot = PILOT_SCRIPT.new() as StitchfallCourier
 	pilot.position = level["start"]
+	pilot.runner = progress.wear["runner"]
 	room.add_child(pilot)
+	trail = StitchfallTrail.new()
+	room.add_child(trail)
+	trail.configure(pilot, StitchfallLooks.find(progress.wear["trail"]))
 	pilot.set_environment(level["environment"], level["environment_zone"])
 	pilot.control_enabled = playing
 	pilot.jumped.connect(_on_pilot_jumped)
@@ -421,6 +448,7 @@ func _load_level(index: int) -> void:
 	world.flower_lit = flower_lit.duplicate()
 	world.flower_bloom.clear()
 	world.confetti.clear()
+	_apply_wardrobe()
 	world.door_open = false
 	world.door_progress = 0.0
 	world.spark_bursts.clear()
@@ -431,6 +459,8 @@ func _load_level(index: int) -> void:
 	world.exit_position = exit_position
 	world.popup_raised = popup_raised.duplicate()
 	hud.set_room_intro(level["name"], level["hint"])
+	hud.set_room_label(StitchfallLevels.chapter_name(index / StitchfallLevels.CHAPTER_ROOMS), index % StitchfallLevels.CHAPTER_ROOMS + 1, level["name"])
+	hud.set_unravels(0)
 	_update_hud()
 	print("STITCHFALL_ROOM ", index)
 
@@ -492,11 +522,16 @@ func _on_hazard_body(body: Node2D) -> void:
 		pilot.visible = false
 		deaths += 1
 		room_deaths += 1
-		_play_sound("hit")
+		progress.unravels += 1
+		_play_sound("unravel")
+		_duck_music(0.9)
 		_shake(SHAKE_HIT)
+		hud.flash()
+		hud.set_unravels(room_deaths)
+		trail.clear()
 		unravel = UNRAVEL_SCRIPT.new() as StitchfallUnravel
 		room.add_child(unravel)
-		unravel.scatter(pilot)
+		unravel.scatter(pilot, StitchfallLooks.find(progress.wear["unravel"]))
 		_respawn_after_unravel(pilot, room)
 
 
@@ -520,6 +555,7 @@ func _on_popup_tripped(body: Node2D, index: int) -> void:
 	popup_areas[index].monitoring = true
 	world.popup_raised = popup_raised.duplicate()
 	_shake(SHAKE_PRANK)
+	_play_sound("shing")
 	print("STITCHFALL_POPUP ", level_index, " ", index)
 
 
@@ -548,7 +584,8 @@ func _on_flower_body(body: Node2D, index: int) -> void:
 		newly_banked = newly_banked or (collected[button] and not banked[button])
 		banked[button] = banked[button] or collected[button]
 	if newly_banked:
-		_play_sound("spark")
+		_play_sound("bank")
+		hud.bank_buttons()
 		_update_hud()
 	if flower_lit[index]:
 		return
@@ -556,13 +593,18 @@ func _on_flower_body(body: Node2D, index: int) -> void:
 	checkpoint_active = true
 	world.flower_lit = flower_lit.duplicate()
 	world.bloom_flower(index)
-	_play_sound("spark")
+	_play_sound("bloom")
 	print("STITCHFALL_BEACON ", level_index, " ", index)
+
+
+func _on_patch_gave_way() -> void:
+	_shake(SHAKE_LAND)
+	_play_sound("rip")
 
 
 func _on_pin_landed() -> void:
 	_shake(SHAKE_LAND)
-	_play_step(-6.0)
+	_play_sound("thud", -4.0, randf_range(0.9, 1.1))
 
 
 func _respawn() -> void:
@@ -590,11 +632,18 @@ func _respawn() -> void:
 	for pin: StitchfallPin in pins:
 		pin.reset(gravity_direction)
 	# Loose buttons shake back to where they were found.
+	var lost: bool = false
 	for button: int in range(collected.size()):
 		if collected[button] and not banked[button]:
 			collected[button] = false
+			lost = true
 			spark_areas[button].set_deferred("monitoring", true)
 			world.collect_spark(level["shards"][button])
+	if lost:
+		_play_sound("loose")
+	# The runner sews itself back together with a little pop.
+	pilot.sprite.scale = Vector2.ONE * 0.18
+	create_tween().tween_property(pilot.sprite, "scale", Vector2.ONE * 0.32, 0.32).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	world.collected = collected.duplicate()
 	world.door_open = not collected.has(false) and (level["pad"] == Vector2.ZERO or pad_armed)
 	gate_remaining = 0.0
@@ -631,7 +680,8 @@ func _on_spark_body(body: Node2D, index: int, area: Area2D) -> void:
 	world.collected = collected.duplicate()
 	world.collect_spark(level["shards"][index])
 	area.set_deferred("monitoring", false)
-	_play_sound("spark")
+	progress.buttons += 1
+	_play_sound("spark", 0.0, 1.0 + float(collected.count(true) - 1) * 0.12)
 	_update_door()
 	_update_hud()
 
@@ -681,6 +731,7 @@ func _shift(step: int) -> void:
 	gravity_direction = gravity_direction.rotated(step * PI * 0.5).round()
 	phase = 1 - phase
 	shifts += 1
+	progress.turns += 1
 	pilot.set_gravity_direction(gravity_direction)
 	if is_instance_valid(cargo):
 		cargo.gravity_direction = gravity_direction
@@ -728,15 +779,52 @@ func _set_running(running: bool) -> void:
 
 # The zipper takes the runner: the room is sewn, scored and saved, and the clear card waits for Next.
 func _clear_room() -> void:
-	_play_sound("door")
 	_set_running(false)
 	cleared = true
-	world.celebrate(exit_position)
-	_shake(SHAKE_PRANK)
+	progress.play_time += room_time
 	var par: float = StitchfallLevels.par(level)
 	last_result = progress.record(level_index, room_time, room_deaths, par)
 	print("STITCHFALL_CLEAR ", level_index, " ", last_result["stars"])
-	hud.show_clear(level_index, level["name"], room_time, par, room_deaths, last_result)
+	_play_sound("zip")
+	_duck_music(2.4)
+	pilot.set_physics_process(false)
+	pilot.velocity = Vector2.ZERO
+	trail.clear()
+	var pull: Tween = create_tween().set_parallel(true)
+	pull.tween_property(pilot, "position", exit_position, PULL_IN_TIME).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	pull.tween_property(pilot.sprite, "scale", Vector2.ONE * 0.03, PULL_IN_TIME).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
+	pull.tween_property(pilot.sprite, "rotation", pilot.sprite.rotation + TAU, PULL_IN_TIME)
+	_sew_shut(level_index, par)
+
+
+# Once the runner is in, the zipper closes behind them, the room throws up its confetti, and the card follows.
+func _sew_shut(index: int, par: float) -> void:
+	await get_tree().create_timer(PULL_IN_TIME).timeout
+	if not cleared or level_index != index:
+		return
+	world.door_open = false
+	world.celebrate(exit_position)
+	_shake(SHAKE_PRANK)
+	var punch: Tween = create_tween()
+	punch.tween_property(camera, "zoom", camera.zoom * 1.06, 0.12).set_ease(Tween.EASE_OUT)
+	punch.tween_property(camera, "zoom", camera.zoom, 0.45).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+	await get_tree().create_timer(CARD_DELAY - PULL_IN_TIME).timeout
+	if not cleared or level_index != index:
+		return
+	var chapter: int = index / StitchfallLevels.CHAPTER_ROOMS
+	var chapter_end: bool = (index + 1) % StitchfallLevels.CHAPTER_ROOMS == 0
+	_play_sound("chapter" if chapter_end else "sewn")
+	var card: Dictionary = last_result.duplicate()
+	card.merge({
+		"name": level["name"],
+		"time": room_time,
+		"par": par,
+		"unravels": room_deaths,
+		"chapter_end": chapter_end,
+		"chapter_name": StitchfallLevels.chapter_name(chapter),
+		"chapter_stars": progress.chapter_stars(chapter * StitchfallLevels.CHAPTER_ROOMS, StitchfallLevels.CHAPTER_ROOMS),
+	})
+	hud.show_clear(card)
 
 
 func _on_next() -> void:
@@ -746,6 +834,10 @@ func _on_next() -> void:
 		hud.show_finish(_format_time(run_time), shifts, deaths)
 		return
 	_load_level(level_index + 1)
+	if level_index % StitchfallLevels.CHAPTER_ROOMS == 0:
+		var chapter: int = level_index / StitchfallLevels.CHAPTER_ROOMS
+		hud.show_chapter(chapter, StitchfallLevels.chapter_name(chapter), StitchfallLevels.chapter_line(chapter))
+		return
 	_on_begin()
 
 
@@ -769,6 +861,7 @@ func _on_pause() -> void:
 	pilot.touch_axis = 0.0
 	pilot.set_touch_crouch(false)
 	_set_running(false)
+	progress.save()
 	hud.show_pause()
 
 
@@ -777,6 +870,7 @@ func _on_home() -> void:
 		pilot.touch_axis = 0.0
 		pilot.set_touch_crouch(false)
 	_set_running(false)
+	progress.save()
 	touch_starts.clear()
 	mobile_crouched = false
 	hud.show_home()
@@ -793,10 +887,39 @@ func _on_level_selected(index: int) -> void:
 
 func _on_sound_toggled(enabled: bool) -> void:
 	audio_enabled = enabled
-	music.stream_paused = not enabled
+	progress.sound = enabled
+	progress.save()
 	if not enabled:
-		sound.stop()
+		for voice: AudioStreamPlayer in voices:
+			voice.stop()
 		step_sound.stop()
+
+
+func _on_music_toggled(enabled: bool) -> void:
+	progress.music = enabled
+	progress.save()
+	music.stream_paused = not enabled
+
+
+func _on_progress_reset() -> void:
+	progress.reset()
+	_apply_wardrobe()
+	_load_level(0)
+
+
+# Dresses the room in what the wardrobe has on: the runner, its trail, the buttons and the fabric.
+func _apply_wardrobe() -> void:
+	world.button_colour = StitchfallLooks.find(progress.wear["button"]).get("colour", Color("e4c77f"))
+	var fabric: Dictionary = StitchfallLooks.find(progress.wear["fabric"])
+	world.fabric_backdrop = -1 if progress.wear["fabric"] == StitchfallLooks.DEFAULTS["fabric"] else int(fabric.get("backdrop", 0))
+	world.queue_redraw()
+	if is_instance_valid(pilot) and pilot.runner != progress.wear["runner"]:
+		pilot.runner = progress.wear["runner"]
+		pilot.sprite.sprite_frames = pilot._build_frames()
+	if is_instance_valid(trail):
+		trail.configure(pilot, StitchfallLooks.find(progress.wear["trail"]))
+		trail.clear()
+	_update_hud()
 
 
 func _on_begin() -> void:
@@ -815,15 +938,25 @@ func _on_begin() -> void:
 	print("STITCHFALL_START ", level_index)
 
 
-func _play_sound(name: String) -> void:
-	if not audio_enabled:
+func _play_sound(name: String, volume_db: float = 0.0, pitch: float = 1.0) -> void:
+	if not audio_enabled or not sounds.has(name):
 		return
-	var stream: AudioStream = load(sound_paths[name]) as AudioStream
-	if stream == null:
-		return
-	sound.stop()
-	sound.stream = stream
-	sound.play()
+	var voice: AudioStreamPlayer = voices[next_voice]
+	next_voice = (next_voice + 1) % voices.size()
+	voice.stream = sounds[name]
+	voice.volume_db = volume_db
+	voice.pitch_scale = pitch
+	voice.play()
+
+
+# Dips the music under a sting, then brings it back.
+func _duck_music(hold: float) -> void:
+	if music_tween and music_tween.is_running():
+		music_tween.kill()
+	music_tween = create_tween()
+	music_tween.tween_property(music, "volume_db", MUSIC_DUCK_DB, 0.08)
+	music_tween.tween_interval(hold)
+	music_tween.tween_property(music, "volume_db", MUSIC_DB, 0.9)
 
 
 func _on_pilot_jumped() -> void:
@@ -849,4 +982,4 @@ func _update_hud() -> void:
 	if level.is_empty():
 		return
 	hud.meter.banked = banked.count(true)
-	hud.set_status(level_index, level["name"], collected.count(true), collected.size(), level["pad"] != Vector2.ZERO, pad_armed, _format_time(run_time), gravity_direction, level["backdrop"])
+	hud.set_status(level_index, level["name"], collected.count(true), collected.size(), level["pad"] != Vector2.ZERO, pad_armed, _format_time(run_time), gravity_direction, world._backdrop())

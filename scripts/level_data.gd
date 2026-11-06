@@ -51,6 +51,18 @@ static func chapter_name(chapter: int) -> String:
 	return "%s %d" % [CLASSIC_NAME, chapter - CHAPTERS.size() + 1]
 
 
+# The line under a chapter's name on its title card: a mood, never an instruction.
+static func chapter_line(chapter: int) -> String:
+	match chapter:
+		0:
+			return "The same room, never the same twice."
+		1:
+			return "Whatever you turn, falls with you."
+		2:
+			return "Not everything sewn is sewn."
+	return "The first rooms ever stitched."
+
+
 static func get_level(index: int) -> Dictionary:
 	var room: Dictionary
 	match index / CHAPTER_ROOMS if index < SCREEN_ROOMS else -1:

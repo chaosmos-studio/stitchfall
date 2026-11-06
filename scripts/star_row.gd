@@ -33,6 +33,10 @@ func _draw() -> void:
 		# An earned star overshoots and settles. A missed one just fades in, empty.
 		var grow: float = 1.0 + sin(t * PI) * 0.35 if earned[index] else 1.0
 		var shown: bool = t > 0.0
+		if earned[index] and t > 0.0 and t < 1.0:
+			for ray: int in range(10):
+				var direction: Vector2 = Vector2.from_angle(float(ray) * TAU / 10.0 + 0.3)
+				draw_line(center + direction * radius * (0.9 + t * 0.6), center + direction * radius * (1.1 + t * 0.9), Color(GOLD, 1.0 - t), 4.0, true)
 		draw_star(self, center, radius * (grow if shown else 1.0), earned[index] and shown, GOLD)
 		draw_string(FONT, Vector2(gap * float(index), center.y + radius + 52.0), names[index], HORIZONTAL_ALIGNMENT_CENTER, gap, 30, Color(INK, 1.0 if earned[index] and shown else 0.45))
 

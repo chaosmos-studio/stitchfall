@@ -82,7 +82,18 @@ A chapter is built, proved by its routes, then played on a phone before the next
 - **The clear card.** The stars pop in one by one with a chime, then the time against par, a line about how many times you unravelled, and a call-out for a new best. Next, Replay and Levels.
 - **Buttons are loose until a flower banks them.** An unravel shakes every loose button back to where it was found. A room without a flower is all or nothing.
 - **Saved progress** (`scripts/progress.gd`, `user://progress.cfg`): each room's best stars and time. A room opens once the one before it is sewn, Play continues from the first room not yet sewn, and Levels shows one chapter a page with its stars.
-- **Drama.** The camera shakes on a hit, on every prank (needles popping up, the zipper running, a patch giving way) and when a pin lands, and the zipper throws up thread snips and petals when it takes you.
+- **The unravel.** A thread snaps, the runner comes apart in the wardrobe's unravel style, a felt horn sighs down three notes, the music dips, the screen flashes, and the room's unravel count ticks up beside the buttons, the way Level Devil keeps its death count in sight. Loose buttons fly home with their own falling plucks, and the runner pops back together.
+- **The clear.** The zipper pulls the runner in with a spin and zips shut behind them, the room throws up thread and petals with a camera punch, then the card slides up to a plucked fanfare. The last room of a chapter gets a bigger fanfare and CHAPTER SEWN! with the chapter's stars. The card names anything the new stars opened in the wardrobe.
+- **Chapters.** A chapter opens on a title card with its number, name and a line, and the room's chapter and name stay small at the top of the screen.
+- **Every prank has a sound.** Needles shing up, the zipper's teeth rattle as it runs, a patch rips, a pin thuds, a flower blooms, and banked buttons pluck twice.
+- The camera shake can be turned off in Settings.
+
+## The Wardrobe and the shop
+
+The Wardrobe (`scripts/looks.gd`, `scripts/shop.gd`) has five kinds of piece: runners, trails, unravels, buttons and fabrics.
+The browser build cannot take payments, so there every piece is free.
+On Android, trails, unravels and buttons open with stars, and runners and fabrics come with the Wardrobe pack through Google Play, with a tip product beside it.
+A runner appears once its art is in `assets/art/runners/<id>/` (`run.png`, `actions.png`, `pose_0.png` to `pose_3.png`, and an optional `dance.png`), so a new runner needs no code.
 
 ## Art
 

@@ -7,6 +7,8 @@ var banked: int = 0
 var total: int = 3
 var biome: int = 0
 var age: float = 0.0
+# Set to 1 when a flower banks buttons, and dies away: the sewn buttons swell for a moment.
+var pulse: float = 0.0
 
 
 func _ready() -> void:
@@ -16,6 +18,7 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	age += delta
+	pulse = move_toward(pulse, 0.0, delta * 3.0)
 	queue_redraw()
 
 
@@ -65,6 +68,8 @@ func _draw() -> void:
 			center += Vector2(sin(age * 9.0 + index), cos(age * 7.0 + index * 2.0)) * 1.6
 		var button_color: Color = Color("e7c785") if held else colors[1].lightened(0.38)
 		var shimmer: float = sin(age * 2.8 + index * 0.7) * 0.7 if held else 0.0
+		if sewn:
+			shimmer += sin(pulse * PI) * 5.0
 		draw_circle(center + Vector2(2, 3), 17.0, Color("3e3533", 0.28))
 		draw_circle(center, 16.0 + shimmer, Color("493b36"))
 		draw_circle(center, 13.0 + shimmer, button_color)

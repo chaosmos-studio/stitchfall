@@ -79,6 +79,8 @@ func _initialize() -> void:
 func _run() -> void:
 	StitchfallProgress.path = "user://test_progress.cfg"
 	_test_progress()
+	_test_wardrobe()
+	await _test_moments()
 	_test_input_map_is_wired()
 	_test_orientation_is_an_int()
 	await _test_movement_feel()
@@ -116,6 +118,85 @@ func _test_progress() -> void:
 	_check("a sewn room opens the next", reloaded.is_open(1) and not reloaded.is_open(2))
 	_check("Play continues from the first room not yet sewn", reloaded.continue_room(StitchfallLevels.count()) == 1)
 	progress.reset()
+
+
+func _test_wardrobe() -> void:
+	var gold: Dictionary = StitchfallLooks.find("trail_gold")
+	var fabric: Dictionary = StitchfallLooks.find("fabric_night")
+	_check("the browser opens every piece", StitchfallLooks.is_open(gold, 0, false, false) and StitchfallLooks.is_open(fabric, 0, false, false))
+	_check("on Android a star piece waits for its stars", not StitchfallLooks.is_open(gold, 14, false, true) and StitchfallLooks.is_open(gold, 15, false, true))
+	_check("on Android a paid piece waits for the Wardrobe pack", not StitchfallLooks.is_open(fabric, 999, false, true) and StitchfallLooks.is_open(fabric, 0, true, true))
+	var opened: Array[Dictionary] = StitchfallLooks.opened_between(14, 18)
+	var opened_ids: Array[String] = []
+	for item: Dictionary in opened:
+		opened_ids.append(item["id"])
+	_check("new stars call out exactly the pieces they open", opened_ids == ["trail_gold", "unravel_petals"])
+	for kind: String in StitchfallLooks.KINDS:
+		_check("the default %s is free and open" % kind, StitchfallLooks.is_open(StitchfallLooks.find(StitchfallLooks.DEFAULTS[kind]), 0, false, true))
+	_check("the Seam Runner's art is there", StitchfallLooks.has_art("seam"))
+	for kind: String in StitchfallLooks.KINDS:
+		_check("the %s tab fits on one page" % kind, StitchfallLooks.items(kind).size() <= 8)
+	var progress: StitchfallProgress = StitchfallProgress.new()
+	progress.reset()
+	progress.wear["trail"] = "trail_gold"
+	progress.music = false
+	progress.unravels = 7
+	StitchfallShop.grant(progress, StitchfallShop.WARDROBE_ID, true)
+	var reloaded: StitchfallProgress = StitchfallProgress.new()
+	reloaded.load_saved()
+	_check("what is worn, settings, stats and purchases survive a reload", reloaded.wear["trail"] == "trail_gold" and not reloaded.music and reloaded.unravels == 7 and StitchfallShop.has_pack(reloaded))
+	reloaded.reset()
+	_check("a reset clears play but keeps purchases", reloaded.unravels == 0 and reloaded.wear["trail"] == "trail_none" and StitchfallShop.has_pack(reloaded))
+	StitchfallShop.grant(reloaded, StitchfallShop.WARDROBE_ID, false)
+	var was_on_play: bool = StitchfallShop.on_play
+	StitchfallShop.on_play = true
+	_check("without Google Play, buying says so instead of failing", not StitchfallShop.buy(StitchfallShop.WARDROBE_ID).is_empty())
+	StitchfallShop.on_play = was_on_play
+
+
+# The moments around play: an unravel counts and shakes the loose buttons home, a clear zips the runner away
+# and brings the card, and a new chapter opens on its title card.
+func _test_moments() -> void:
+	var game: Node2D = load("res://scenes/game/game.tscn").instantiate() as Node2D
+	game.audio_enabled = false
+	root.add_child(game)
+	await process_frame
+	game.progress.reset()
+	game._load_level(4)
+	game._on_begin()
+	game.pilot.position = game.level["shards"][0]
+	game.pilot.reset_physics_interpolation()
+	await physics_frame
+	await physics_frame
+	game.pilot.position = game.level["spikes"][0]["rect"].get_center()
+	game.pilot.reset_physics_interpolation()
+	await physics_frame
+	await physics_frame
+	_check("an unravel is counted for the room, for life, and on screen", game.room_deaths == 1 and game.progress.unravels == 1 and game.hud.unravel_label.text == "x 1")
+	for frame: int in range(50):
+		await physics_frame
+	_check("an unravel without a flower sends the button home", not game.collected[0])
+	for index: int in range(game.level["shards"].size()):
+		game.collected[index] = true
+	game._update_door()
+	# This room's zipper runs once, so follow it until it is caught.
+	for attempt: int in range(3):
+		if game.cleared:
+			break
+		game.pilot.position = game.exit_position
+		game.pilot.reset_physics_interpolation()
+		await physics_frame
+		await physics_frame
+	_check("the zipper takes the runner and the room is saved without the Unbroken star", game.cleared and game.progress.stars(4) == 2)
+	await create_timer(1.2).timeout
+	_check("the clear card follows the zipper closing", game.hud.screen == "clear" and not game.world.door_open)
+	_check("the last room of a chapter says so", game.hud.clear_heading.text == "CHAPTER SEWN!")
+	game._on_next()
+	_check("a new chapter opens on its title card", game.level_index == 5 and game.hud.screen == "chapter" and not game.playing)
+	game.hud.skip_chapter()
+	_check("the title card gives way to the room", game.playing and game.hud.screen == "game")
+	game.queue_free()
+	await process_frame
 
 
 func _check(name: String, cond: bool) -> void:

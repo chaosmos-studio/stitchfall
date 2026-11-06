@@ -2,7 +2,8 @@
 
 The textile backdrops, Seam Runner sheets and poses, linen button artwork, and embroidered icon sheets were made for this game with the help of AI tools.
 The platforms, needle hazards, zipper exits, needle moths, weighted patches, button meter, interface layout, and needle cursor were authored for this project.
-The sound effects were synthesized for this project with `tools/make_sound.py`.
+The sound effects, including the unravel sting, the clear and chapter fanfares and the star chimes, were synthesized for this project with `tools/make_sound.py`.
+The wardrobe's trails, unravel styles, button colours, the thread confetti and the star burst are drawn in code for this project.
 The original menu music was composed and synthesized for this project with `tools/make_music.py`.
 
 Baloo 2 is by Ek Type and is distributed under the SIL Open Font License 1.1, included in `assets/fonts/Baloo2-OFL.txt`.

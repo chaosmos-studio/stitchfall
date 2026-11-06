@@ -12,9 +12,10 @@ const JUMP_SPEED: float = 590.0
 const GRAVITY: float = 1550.0
 const COYOTE_TIME: float = 0.11
 const JUMP_BUFFER: float = 0.13
-const RUN_SHEET: Texture2D = preload("res://assets/art/seam_runner_run.png")
-const ACTION_SHEET: Texture2D = preload("res://assets/art/seam_runner_actions.png")
 const CLEANUP_SHADER: Shader = preload("res://shaders/runner_cleanup.gdshader")
+
+# Which wardrobe runner to draw, set before the runner enters the room.
+var runner: String = "seam"
 
 var gravity_direction: Vector2 = Vector2.DOWN
 var environment: String = ""
@@ -79,22 +80,25 @@ func _build_frames() -> SpriteFrames:
 	frames.set_animation_speed("fall", 9.0)
 	frames.set_animation_speed("land", 13.0)
 	frames.set_animation_speed("shift", 9.0)
+	var art: Dictionary = StitchfallLooks.runner_art(runner if StitchfallLooks.has_art(runner) else "seam")
+	var run_sheet: Texture2D = load(art["run"]) as Texture2D
+	var action_sheet: Texture2D = load(art["actions"]) as Texture2D
 	for index: int in range(12):
-		frames.add_frame("run", _frame(RUN_SHEET, index))
+		frames.add_frame("run", _frame(run_sheet, index))
 	for index: int in [0, 1]:
-		frames.add_frame("idle", _frame(ACTION_SHEET, index))
+		frames.add_frame("idle", _frame(action_sheet,index))
 	for index: int in [2, 3]:
-		frames.add_frame("crouch", _frame(ACTION_SHEET, index))
+		frames.add_frame("crouch", _frame(action_sheet,index))
 	for index: int in [4, 5]:
-		frames.add_frame("takeoff", _frame(ACTION_SHEET, index))
+		frames.add_frame("takeoff", _frame(action_sheet,index))
 	for index: int in [6, 7]:
-		frames.add_frame("rise", _frame(ACTION_SHEET, index))
-	frames.add_frame("apex", _frame(ACTION_SHEET, 7))
+		frames.add_frame("rise", _frame(action_sheet,index))
+	frames.add_frame("apex", _frame(action_sheet,7))
 	for index: int in [8, 9]:
-		frames.add_frame("fall", _frame(ACTION_SHEET, index))
-	frames.add_frame("land", _frame(ACTION_SHEET, 10))
+		frames.add_frame("fall", _frame(action_sheet,index))
+	frames.add_frame("land", _frame(action_sheet,10))
 	for index: int in [11, 7]:
-		frames.add_frame("shift", _frame(ACTION_SHEET, index))
+		frames.add_frame("shift", _frame(action_sheet,index))
 	return frames
 
 
