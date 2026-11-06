@@ -1,4 +1,4 @@
-class_name PalewheelHud
+class_name StitchfallHud
 extends CanvasLayer
 
 signal begin_pressed
@@ -285,16 +285,16 @@ func _build_levels() -> void:
 
 
 func _set_level_page(value: int) -> void:
-	level_page_index = clampi(value, 0, floori(float(PalewheelLevels.count() - 1) / 8.0))
+	level_page_index = clampi(value, 0, floori(float(StitchfallLevels.count() - 1) / 8.0))
 	level_previous.visible = level_page_index > 0
-	level_next.visible = (level_page_index + 1) * 8 < PalewheelLevels.count()
+	level_next.visible = (level_page_index + 1) * 8 < StitchfallLevels.count()
 	for slot: int in range(level_buttons.size()):
 		var index: int = level_page_index * 8 + slot
 		var button: StitchedButton = level_buttons[slot]
-		button.visible = index < PalewheelLevels.count()
+		button.visible = index < StitchfallLevels.count()
 		if not button.visible:
 			continue
-		var data: Dictionary = PalewheelLevels.get_level(index)
+		var data: Dictionary = StitchfallLevels.get_level(index)
 		var biome: int = data["backdrop"]
 		var palette: Array[Color] = _biome_palette(biome)
 		button.caption = "%02d" % [index + 1]
@@ -330,7 +330,7 @@ func _build_help() -> void:
 		title.text = instruction[0]
 		var caption: Label = _label(card, Vector2(24, 107), Vector2(210, 58), 27, ACCENT)
 		caption.text = instruction[1]
-		var gesture: PalewheelGestureGuide = GESTURE_GUIDE.new() as PalewheelGestureGuide
+		var gesture: StitchfallGestureGuide = GESTURE_GUIDE.new() as StitchfallGestureGuide
 		gesture.position = Vector2(240, 12)
 		gesture.size = Vector2(405, 160)
 		gesture.kind = instruction[2]

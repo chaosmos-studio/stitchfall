@@ -32,20 +32,20 @@ var mobile_crouched: bool = false
 var last_touch_msec: int = -1000
 var last_start_msec: int = -1000
 var room: Node2D
-var world: PalewheelWorldView
-var pilot: PalewheelCourier
-var cargo: PalewheelCargo
+var world: StitchfallWorldView
+var pilot: StitchfallCourier
+var cargo: StitchfallCargo
 var bridges: Array[CollisionShape2D] = []
 var timed_gate_shapes: Array[CollisionShape2D] = []
 var gate_remaining: float = 0.0
 var gates_open: bool = false
-var sentries: Array[PalewheelWatcher] = []
-var ferries: Array[PalewheelFerry] = []
-var fray_ledges: Array[PalewheelFrayLedge] = []
-var mechanisms: Array[PalewheelMechanism] = []
-var unravel: PalewheelUnravel
+var sentries: Array[StitchfallWatcher] = []
+var ferries: Array[StitchfallFerry] = []
+var fray_ledges: Array[StitchfallFrayLedge] = []
+var mechanisms: Array[StitchfallMechanism] = []
+var unravel: StitchfallUnravel
 var camera: Camera2D
-var hud: PalewheelHud
+var hud: StitchfallHud
 var sound: AudioStreamPlayer
 var step_sound: AudioStreamPlayer
 var music: AudioStreamPlayer
@@ -68,7 +68,7 @@ func _ready() -> void:
 	if not DisplayServer.is_touchscreen_available():
 		DisplayServer.cursor_set_custom_image(SEWING_CURSOR, DisplayServer.CURSOR_ARROW, Vector2(5, 5))
 		DisplayServer.cursor_set_custom_image(SEWING_CURSOR, DisplayServer.CURSOR_POINTING_HAND, Vector2(5, 5))
-	world = WORLD_SCRIPT.new() as PalewheelWorldView
+	world = WORLD_SCRIPT.new() as StitchfallWorldView
 	add_child(world)
 	camera = Camera2D.new()
 	camera.position = Vector2(960, 540)
@@ -85,7 +85,7 @@ func _ready() -> void:
 	add_child(music)
 	if DisplayServer.get_name() != "headless":
 		music.play()
-	hud = HUD_SCRIPT.new() as PalewheelHud
+	hud = HUD_SCRIPT.new() as StitchfallHud
 	add_child(hud)
 	hud.begin_pressed.connect(_on_begin)
 	hud.pause_pressed.connect(_on_pause)
@@ -97,7 +97,7 @@ func _ready() -> void:
 	if OS.has_feature("web"):
 		var requested_room: Variant = JavaScriptBridge.eval("new URLSearchParams(window.location.search).get('room')")
 		if requested_room != null:
-			initial_room = clampi(str(requested_room).to_int(), 0, PalewheelLevels.count() - 1)
+			initial_room = clampi(str(requested_room).to_int(), 0, StitchfallLevels.count() - 1)
 	_load_level(initial_room)
 	hud.show_home()
 
@@ -235,7 +235,7 @@ func _load_level(index: int) -> void:
 	touch_starts.clear()
 	mobile_crouched = false
 	level_index = index
-	level = PalewheelLevels.get_level(index)
+	level = StitchfallLevels.get_level(index)
 	gravity_direction = Vector2.DOWN
 	phase = 0
 	pad_armed = false
@@ -266,28 +266,28 @@ func _load_level(index: int) -> void:
 		_add_hazard(hazard)
 	fray_ledges.clear()
 	for data: Dictionary in level["fray_ledges"]:
-		var ledge: PalewheelFrayLedge = FRAY_LEDGE_SCRIPT.new() as PalewheelFrayLedge
+		var ledge: StitchfallFrayLedge = FRAY_LEDGE_SCRIPT.new() as StitchfallFrayLedge
 		ledge.configure(data)
 		room.add_child(ledge)
 		ledge.active = playing
 		fray_ledges.append(ledge)
 	sentries.clear()
 	for sentry_data: Dictionary in level["sentries"]:
-		var sentry: PalewheelWatcher = SENTRY_SCRIPT.new() as PalewheelWatcher
+		var sentry: StitchfallWatcher = SENTRY_SCRIPT.new() as StitchfallWatcher
 		sentry.configure(sentry_data)
 		room.add_child(sentry)
 		sentry.body_entered.connect(_on_hazard_body)
 		sentries.append(sentry)
 	ferries.clear()
 	for data: Dictionary in level["ferries"]:
-		var ferry: PalewheelFerry = FERRY_SCRIPT.new() as PalewheelFerry
+		var ferry: StitchfallFerry = FERRY_SCRIPT.new() as StitchfallFerry
 		ferry.configure(data)
 		room.add_child(ferry)
 		ferry.active = playing
 		ferries.append(ferry)
 	mechanisms.clear()
 	for data: Dictionary in level["mechanisms"]:
-		var mechanism: PalewheelMechanism = MECHANISM_SCRIPT.new() as PalewheelMechanism
+		var mechanism: StitchfallMechanism = MECHANISM_SCRIPT.new() as StitchfallMechanism
 		mechanism.configure(data)
 		room.add_child(mechanism)
 		mechanism.active = playing
@@ -304,12 +304,12 @@ func _load_level(index: int) -> void:
 		checkpoint.body_entered.connect(_on_checkpoint_body)
 	if level["pad"] != Vector2.ZERO:
 		_add_pad(level["pad"])
-		cargo = CARGO_SCRIPT.new() as PalewheelCargo
+		cargo = CARGO_SCRIPT.new() as StitchfallCargo
 		cargo.position = level["crate"]
 		room.add_child(cargo)
 	else:
 		cargo = null
-	pilot = PILOT_SCRIPT.new() as PalewheelCourier
+	pilot = PILOT_SCRIPT.new() as StitchfallCourier
 	pilot.position = level["start"]
 	room.add_child(pilot)
 	pilot.set_environment(level["environment"], level["environment_zone"])
@@ -391,13 +391,13 @@ func _on_hazard_body(body: Node2D) -> void:
 		pilot.visible = false
 		deaths += 1
 		_play_sound("hit")
-		unravel = UNRAVEL_SCRIPT.new() as PalewheelUnravel
+		unravel = UNRAVEL_SCRIPT.new() as StitchfallUnravel
 		room.add_child(unravel)
 		unravel.scatter(pilot)
 		_respawn_after_unravel(pilot, room)
 
 
-func _respawn_after_unravel(hit_pilot: PalewheelCourier, hit_room: Node2D) -> void:
+func _respawn_after_unravel(hit_pilot: StitchfallCourier, hit_room: Node2D) -> void:
 	await get_tree().create_timer(0.68).timeout
 	if pilot != hit_pilot or room != hit_room:
 		return
@@ -455,11 +455,11 @@ func _respawn() -> void:
 	world.gravity_direction = gravity_direction
 	world.shift_origin = respawn_position
 	world.shift_age = 0.0
-	for sentry: PalewheelWatcher in sentries:
+	for sentry: StitchfallWatcher in sentries:
 		sentry.freeze_for(0.7)
-	for mechanism: PalewheelMechanism in mechanisms:
+	for mechanism: StitchfallMechanism in mechanisms:
 		mechanism.reset()
-	for ledge: PalewheelFrayLedge in fray_ledges:
+	for ledge: StitchfallFrayLedge in fray_ledges:
 		ledge.reset()
 	respawning = false
 	_update_hud()
@@ -530,9 +530,9 @@ func _shift(step: int) -> void:
 	if is_instance_valid(cargo):
 		cargo.gravity_direction = gravity_direction
 		cargo.sleeping = false
-	for sentry: PalewheelWatcher in sentries:
+	for sentry: StitchfallWatcher in sentries:
 		sentry.freeze_for(0.55)
-	for mechanism: PalewheelMechanism in mechanisms:
+	for mechanism: StitchfallMechanism in mechanisms:
 		mechanism.arm()
 	for bridge: CollisionShape2D in bridges:
 		bridge.set_deferred("disabled", phase == 0)
@@ -556,9 +556,9 @@ func _advance() -> void:
 	_play_sound("door")
 	playing = false
 	pilot.control_enabled = false
-	for sentry: PalewheelWatcher in sentries:
+	for sentry: StitchfallWatcher in sentries:
 		sentry.active = false
-	if level_index + 1 >= PalewheelLevels.count():
+	if level_index + 1 >= StitchfallLevels.count():
 		finished = true
 		print("STITCHFALL_WIN")
 		hud.show_finish(_format_time(run_time), shifts, deaths)
@@ -566,13 +566,13 @@ func _advance() -> void:
 	_load_level(level_index + 1)
 	playing = true
 	pilot.control_enabled = true
-	for sentry: PalewheelWatcher in sentries:
+	for sentry: StitchfallWatcher in sentries:
 		sentry.active = true
-	for ferry: PalewheelFerry in ferries:
+	for ferry: StitchfallFerry in ferries:
 		ferry.active = true
-	for mechanism: PalewheelMechanism in mechanisms:
+	for mechanism: StitchfallMechanism in mechanisms:
 		mechanism.active = true
-	for ledge: PalewheelFrayLedge in fray_ledges:
+	for ledge: StitchfallFrayLedge in fray_ledges:
 		ledge.active = true
 
 
@@ -580,13 +580,13 @@ func _restart() -> void:
 	_load_level(level_index)
 	playing = true
 	pilot.control_enabled = true
-	for sentry: PalewheelWatcher in sentries:
+	for sentry: StitchfallWatcher in sentries:
 		sentry.active = true
-	for ferry: PalewheelFerry in ferries:
+	for ferry: StitchfallFerry in ferries:
 		ferry.active = true
-	for mechanism: PalewheelMechanism in mechanisms:
+	for mechanism: StitchfallMechanism in mechanisms:
 		mechanism.active = true
-	for ledge: PalewheelFrayLedge in fray_ledges:
+	for ledge: StitchfallFrayLedge in fray_ledges:
 		ledge.active = true
 	hud.hide_panel()
 	print("STITCHFALL_START ", level_index)
@@ -601,13 +601,13 @@ func _on_pause() -> void:
 	pilot.set_touch_crouch(false)
 	playing = false
 	pilot.control_enabled = false
-	for sentry: PalewheelWatcher in sentries:
+	for sentry: StitchfallWatcher in sentries:
 		sentry.active = false
-	for ferry: PalewheelFerry in ferries:
+	for ferry: StitchfallFerry in ferries:
 		ferry.active = false
-	for mechanism: PalewheelMechanism in mechanisms:
+	for mechanism: StitchfallMechanism in mechanisms:
 		mechanism.active = false
-	for ledge: PalewheelFrayLedge in fray_ledges:
+	for ledge: StitchfallFrayLedge in fray_ledges:
 		ledge.active = false
 	hud.show_pause()
 
@@ -617,13 +617,13 @@ func _on_home() -> void:
 		pilot.control_enabled = false
 		pilot.touch_axis = 0.0
 		pilot.set_touch_crouch(false)
-	for sentry: PalewheelWatcher in sentries:
+	for sentry: StitchfallWatcher in sentries:
 		sentry.active = false
-	for ferry: PalewheelFerry in ferries:
+	for ferry: StitchfallFerry in ferries:
 		ferry.active = false
-	for mechanism: PalewheelMechanism in mechanisms:
+	for mechanism: StitchfallMechanism in mechanisms:
 		mechanism.active = false
-	for ledge: PalewheelFrayLedge in fray_ledges:
+	for ledge: StitchfallFrayLedge in fray_ledges:
 		ledge.active = false
 	playing = false
 	touch_starts.clear()
@@ -658,13 +658,13 @@ func _on_begin() -> void:
 		_load_level(0)
 	playing = true
 	pilot.control_enabled = true
-	for sentry: PalewheelWatcher in sentries:
+	for sentry: StitchfallWatcher in sentries:
 		sentry.active = true
-	for ferry: PalewheelFerry in ferries:
+	for ferry: StitchfallFerry in ferries:
 		ferry.active = true
-	for mechanism: PalewheelMechanism in mechanisms:
+	for mechanism: StitchfallMechanism in mechanisms:
 		mechanism.active = true
-	for ledge: PalewheelFrayLedge in fray_ledges:
+	for ledge: StitchfallFrayLedge in fray_ledges:
 		ledge.active = true
 	hud.hide_panel()
 	hud.set_room_intro(level["name"], level["hint"])

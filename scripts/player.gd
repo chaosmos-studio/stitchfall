@@ -1,4 +1,4 @@
-class_name PalewheelCourier
+class_name StitchfallCourier
 extends CharacterBody2D
 
 signal jumped
@@ -190,8 +190,8 @@ func _physics_process(delta: float) -> void:
 		var push_direction: Vector2 = tangent * axis
 		for collision_index: int in range(get_slide_collision_count()):
 			var collision: KinematicCollision2D = get_slide_collision(collision_index)
-			if collision.get_collider() is PalewheelCargo and collision.get_normal().dot(push_direction) < -0.45:
-				var patch: PalewheelCargo = collision.get_collider() as PalewheelCargo
+			if collision.get_collider() is StitchfallCargo and collision.get_normal().dot(push_direction) < -0.45:
+				var patch: StitchfallCargo = collision.get_collider() as StitchfallCargo
 				patch.apply_central_impulse(push_direction * patch.mass * 19.0)
 	if not grounded and is_on_floor():
 		landing_time = 0.17

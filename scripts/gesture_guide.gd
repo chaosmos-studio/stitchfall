@@ -1,4 +1,4 @@
-class_name PalewheelGestureGuide
+class_name StitchfallGestureGuide
 extends Control
 
 var kind: String = "move"

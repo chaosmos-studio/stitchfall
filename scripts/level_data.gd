@@ -1,4 +1,4 @@
-class_name PalewheelLevels
+class_name StitchfallLevels
 extends RefCounted
 
 const FRAME: Array[Rect2] = [

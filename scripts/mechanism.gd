@@ -1,4 +1,4 @@
-class_name PalewheelMechanism
+class_name StitchfallMechanism
 extends Area2D
 
 signal struck(body: Node2D)

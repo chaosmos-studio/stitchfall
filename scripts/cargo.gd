@@ -1,4 +1,4 @@
-class_name PalewheelCargo
+class_name StitchfallCargo
 extends RigidBody2D
 
 var gravity_direction: Vector2 = Vector2.DOWN

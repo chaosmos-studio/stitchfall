@@ -1,10 +1,10 @@
-class_name PalewheelUnravel
+class_name StitchfallUnravel
 extends Node2D
 
 const THREAD: Color = Color("f6e6c9")
 
 
-func scatter(courier: PalewheelCourier) -> void:
+func scatter(courier: StitchfallCourier) -> void:
 	position = courier.position
 	z_index = 8
 	var source: Texture2D = courier.sprite.sprite_frames.get_frame_texture(courier.sprite.animation, courier.sprite.frame)

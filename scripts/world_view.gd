@@ -1,4 +1,4 @@
-class_name PalewheelWorldView
+class_name StitchfallWorldView
 extends Node2D
 
 const LINEN: Texture2D = preload("res://assets/art/linen_landscape.png")

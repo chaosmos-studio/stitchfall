@@ -1,4 +1,4 @@
-class_name PalewheelFerry
+class_name StitchfallFerry
 extends AnimatableBody2D
 
 const FELT: Texture2D = preload("res://assets/art/felt_tile.png")

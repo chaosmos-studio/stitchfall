@@ -1,4 +1,4 @@
-class_name PalewheelWatcher
+class_name StitchfallWatcher
 extends Area2D
 
 const MOTH: Texture2D = preload("res://assets/art/needle_moth.png")

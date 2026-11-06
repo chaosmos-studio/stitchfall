@@ -26,7 +26,7 @@ func _run() -> void:
 	_test_room_clearance()
 	await _test_cargo_route()
 	await _test_opening_route()
-	await _test_palewheel_playthrough()
+	await _test_stitchfall_playthrough()
 	print("\n==== TESTS: %d passed, %d failed ====" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
 
@@ -53,7 +53,7 @@ func _test_orientation_is_an_int() -> void:
 
 
 func _test_movement_feel() -> void:
-	var pilot: PalewheelCourier = PalewheelCourier.new()
+	var pilot: StitchfallCourier = StitchfallCourier.new()
 	pilot.control_enabled = false
 	root.add_child(pilot)
 	await process_frame
@@ -73,7 +73,7 @@ func _test_movement_feel() -> void:
 		_check("releasing jump reduces upward speed", pilot.velocity.y > -400.0)
 	pilot.queue_free()
 	await process_frame
-	var inverted: PalewheelCourier = PalewheelCourier.new()
+	var inverted: StitchfallCourier = StitchfallCourier.new()
 	inverted.position = Vector2(2200, 350)
 	root.add_child(inverted)
 	await process_frame
@@ -116,7 +116,7 @@ func _test_moving_ferry_lifecycle() -> void:
 
 
 func _test_proximity_pulley() -> void:
-	var pulley: PalewheelMechanism = PalewheelMechanism.new()
+	var pulley: StitchfallMechanism = StitchfallMechanism.new()
 	pulley.configure({
 		"kind": "pulley",
 		"from": Vector2(600, 280),
@@ -131,7 +131,7 @@ func _test_proximity_pulley() -> void:
 	for frame: int in range(10):
 		await physics_frame
 	_check("the marked pulley waits for the runner", pulley.position == Vector2(600, 280))
-	var runner: PalewheelCourier = PalewheelCourier.new()
+	var runner: StitchfallCourier = StitchfallCourier.new()
 	runner.control_enabled = false
 	runner.position = Vector2(400, 820)
 	root.add_child(runner)
@@ -158,7 +158,7 @@ func _test_fraying_ledge() -> void:
 	ledge.configure({"rect": Rect2(400, 650, 260, 28), "delay": 0.35})
 	root.add_child(ledge)
 	ledge.active = true
-	var runner: PalewheelCourier = PalewheelCourier.new()
+	var runner: StitchfallCourier = StitchfallCourier.new()
 	runner.control_enabled = false
 	runner.position = Vector2(500, 595)
 	root.add_child(runner)
@@ -177,8 +177,8 @@ func _test_fraying_ledge() -> void:
 
 
 func _test_environment_forces() -> void:
-	var dry: PalewheelCourier = PalewheelCourier.new()
-	var wet: PalewheelCourier = PalewheelCourier.new()
+	var dry: StitchfallCourier = StitchfallCourier.new()
+	var wet: StitchfallCourier = StitchfallCourier.new()
 	dry.position = Vector2(2200, 350)
 	wet.position = Vector2(2600, 350)
 	root.add_child(dry)
@@ -220,7 +220,7 @@ func _test_gesture_controls() -> void:
 	await process_frame
 	var guide_count: int = 0
 	for child: Node in game.hud.help_page.find_children("*", "Control", true, false):
-		if child is PalewheelGestureGuide:
+		if child is StitchfallGestureGuide:
 			guide_count += 1
 	_check("the guide illustrates all four phone gestures", guide_count == 4)
 	game._on_begin()
@@ -384,8 +384,8 @@ func _test_cargo_route() -> void:
 
 
 func _test_room_clearance() -> void:
-	for index: int in range(PalewheelLevels.count()):
-		var level: Dictionary = PalewheelLevels.get_level(index)
+	for index: int in range(StitchfallLevels.count()):
+		var level: Dictionary = StitchfallLevels.get_level(index)
 		for point: Vector2 in [level["start"], level["exit"]] + level["shards"]:
 			var blocked: bool = false
 			for wall: Rect2 in level["walls"]:
@@ -428,7 +428,7 @@ func _test_opening_route() -> void:
 	await process_frame
 
 
-func _test_palewheel_playthrough() -> void:
+func _test_stitchfall_playthrough() -> void:
 	var game: Node2D = load("res://scenes/game/game.tscn").instantiate() as Node2D
 	game.audio_enabled = false
 	root.add_child(game)
@@ -445,7 +445,7 @@ func _test_palewheel_playthrough() -> void:
 	game._shift(1)
 	_check("a shift turns gravity and changes the light phase", game.gravity_direction == Vector2.LEFT and game.phase == 1)
 	game._restart()
-	for level_number: int in range(PalewheelLevels.count()):
+	for level_number: int in range(StitchfallLevels.count()):
 		if level_number > 0:
 			game._on_begin()
 		if level_number == 3:
@@ -501,7 +501,7 @@ func _test_palewheel_playthrough() -> void:
 		game.pilot.reset_physics_interpolation()
 		await physics_frame
 		await physics_frame
-		if level_number + 1 < PalewheelLevels.count():
+		if level_number + 1 < StitchfallLevels.count():
 			_check("the next room opens after room %d" % level_number, game.level_index == level_number + 1)
 	_check("the final seam ending follows the last room", game.finished)
 	game.queue_free()

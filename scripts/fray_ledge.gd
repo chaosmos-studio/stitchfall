@@ -1,4 +1,4 @@
-class_name PalewheelFrayLedge
+class_name StitchfallFrayLedge
 extends StaticBody2D
 
 const FELT: Texture2D = preload("res://assets/art/felt_tile.png")
