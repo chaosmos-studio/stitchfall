@@ -133,7 +133,18 @@ func _test_wardrobe() -> void:
 	_check("new stars call out exactly the pieces they open", opened_ids == ["trail_gold", "unravel_petals"])
 	for kind: String in StitchfallLooks.KINDS:
 		_check("the default %s is free and open" % kind, StitchfallLooks.is_open(StitchfallLooks.find(StitchfallLooks.DEFAULTS[kind]), 0, false, true))
-	_check("the Seam Runner's art is there", StitchfallLooks.has_art("seam"))
+	for item: Dictionary in StitchfallLooks.ITEMS:
+		if item["kind"] != "runner":
+			continue
+		var art: Dictionary = StitchfallLooks.runner_art(item["id"])
+		var sheets_fit: bool = true
+		for sheet: String in ["run", "actions"]:
+			sheets_fit = sheets_fit and ResourceLoader.exists(art[sheet]) and (load(art[sheet]) as Texture2D).get_size() == Vector2(1448, 1086)
+		for pose: String in art["poses"]:
+			sheets_fit = sheets_fit and ResourceLoader.exists(pose) and (load(pose) as Texture2D).get_size() == Vector2(400, 650)
+		sheets_fit = sheets_fit and ResourceLoader.exists(art["dance"]) and (load(art["dance"]) as Texture2D).get_size() == Vector2(1600, 1300)
+		_check("%s has every sheet at its size" % item["name"], sheets_fit)
+	_check("the extra icon sheet is the main sheet's size", StitchedButton.EXTRA_ICONS.get_size() == StitchedButton.ICONS.get_size())
 	for kind: String in StitchfallLooks.KINDS:
 		_check("the %s tab fits on one page" % kind, StitchfallLooks.items(kind).size() <= 8)
 	var progress: StitchfallProgress = StitchfallProgress.new()

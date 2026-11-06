@@ -19,7 +19,7 @@ const DEFAULTS: Dictionary = {
 const ITEMS: Array[Dictionary] = [
 	{"id": "seam", "kind": "runner", "name": "Seam Runner", "line": "Scarf, satchel, and no fear of falling.", "stars": 0, "paid": false},
 	{"id": "patch", "kind": "runner", "name": "Patch", "line": "A rag doll with button eyes.", "stars": 0, "paid": true},
-	{"id": "bobbin", "kind": "runner", "name": "Bobbin", "line": "Yellow raincoat, spool in pocket.", "stars": 0, "paid": true},
+	{"id": "bobbin", "kind": "runner", "name": "Bobbin", "line": "Mustard raincoat, spool in pocket.", "stars": 0, "paid": true},
 	{"id": "tam", "kind": "runner", "name": "Tam", "line": "A tailor's apprentice, tape round the neck.", "stars": 0, "paid": true},
 	{"id": "moth", "kind": "runner", "name": "Moth", "line": "Felt wings, follows the light.", "stars": 0, "paid": true},
 	{"id": "fennel", "kind": "runner", "name": "Fennel", "line": "A knitted fox, quick on the turn.", "stars": 0, "paid": true},

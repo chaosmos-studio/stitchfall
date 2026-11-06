@@ -8,14 +8,9 @@ const PLATE: Texture2D = preload("res://assets/art/linen_button_plate.png")
 const ICON_PATCH: Texture2D = preload("res://assets/art/linen_icon_patch.png")
 const ICONS: Texture2D = preload("res://assets/art/stitched_icons.png")
 const WORLD_ICONS: Texture2D = preload("res://assets/art/stitched_world_icons.png")
-# The icons added with the wardrobe and the fuller menus, a 4 by 3 sheet in this order. Until the sheet is
-# drawn, each borrows the nearest icon already in the game.
-const EXTRA_ICONS: String = "res://assets/art/stitched_icons_extra.png"
+# The icons added with the wardrobe and the fuller menus, a 4 by 3 sheet in this order.
+const EXTRA_ICONS: Texture2D = preload("res://assets/art/stitched_icons_extra.png")
 const EXTRA_GLYPHS: PackedStringArray = ["wardrobe", "music", "music_off", "shake", "shake_off", "stats", "credits", "star", "lock", "bag", "gift", "link"]
-const STAND_INS: Dictionary = {
-	"wardrobe": "knot", "music": "sound", "music_off": "mute", "shake": "shift", "shake_off": "shift", "stats": "levels",
-	"credits": "seam", "star": "seam", "lock": "knot", "bag": "knot", "gift": "knot", "link": "next",
-}
 
 var caption: String = ""
 var subcaption: String = ""
@@ -147,13 +142,10 @@ func _draw_icon(center: Vector2, radius: float, color: Color) -> void:
 	var shown: String = glyph
 	var extra_index: int = EXTRA_GLYPHS.find(glyph)
 	if extra_index >= 0:
-		if ResourceLoader.exists(EXTRA_ICONS):
-			var sheet: Texture2D = load(EXTRA_ICONS) as Texture2D
-			var extra_cell: Vector2 = Vector2(float(sheet.get_width()) / 4.0, float(sheet.get_height()) / 3.0)
-			var extra_source: Rect2 = Rect2(Vector2(float(extra_index % 4) * extra_cell.x, float(extra_index / 4) * extra_cell.y), extra_cell)
-			draw_texture_rect_region(sheet, Rect2(p - Vector2.ONE * r * 1.325, Vector2.ONE * r * 2.65), extra_source)
-			return
-		shown = STAND_INS[glyph]
+		var extra_cell: Vector2 = Vector2(float(EXTRA_ICONS.get_width()) / 4.0, float(EXTRA_ICONS.get_height()) / 3.0)
+		var extra_source: Rect2 = Rect2(Vector2(float(extra_index % 4) * extra_cell.x, float(extra_index / 4) * extra_cell.y), extra_cell)
+		draw_texture_rect_region(EXTRA_ICONS, Rect2(p - Vector2.ONE * r * 1.325, Vector2.ONE * r * 2.65), extra_source)
+		return
 	var icon_index: int = ["play", "home", "help", "settings", "pause", "restart", "levels", "back", "next", "sound", "mute", "fullscreen"].find(shown)
 	if icon_index >= 0:
 		var cell: Vector2 = Vector2(float(ICONS.get_width()) / 4.0, float(ICONS.get_height()) / 3.0)
