@@ -332,7 +332,7 @@ func _load_level(index: int) -> void:
 	world.gravity_direction = gravity_direction
 	hud.set_room_intro(level["name"], level["hint"])
 	_update_hud()
-	print("PALEWHEEL_ROOM ", index)
+	print("STITCHFALL_ROOM ", index)
 
 
 func _add_wall(rect: Rect2, is_bridge: bool) -> CollisionShape2D:
@@ -424,7 +424,7 @@ func _on_checkpoint_body(body: Node2D) -> void:
 	world.checkpoint_active = true
 	hud.set_hint("Pin set. Your buttons stay sewn after a hit.")
 	_play_sound("spark")
-	print("PALEWHEEL_BEACON ", level_index)
+	print("STITCHFALL_BEACON ", level_index)
 
 
 func _respawn() -> void:
@@ -472,7 +472,7 @@ func _on_spark_body(body: Node2D, index: int, area: Area2D) -> void:
 	if index < required_phases.size() and int(required_phases[index]) >= 0 and phase != int(required_phases[index]):
 		return
 	collected[index] = true
-	print("PALEWHEEL_SPARK ", level_index, " ", index)
+	print("STITCHFALL_SPARK ", level_index, " ", index)
 	world.collected = collected.duplicate()
 	world.collect_spark(level["shards"][index])
 	area.set_deferred("monitoring", false)
@@ -501,7 +501,7 @@ func _on_bloom_body(body: Node2D, bloom: Vector2) -> void:
 	pilot.landing_time = 0.0
 	world.burst_bloom(bloom)
 	_play_sound("jump")
-	print("PALEWHEEL_BLOOM ", level_index)
+	print("STITCHFALL_BLOOM ", level_index)
 
 
 func _close_timed_gates() -> void:
@@ -547,7 +547,7 @@ func _shift(step: int) -> void:
 	world.gravity_direction = gravity_direction
 	world.shift_origin = pilot.position
 	world.shift_age = 0.0
-	print("PALEWHEEL_SHIFT ", gravity_direction)
+	print("STITCHFALL_SHIFT ", gravity_direction)
 	_play_sound("shift")
 	_update_hud()
 
@@ -560,7 +560,7 @@ func _advance() -> void:
 		sentry.active = false
 	if level_index + 1 >= PalewheelLevels.count():
 		finished = true
-		print("PALEWHEEL_WIN")
+		print("STITCHFALL_WIN")
 		hud.show_finish(_format_time(run_time), shifts, deaths)
 		return
 	_load_level(level_index + 1)
@@ -589,7 +589,7 @@ func _restart() -> void:
 	for ledge: PalewheelFrayLedge in fray_ledges:
 		ledge.active = true
 	hud.hide_panel()
-	print("PALEWHEEL_START ", level_index)
+	print("STITCHFALL_START ", level_index)
 
 
 func _on_pause() -> void:
@@ -668,7 +668,7 @@ func _on_begin() -> void:
 		ledge.active = true
 	hud.hide_panel()
 	hud.set_room_intro(level["name"], level["hint"])
-	print("PALEWHEEL_START ", level_index)
+	print("STITCHFALL_START ", level_index)
 
 
 func _play_sound(name: String) -> void:
@@ -683,7 +683,7 @@ func _play_sound(name: String) -> void:
 
 
 func _on_pilot_jumped() -> void:
-	print("PALEWHEEL_JUMP")
+	print("STITCHFALL_JUMP")
 	_play_sound("jump")
 
 

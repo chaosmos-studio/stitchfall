@@ -2,7 +2,7 @@
 
 ## Intent
 
-The temporary title is Palewheel.
+The public title is Stitchfall.
 The game has no wheel in its story or art.
 The player guides a young runner through a world assembled from cloth, thread, and buttons.
 One Shift press turns gravity by a quarter turn and changes which sewn bridges are solid.
@@ -54,7 +54,7 @@ Several rooms repeat the same left-to-right wall rhythm, so a new backdrop alone
 Plumb's generator uses chapter rules, seeded candidates, a solver, difficulty bands, and duplicate rejection.
 Carillon grows an answer first and checks that added rules matter.
 Apsis places features with spacing constraints and verifies the result.
-Palewheel needs the same discipline for movement routes, with a replayable physics path and clearance checks before a room joins the campaign.
+Stitchfall needs the same discipline for movement routes, with a replayable physics path and clearance checks before a room joins the campaign.
 
 - [ ] Measure and repair player movement in every gravity orientation on keyboard and touch.
 - [x] Make the browser loader show actual downloaded bytes and a distinct opening sequence.
@@ -62,7 +62,7 @@ Palewheel needs the same discipline for movement routes, with a replayable physi
 - [x] Add a browser fullscreen action where the browser supports it.
 - [x] Replace the home dance with a front-facing, detailed loop and give menu controls textile artwork.
 - [x] Add an About page with a short studio introduction.
-- [x] Give the studio site a game page and publish the playable build at `/palewheel/play/`.
+- [x] Give the studio site a game page and publish the playable build at `/stitchfall/play/`.
 - [ ] Design room families around a single movement idea: ceiling runs, timed bridge crossings, cargo transport, water ascent, wind carry, canopy lift, low-gravity arcs, rain reversal, and ice braking.
 - [ ] Add setting families beyond the current route, with a visible interaction and sound identity for each.
 - [ ] Build deterministic candidate generation with protected start and exit zones, reachable collectibles, hazard clearance, and repeated-layout rejection.
@@ -78,7 +78,7 @@ The next pass should change the route structure in the remaining rooms, then add
 ## Surprise and mechanism pass, 5 November 2026
 
 [Level Devil's official site](https://playleveldevil.com/) presents disappearing floors, falling blocks, shifting doors, and immediate retries as its core pacing.
-Palewheel takes the pacing idea, then uses visible cloth machinery that reacts to a gravity shift.
+Stitchfall takes the pacing idea, then uses visible cloth machinery that reacts to a gravity shift.
 A trap must show its track or anchor before it moves, give the player a short wind-up, and restart quickly after a hit.
 
 The first trap vocabulary is a spinning cutter, a moving chain, a hanging pulley weight, and a sewn spring launcher.
@@ -117,7 +117,7 @@ These decisions use Shravan's earlier creative freedom and instruction to build 
 The 16 current rooms establish useful movement rules, but most start near the left floor, end near the right floor, place a wall in the middle, and scatter three sparks along the route.
 Changing the setting or adding a sentry does not change the route the player has to understand.
 Plumb's lesson is to make each stage earn its place through a new rule, a proved solution, a difficulty target, and a difference from nearby stages.
-Palewheel needs those checks around continuous movement and timing rather than a grid solver.
+Stitchfall needs those checks around continuous movement and timing rather than a grid solver.
 
 Each room should have a one sentence action, such as "shift from the ceiling to catch a falling platform," that remains recognizable without its art.
 Build its route from a start state, a readable discovery, a commitment point, a payoff, and a safe finish.

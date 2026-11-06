@@ -1,4 +1,4 @@
-name: Test and publish Palewheel
+name: Test and publish Stitchfall
 
 on:
   pull_request:
@@ -10,7 +10,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: palewheel-pages
+  group: stitchfall-pages
   cancel-in-progress: false
 
 jobs:
@@ -32,13 +32,13 @@ jobs:
           set -euo pipefail
           mkdir -p build/web
           touch build/.gdignore
-          godot --headless --editor --path . --import --quit 2>&1 | tee "$RUNNER_TEMP/palewheel-import.log"
-          ! grep -E 'SCRIPT ERROR|Parse Error|ERROR:' "$RUNNER_TEMP/palewheel-import.log"
-          godot --headless --path . -s res://tests/run_tests.gd 2>&1 | tee "$RUNNER_TEMP/palewheel-tests.log"
-          ! grep -E 'SCRIPT ERROR|Parse Error|ERROR:' "$RUNNER_TEMP/palewheel-tests.log"
-          grep -Eq '==== TESTS: [0-9]+ passed, 0 failed ====' "$RUNNER_TEMP/palewheel-tests.log"
-          godot --headless --path . --export-release Web build/web/index.html 2>&1 | tee "$RUNNER_TEMP/palewheel-export.log"
-          ! grep -E 'SCRIPT ERROR|Parse Error|ERROR:' "$RUNNER_TEMP/palewheel-export.log"
+          godot --headless --editor --path . --import --quit 2>&1 | tee "$RUNNER_TEMP/stitchfall-import.log"
+          ! grep -E 'SCRIPT ERROR|Parse Error|ERROR:' "$RUNNER_TEMP/stitchfall-import.log"
+          godot --headless --path . -s res://tests/run_tests.gd 2>&1 | tee "$RUNNER_TEMP/stitchfall-tests.log"
+          ! grep -E 'SCRIPT ERROR|Parse Error|ERROR:' "$RUNNER_TEMP/stitchfall-tests.log"
+          grep -Eq '==== TESTS: [0-9]+ passed, 0 failed ====' "$RUNNER_TEMP/stitchfall-tests.log"
+          godot --headless --path . --export-release Web build/web/index.html 2>&1 | tee "$RUNNER_TEMP/stitchfall-export.log"
+          ! grep -E 'SCRIPT ERROR|Parse Error|ERROR:' "$RUNNER_TEMP/stitchfall-export.log"
           grep -aq ECFG build/web/index.pck
           python3 tools/prepare_web.py
           test -s build/web/wasm-loader.js
@@ -55,4 +55,4 @@ jobs:
           branch: gh-pages
           folder: build/web
           force: false
-          commit-message: Publish Palewheel
+          commit-message: Publish Stitchfall

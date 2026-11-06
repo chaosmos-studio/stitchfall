@@ -14,7 +14,7 @@ OUTPUT = Path(__file__).resolve().parents[1] / "web" / "godot.web.template_relea
 
 
 def fetch(header):
-    request = urllib.request.Request(URL, headers={"Range": header, "User-Agent": "Palewheel-template-extractor"})
+    request = urllib.request.Request(URL, headers={"Range": header, "User-Agent": "Stitchfall-template-extractor"})
     with urllib.request.urlopen(request, timeout=120) as response:
         if response.status != 206:
             raise RuntimeError(f"Expected HTTP 206, got {response.status}")

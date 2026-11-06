@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="palewheel-version" content="2">
+<meta name="stitchfall-version" content="1">
 <meta name="theme-color" content="#f1e1c8">
 <link rel="icon" href="data:,">
-<title>Palewheel | Chaosmos</title>
+<title>Stitchfall | Chaosmos</title>
 <style>
 @font-face{font-family:Threadline;src:url(Threadline-Woven.ttf) format('truetype')}
 @font-face{font-family:DarnDisplay;src:url(Darn-Display.ttf) format('truetype')}
@@ -42,12 +42,12 @@ button{border:2px dashed #f7edda;border-radius:10px;background:#a85648;color:#f7
 $GODOT_HEAD_INCLUDE
 </head>
 <body>
-<canvas id="canvas" tabindex="0" aria-label="Palewheel. Move with A and D or the arrow keys, jump with W or Space, crouch with S, and turn gravity with Shift or a click. On touchscreens, slide to move, swipe up to jump, swipe down to crouch, and tap to turn gravity. Open Guide for animated instructions.">Canvas is required to play Palewheel.</canvas>
-<div id="rotate">Turn your phone sideways to play Palewheel.</div>
-<div id="loading" role="status"><div><div class="load-copy"><p class="eyebrow">A STITCHED SHIFT ADVENTURE</p><h1>PALEWHEEL</h1><p id="status">Threading the world...</p><div class="meter" id="meter"><span id="fill"></span></div><p id="bytes">Preparing the download...</p><p id="error"></p><button id="retry" hidden onclick="location.reload()">Try again</button></div><div class="load-stage" aria-hidden="true"><div class="load-dancer"><img src="loader_pose_0.webp" alt=""><img src="loader_pose_1.webp" alt=""><img src="loader_pose_2.webp" alt=""><img src="loader_pose_3.webp" alt=""></div></div></div></div>
-<noscript>Enable JavaScript to play Palewheel.</noscript>
+<canvas id="canvas" tabindex="0" aria-label="Stitchfall. Move with A and D or the arrow keys, jump with W or Space, crouch with S, and turn gravity with Shift or a click. On touchscreens, slide to move, swipe up to jump, swipe down to crouch, and tap to turn gravity. Open Guide for animated instructions.">Canvas is required to play Stitchfall.</canvas>
+<div id="rotate">Turn your phone sideways to play Stitchfall.</div>
+<div id="loading" role="status"><div><div class="load-copy"><p class="eyebrow">A STITCHED SHIFT ADVENTURE</p><h1>STITCHFALL</h1><p id="status">Threading the world...</p><div class="meter" id="meter"><span id="fill"></span></div><p id="bytes">Preparing the download...</p><p id="error"></p><button id="retry" hidden onclick="location.reload()">Try again</button></div><div class="load-stage" aria-hidden="true"><div class="load-dancer"><img src="loader_pose_0.webp" alt=""><img src="loader_pose_1.webp" alt=""><img src="loader_pose_2.webp" alt=""><img src="loader_pose_3.webp" alt=""></div></div></div></div>
+<noscript>Enable JavaScript to play Stitchfall.</noscript>
 <script>
-window.palewheelDownload = (received, total) => {
+window.stitchfallDownload = (received, total) => {
   if (!total) return;
   document.getElementById('fill').style.width = `${Math.min(100, received / total * 100).toFixed(1)}%`;
   document.getElementById('bytes').textContent = `${(received / 1000000).toFixed(1)} / ${(total / 1000000).toFixed(1)} MB`;
@@ -59,7 +59,7 @@ window.palewheelDownload = (received, total) => {
 <script>
 const engine = new Engine($GODOT_CONFIG);
 const loading = document.getElementById('loading');
-window.palewheelToggleFullscreen = async () => {
+window.stitchfallToggleFullscreen = async () => {
   if (!document.fullscreenEnabled) return;
   try {
     if (document.fullscreenElement) await document.exitFullscreen();

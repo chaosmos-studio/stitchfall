@@ -1,5 +1,5 @@
 {
-  "name": "palewheel-web-check",
+  "name": "stitchfall-web-check",
   "private": true,
   "scripts": {
     "test:web": "node tools/check_web.cjs"

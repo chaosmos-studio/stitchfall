@@ -1,4 +1,4 @@
-"""Synthesize Palewheel's original short game sounds."""
+"""Synthesize Stitchfall's original short game sounds."""
 
 import math
 import random

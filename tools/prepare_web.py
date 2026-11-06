@@ -60,7 +60,7 @@ loader = """// Stream the engine and game pack from static-host-friendly chunks.
   ]));
   const received = Object.fromEntries(Object.keys(assets).map(name => [name, 0]));
   const total = Object.values(selected).reduce((sum, asset) => sum + asset.size, 0);
-  const report = () => window.palewheelDownload?.(Object.values(received).reduce((sum, size) => sum + size, 0), total);
+  const report = () => window.stitchfallDownload?.(Object.values(received).reduce((sum, size) => sum + size, 0), total);
   report();
   window.fetch = async function(resource, options) {
     const url = new URL(typeof resource === 'string' ? resource : resource.url || String(resource), location.href);

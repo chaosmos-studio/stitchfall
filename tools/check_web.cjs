@@ -25,7 +25,7 @@ async function main() {
     page.on('pageerror', error => errors.push(String(error)));
     page.on('console', message => {
       if (message.type() === 'error') errors.push(message.text());
-      if (message.text().includes('PALEWHEEL_SHIFT')) shifts.push(message.text());
+      if (message.text().includes('STITCHFALL_SHIFT')) shifts.push(message.text());
     });
     await page.goto(baseUrl, { timeout: 180000 });
     await page.waitForFunction(() => /\d+\.\d+ \/ \d+\.\d+ MB/.test(document.getElementById('bytes')?.textContent ?? ''), null, { timeout: 10000 });
@@ -76,7 +76,7 @@ async function main() {
     await page.touchscreen.tap(665, 55);
     await page.waitForTimeout(220);
     await page.screenshot({ path: path.join(results, 'levels-second.png') });
-    let marker = page.waitForEvent('console', { predicate: message => message.text().includes('PALEWHEEL_START 9'), timeout: 10000 });
+    let marker = page.waitForEvent('console', { predicate: message => message.text().includes('STITCHFALL_START 9'), timeout: 10000 });
     await page.touchscreen.tap(335, 180);
     await marker;
     await page.touchscreen.tap(805, 27);
@@ -90,13 +90,13 @@ async function main() {
     await page.screenshot({ path: path.join(results, 'help.png') });
     await page.waitForTimeout(650);
     await page.screenshot({ path: path.join(results, 'help-next.png') });
-    marker = page.waitForEvent('console', { predicate: message => message.text().includes('PALEWHEEL_START 9'), timeout: 10000 });
+    marker = page.waitForEvent('console', { predicate: message => message.text().includes('STITCHFALL_START 9'), timeout: 10000 });
     await page.touchscreen.tap(640, 315);
     await marker;
     await page.waitForTimeout(600);
     if (shifts.length) throw new Error('Starting the game turned gravity');
     const cdp = await page.context().newCDPSession(page);
-    marker = page.waitForEvent('console', { predicate: message => message.text().includes('PALEWHEEL_JUMP'), timeout: 10000 });
+    marker = page.waitForEvent('console', { predicate: message => message.text().includes('STITCHFALL_JUMP'), timeout: 10000 });
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 550, y: 315, id: 0 }] });
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 550, y: 170, id: 0 }] });
     await marker;
@@ -114,7 +114,7 @@ async function main() {
     await page.screenshot({ path: path.join(results, 'run.png') });
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     if (shifts.length) throw new Error(`A movement gesture turned gravity: ${shifts.join(', ')}`);
-    marker = page.waitForEvent('console', { predicate: message => message.text().includes('PALEWHEEL_SHIFT'), timeout: 10000 });
+    marker = page.waitForEvent('console', { predicate: message => message.text().includes('STITCHFALL_SHIFT'), timeout: 10000 });
     await page.touchscreen.tap(680, 260);
     await marker;
     await page.waitForTimeout(300);
@@ -126,18 +126,18 @@ async function main() {
     await desktop.goto(baseUrl, { timeout: 180000 });
     await desktop.waitForFunction(() => document.getElementById('loading')?.hidden, null, { timeout: 90000 });
     await desktop.waitForTimeout(800);
-    const desktopStart = desktop.waitForEvent('console', { predicate: message => message.text().includes('PALEWHEEL_START 0'), timeout: 10000 });
+    const desktopStart = desktop.waitForEvent('console', { predicate: message => message.text().includes('STITCHFALL_START 0'), timeout: 10000 });
     await desktop.mouse.click(165, 350);
     await desktopStart;
     await desktop.locator('#canvas').focus();
     await desktop.waitForTimeout(350);
-    const desktopJump = desktop.waitForEvent('console', { predicate: message => message.text().includes('PALEWHEEL_JUMP'), timeout: 10000 });
+    const desktopJump = desktop.waitForEvent('console', { predicate: message => message.text().includes('STITCHFALL_JUMP'), timeout: 10000 });
     await desktop.keyboard.press('w');
     await desktopJump;
     await desktop.keyboard.down('s');
     await desktop.waitForTimeout(140);
     await desktop.keyboard.up('s');
-    const desktopShift = desktop.waitForEvent('console', { predicate: message => message.text().includes('PALEWHEEL_SHIFT'), timeout: 10000 });
+    const desktopShift = desktop.waitForEvent('console', { predicate: message => message.text().includes('STITCHFALL_SHIFT'), timeout: 10000 });
     await desktop.keyboard.press('Shift');
     await desktopShift;
     await desktop.screenshot({ path: path.join(results, 'desktop.png') });
@@ -146,11 +146,11 @@ async function main() {
       const preview = await browser.newPage({ viewport: { width: 844, height: 390 }, isMobile: true, hasTouch: true });
       const previewErrors = [];
       preview.on('pageerror', error => previewErrors.push(String(error)));
-      const roomLoaded = preview.waitForEvent('console', { predicate: message => message.text().includes(`PALEWHEEL_ROOM ${room}`), timeout: 90000 });
+      const roomLoaded = preview.waitForEvent('console', { predicate: message => message.text().includes(`STITCHFALL_ROOM ${room}`), timeout: 90000 });
       await preview.goto(new URL(`?room=${room}`, baseUrl).toString(), { timeout: 180000 });
       await roomLoaded;
       await preview.waitForFunction(() => document.getElementById('loading')?.hidden, null, { timeout: 90000 });
-      const started = preview.waitForEvent('console', { predicate: message => message.text().includes(`PALEWHEEL_START ${room}`), timeout: 10000 });
+      const started = preview.waitForEvent('console', { predicate: message => message.text().includes(`STITCHFALL_START ${room}`), timeout: 10000 });
       await preview.touchscreen.tap(100, 190);
       await preview.waitForTimeout(150);
       await preview.touchscreen.tap(640, 315);
@@ -160,7 +160,7 @@ async function main() {
       if (previewErrors.length) throw new Error(previewErrors.join('\n'));
       await preview.close();
     }
-    console.log('MOBILE_WEB_OK palewheel');
+    console.log('MOBILE_WEB_OK stitchfall');
   } finally {
     if (browser) await browser.close();
     if (server.exitCode === null) {

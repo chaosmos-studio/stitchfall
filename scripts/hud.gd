@@ -223,7 +223,7 @@ func _build_home() -> void:
 	eyebrow.text = "A STITCHED SHIFT ADVENTURE"
 	var title: Label = _label(home_page, Vector2(128, 185), Vector2(870, 158), 105, INK, true)
 	title.add_theme_font_override("font", FONT_DISPLAY)
-	title.text = "PALEWHEEL"
+	title.text = "STITCHFALL"
 	var line: Label = _label(home_page, Vector2(138, 340), Vector2(840, 84), 39, INK)
 	line.text = "Find the buttons. Turn the pull.\nOpen the seam."
 	var menu_items: Array[PackedStringArray] = [
@@ -392,7 +392,7 @@ func _build_settings() -> void:
 
 func _toggle_fullscreen() -> void:
 	if OS.has_feature("web"):
-		JavaScriptBridge.eval("window.palewheelToggleFullscreen?.()")
+		JavaScriptBridge.eval("window.stitchfallToggleFullscreen?.()")
 	else:
 		var mode: DisplayServer.WindowMode = DisplayServer.window_get_mode()
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if mode == DisplayServer.WINDOW_MODE_FULLSCREEN else DisplayServer.WINDOW_MODE_FULLSCREEN)
