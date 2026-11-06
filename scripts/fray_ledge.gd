@@ -1,14 +1,20 @@
 class_name StitchfallFrayLedge
 extends StaticBody2D
 
-const FELT: Texture2D = preload("res://assets/art/felt_tile.png")
-const INK: Color = Color("493a37")
+signal gave_way
+
+const PATCH: Texture2D = preload("res://assets/art/props/unpinned_patch.png")
+# The rows of the patch art that are the patch itself, above its hanging threads.
+const PATCH_BODY_TOP: float = 22.0
+const PATCH_BODY_BOTTOM: float = 68.0
+const DROP_TIME: float = 0.6
 const THREAD: Color = Color("f6e6c9")
 
 var size: Vector2 = Vector2(260, 28)
 var delay: float = 0.6
 var countdown: float = 0.0
 var collapsed: bool = false
+var dropped: float = 0.0
 var active: bool = false
 var collision_shape: CollisionShape2D
 var detector: Area2D
@@ -48,6 +54,7 @@ func _physics_process(delta: float) -> void:
 	countdown = maxf(0.0, countdown - delta)
 	if countdown == 0.0:
 		collapsed = true
+		gave_way.emit()
 		collision_shape.set_deferred("disabled", true)
 		detector.set_deferred("monitoring", false)
 	queue_redraw()
@@ -62,24 +69,47 @@ func _on_body_entered(_body: Node2D) -> void:
 func reset() -> void:
 	countdown = 0.0
 	collapsed = false
+	dropped = 0.0
 	collision_shape.set_deferred("disabled", false)
 	detector.set_deferred("monitoring", true)
 	queue_redraw()
 
 
+func _process(delta: float) -> void:
+	if collapsed and dropped < DROP_TIME:
+		dropped += delta
+		queue_redraw()
+
+
+# The patch art is only pinned on, which is the tell. Once stood on it shivers harder and harder, then drops
+# away, leaving its tacking stitches behind so you can see where it was.
 func _draw() -> void:
 	var fabric: Rect2 = Rect2(-size * 0.5, size)
-	var opacity: float = 0.3 if collapsed else 1.0
-	draw_rect(fabric.grow(5.0), Color("5f4b40", opacity))
-	draw_texture_rect(FELT, fabric, true, Color("d9aa82", opacity))
-	var stitch_count: int = maxi(2, int(size.x / 17.0))
-	for stitch: int in range(stitch_count):
-		var x: float = fabric.position.x + 11.0 + float(stitch) * (size.x - 20.0) / float(stitch_count - 1)
-		var upper: Vector2 = Vector2(x, fabric.position.y + 5.0)
-		var lower: Vector2 = Vector2(x + 7.0, fabric.end.y - 5.0)
-		var loosen: float = 0.0 if countdown == 0.0 else (1.0 - countdown / delay) * 16.0
-		draw_line(upper, lower + Vector2(0, loosen), THREAD * Color(1, 1, 1, opacity), 2.0, true)
-		if countdown > 0.0 and stitch % 3 == 0:
-			draw_circle(lower + Vector2(0, loosen), 2.5, INK)
-	if countdown > 0.0:
-		draw_line(fabric.position + Vector2(4, -9), fabric.position + Vector2(4 + (size.x - 8.0) * countdown / delay, -9), Color("c75843"), 5.0, true)
+	if collapsed and dropped >= DROP_TIME:
+		_draw_tacking(fabric)
+		return
+	var offset: Vector2 = Vector2.ZERO
+	var alpha: float = 1.0
+	if collapsed:
+		offset.y = 0.5 * 1550.0 * dropped * dropped
+		alpha = 1.0 - dropped / DROP_TIME
+	elif countdown > 0.0:
+		var strain: float = 1.0 - countdown / delay
+		offset = Vector2(sin(countdown * 90.0), cos(countdown * 70.0)) * (1.0 + strain * 3.0)
+	var scale_y: float = size.y / (PATCH_BODY_BOTTOM - PATCH_BODY_TOP)
+	var art_width: float = size.x / scale_y
+	draw_set_transform(fabric.position + offset - Vector2(0, PATCH_BODY_TOP * scale_y), 0.0, Vector2.ONE * scale_y)
+	var drawn: float = 0.0
+	while drawn < art_width:
+		var piece: float = minf(PATCH.get_width(), art_width - drawn)
+		draw_texture_rect_region(PATCH, Rect2(drawn, 0, piece, PATCH.get_height()), Rect2(0, 0, piece, PATCH.get_height()), Color(1, 1, 1, alpha))
+		drawn += piece
+	draw_set_transform(Vector2.ZERO)
+
+
+func _draw_tacking(fabric: Rect2) -> void:
+	var y: float = fabric.get_center().y
+	var x: float = fabric.position.x + 6.0
+	while x < fabric.end.x - 6.0:
+		draw_line(Vector2(x, y), Vector2(minf(x + 9.0, fabric.end.x - 6.0), y), Color(THREAD, 0.55), 2.0, true)
+		x += 17.0

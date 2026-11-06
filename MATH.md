@@ -33,5 +33,23 @@ Then the pull points right and the runner falls across the whole room at nearly 
 So the height you pick on the wall is the height you cross at, which is why the room's mid-air button sits a little above the middle.
 `tools/route.gd` prints the crossing, and the room's route in `tests/run_tests.gd` proves it.
 
+## Why a pin keeps its place in line
+
+A pincushion falls with the same pull as the runner, 1550 pixels per second squared, and both start a turn at rest along the new direction.
+Two things falling together from rest stay the same distance apart, which is Galileo's point about dropped weights.
+So a pin to your left before a turn is still to your left after it, and a pin in your lane lands where you land.
+Three ways out follow from that, and Loose Pins teaches each.
+Get past the pin before you turn (*Heads Up*), so the order is the one you want.
+Be in a different lane when you turn, by jumping first or standing higher up a wall (*Clean Sweep*, *Company*), since the gap across the fall never closes.
+Or arrive first: the pin and you fall together, so whoever starts nearer the new floor lands first (*Pin Drop*'s race).
+The runner keeps the speed it gains during a turn's first quarter second and can steer, while a pin drops its sideways speed at each turn and cannot.
+That is why `tools/route.gd` shows the runner drifting about 140 pixels in a single turn left, while a pin drifts about 50.
+
+## Banking buttons
+
+A collected button is loose until the runner touches a flower with it, then it is banked.
+An unravel puts every loose button back, so a room is a run you either finish or redo from the last flower.
+The flower also saves where every pin is, so coming back to it puts the room as it was when you touched it.
+
 The current movement constants and their actual behavior live in `scripts/player.gd` and `scripts/cargo.gd`.
 Tune them by playing through every room, especially after consecutive shifts.

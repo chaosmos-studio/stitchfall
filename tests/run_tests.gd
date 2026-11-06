@@ -5,7 +5,7 @@ extends SceneTree
 
 const InputMapGen: GDScript = preload("res://tools/make_input_map.gd")
 # The older rooms come after the screen rooms that open the campaign.
-const CLASSIC: int = StitchfallLevels.LINEN_ROOMS
+const CLASSIC: int = StitchfallLevels.SCREEN_ROOMS
 # Each screen room's proof: a route that finishes it, and the obvious run its prank is built to catch, with
 # what catching means ("hit": the runner is unravelled, "stuck": the room is not finished).
 const SCREEN_ROUTES: Array[Dictionary] = [
@@ -24,6 +24,49 @@ const SCREEN_ROUTES: Array[Dictionary] = [
 		"naive": "0:+move_right,66:+jump,86:-jump",
 		"caught": "hit",
 	},
+	# Loose Pins. The naive runs are the habits the chapter punishes: flipping with a pin in line, and
+	# walking into one.
+	{"room": 5, "route": "0:+move_right,80:+jump,100:-jump", "naive": "0:+move_right", "caught": "hit"},
+	{
+		"room": 6,
+		"route": "0:+move_right,80:+jump,100:-jump,118:-move_right,119:shift,134:shift,190:+move_right,222:-move_right,223:shift,238:shift,300:+move_right",
+		"naive": "0:+move_right,40:-move_right,41:shift,56:shift,120:+move_right",
+		"caught": "hit",
+	},
+	{"room": 7, "route": "5:shift,20:+move_left,70:-move_left,95:shift,96:+move_right", "naive": "0:+move_right,40:-move_right,41:shift,56:shift,120:+move_right", "caught": "hit"},
+	{
+		"room": 8,
+		"route": "5:shift,20:+move_left,70:-move_left,95:shift,96:+move_right,250:+jump,262:shift,263:-jump,264:-move_right,300:+move_left,350:shift",
+		"naive": "5:shift,20:+move_left,70:-move_left,95:shift,96:+move_right,250:+jump,262:shift,263:-jump,264:-move_right,300:+move_left,333:shift",
+		"caught": "hit",
+	},
+	{
+		"room": 9,
+		"route": "0:+move_right,30:-move_right,31:shift,46:shift,110:+move_right,124:+jump,144:-jump,170:-move_right,175:+jump,187:shift,188:-jump,230:+move_left,262:shift",
+		"naive": "0:+move_right,30:-move_right,31:shift,46:shift,110:+move_right",
+		"caught": "hit",
+	},
+	# Unpinned. The naive runs stop on a patch, trust the last step, or walk back the way they came.
+	{"room": 10, "route": "0:+move_right,26:+jump,46:-jump,110:+jump,130:-jump", "naive": "0:+move_right,26:+jump,46:-jump,75:-move_right", "caught": "hit"},
+	{"room": 11, "route": "0:+move_right,26:+jump,40:-jump,78:+jump,98:-jump", "naive": "0:+move_right,26:+jump,40:-jump,85:-move_right", "caught": "hit"},
+	{
+		"room": 12,
+		"route": "0:+move_right,26:+jump,40:-jump,74:+jump,90:-jump,120:+jump,140:-jump",
+		"naive": "0:+move_right,26:+jump,40:-jump,74:+jump,90:-jump,104:+jump,110:-jump",
+		"caught": "hit",
+	},
+	{
+		"room": 13,
+		"route": "0:+move_right,20:+jump,40:-jump,100:+jump,120:-jump,165:-move_right,166:shift,181:shift,240:+move_left,400:-move_left,401:shift,416:shift,470:+move_left",
+		"naive": "0:+move_right,20:+jump,40:-jump,100:+jump,120:-jump,165:-move_right,170:+move_left,200:+jump,220:-jump",
+		"caught": "hit",
+	},
+	{
+		"room": 14,
+		"route": "0:+move_right,26:+jump,40:-jump,62:+jump,80:-jump,100:-move_right,125:shift,140:shift,210:shift,225:shift,280:+move_right,284:+jump,306:-jump",
+		"naive": "0:+move_right,26:+jump,40:-jump,62:+jump,80:-jump",
+		"caught": "hit",
+	},
 ]
 
 var _passed: int = 0
@@ -34,6 +77,8 @@ func _initialize() -> void:
 
 
 func _run() -> void:
+	StitchfallProgress.path = "user://test_progress.cfg"
+	_test_progress()
 	_test_input_map_is_wired()
 	_test_orientation_is_an_int()
 	await _test_movement_feel()
@@ -51,6 +96,27 @@ func _run() -> void:
 	await _test_stitchfall_playthrough()
 	print("\n==== TESTS: %d passed, %d failed ====" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
+
+func _test_progress() -> void:
+	_check("a clean quick clear earns three stars", StitchfallProgress.stars_for(8.0, 0, 9.0) == 3)
+	_check("an unravel costs the Unbroken star", StitchfallProgress.stars_for(8.0, 1, 9.0) == 2)
+	_check("a slow clean clear earns two stars", StitchfallProgress.stars_for(12.0, 0, 9.0) == 2)
+	_check("finishing always earns one star", StitchfallProgress.stars_for(60.0, 9, 9.0) == 1)
+	var progress: StitchfallProgress = StitchfallProgress.new()
+	progress.reset()
+	_check("only the first room is open at the start", progress.is_open(0) and not progress.is_open(1))
+	var first: Dictionary = progress.record(0, 12.0, 2, 9.0)
+	_check("a first clear is marked first", first["first"] and first["stars"] == 1)
+	var better: Dictionary = progress.record(0, 7.0, 0, 9.0)
+	_check("a better clear is called out", better["more_stars"] and better["faster"])
+	progress.record(0, 20.0, 5, 9.0)
+	var reloaded: StitchfallProgress = StitchfallProgress.new()
+	reloaded.load_saved()
+	_check("the best stars and time survive a worse run and a reload", reloaded.stars(0) == 3 and is_equal_approx(reloaded.best_time[0], 7.0))
+	_check("a sewn room opens the next", reloaded.is_open(1) and not reloaded.is_open(2))
+	_check("Play continues from the first room not yet sewn", reloaded.continue_room(StitchfallLevels.count()) == 1)
+	progress.reset()
+
 
 func _check(name: String, cond: bool) -> void:
 	if cond:
@@ -446,19 +512,20 @@ func _test_opening_route() -> void:
 	game.pilot.touch_axis = 1.0
 	for frame: int in range(100):
 		await physics_frame
-	_check("the opening route reaches the zipper without teleporting", game.level_index == CLASSIC + 1)
+	_check("the opening route reaches the zipper without teleporting", game.cleared)
 	game.queue_free()
 	await process_frame
 
 
 func _test_screen_routes() -> void:
-	_check("every screen room has a route", SCREEN_ROUTES.size() == StitchfallLevels.LINEN_ROOMS)
+	_check("every screen room has a route", SCREEN_ROUTES.size() == StitchfallLevels.SCREEN_ROOMS)
 	for proof: Dictionary in SCREEN_ROUTES:
 		var room: int = proof["room"]
 		var solved: Dictionary = await _replay(room, proof["route"], 600)
 		_check("screen room %d is finished by its route without a hit" % room, solved["finished"] and solved["deaths"] == 0)
+		_check("screen room %d's route earns all three stars inside par" % room, solved["stars"] == 3)
 		if proof.has("naive"):
-			var naive: Dictionary = await _replay(room, proof["naive"], 300)
+			var naive: Dictionary = await _replay(room, proof["naive"], 600)
 			var caught: bool = naive["deaths"] > 0 if proof["caught"] == "hit" else not naive["finished"]
 			_check("screen room %d's prank catches the obvious run" % room, caught and not naive["finished"])
 
@@ -475,11 +542,12 @@ func _replay(room: int, script: String, frames: int) -> Dictionary:
 	for frame: int in range(frames):
 		StitchfallRoute.apply(game, steps, frame)
 		await physics_frame
-		if game.level_index != room:
+		if game.cleared:
 			finished = true
 			break
 	StitchfallRoute.release_all()
-	var result: Dictionary = {"finished": finished, "deaths": game.deaths}
+	var stars: int = game.last_result.get("stars", 0)
+	var result: Dictionary = {"finished": finished, "deaths": game.deaths, "stars": stars}
 	game.queue_free()
 	await process_frame
 	return result
@@ -491,6 +559,8 @@ func _test_stitchfall_playthrough() -> void:
 	root.add_child(game)
 	await process_frame
 	_check("title opens with play disabled", not game.playing)
+	game.progress.reset()
+	game._load_level(0)
 	game._on_begin()
 	_check("start enables the pilot", game.playing and game.pilot.control_enabled)
 	var start_x: float = game.pilot.position.x
@@ -515,7 +585,7 @@ func _test_stitchfall_playthrough() -> void:
 			game.pilot.reset_physics_interpolation()
 			await physics_frame
 			await physics_frame
-			_check("the pin activates when the runner reaches it", game.checkpoint_active)
+			_check("the flower blooms when the runner reaches it", game.checkpoint_active and game.flower_lit[0])
 			game.last_shift = -1.0
 			game._shift(1)
 			await process_frame
@@ -536,7 +606,22 @@ func _test_stitchfall_playthrough() -> void:
 			_check("a hit scatters the fabric runner", game.respawning and not game.pilot.visible and is_instance_valid(game.unravel))
 			for frame: int in range(45):
 				await physics_frame
-			_check("a hazard sends the runner to the pin and keeps buttons", not game.respawning and game.pilot.visible and game.pilot.position.distance_to(game.respawn_position) < 30.0 and game.collected[0])
+			_check("a hazard sends the runner to the flower", not game.respawning and game.pilot.visible and game.pilot.position.distance_to(game.respawn_position) < 30.0)
+			_check("a loose button comes back after an unravel", not game.collected[0] and not game.banked[0])
+			game.pilot.position = game.level["shards"][0]
+			game.pilot.reset_physics_interpolation()
+			await physics_frame
+			await physics_frame
+			game.pilot.position = game.level["checkpoint"]
+			game.pilot.reset_physics_interpolation()
+			await physics_frame
+			await physics_frame
+			_check("touching the flower again banks the button", game.banked[0])
+			game.pilot.position = game.level["hazards"][0].get_center() + Vector2(0, -25)
+			game.pilot.reset_physics_interpolation()
+			for frame: int in range(50):
+				await physics_frame
+			_check("a banked button survives an unravel", game.collected[0] and game.room_deaths == 2)
 		for spark_index: int in range(game.level["shards"].size()):
 			var spark: Vector2 = game.level["shards"][spark_index]
 			var required_phases: Array = game.level["shard_phases"]
@@ -558,6 +643,8 @@ func _test_stitchfall_playthrough() -> void:
 		game.pilot.reset_physics_interpolation()
 		await physics_frame
 		await physics_frame
+		_check("room %d is cleared and saved" % level_number, game.cleared and game.progress.stars(level_number) > 0)
+		game._on_next()
 		if level_number + 1 < StitchfallLevels.count():
 			_check("the next room opens after room %d" % level_number, game.level_index == level_number + 1)
 	_check("the final seam ending follows the last room", game.finished)

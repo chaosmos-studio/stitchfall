@@ -19,6 +19,9 @@ var compact: bool = false
 var home_link: bool = false
 var pause_action: bool = false
 var level_tile: bool = false
+# A level tile shows its best stars, or none while it is -1, and fades out while locked.
+var stars: int = -1
+var locked: bool = false
 var guide_card: bool = false
 
 
@@ -93,11 +96,17 @@ func _draw_pause_action(hovered: bool) -> void:
 
 
 func _draw_level_tile(hovered: bool) -> void:
-	var lift: float = -4.0 if hovered else 0.0
-	var tint: Color = cloth.lightened(0.1) if hovered else cloth
+	var lift: float = -4.0 if hovered and not locked else 0.0
+	var tint: Color = cloth.lightened(0.1) if hovered and not locked else cloth
+	if locked:
+		tint = tint.darkened(0.25)
+	var faded: Color = Color(ink, 0.45) if locked else ink
 	draw_texture_rect(ICON_PATCH, Rect2(Vector2(12, lift), Vector2(size.x - 24.0, size.y - 42.0)), false, tint)
-	draw_string(MENU_FONT, Vector2(0, size.y * 0.59 + lift), caption, HORIZONTAL_ALIGNMENT_CENTER, size.x, 88, ink)
-	draw_string(BODY_FONT, Vector2(0, size.y - 1.0 + lift), subcaption, HORIZONTAL_ALIGNMENT_CENTER, size.x, 34, ink)
+	draw_string(MENU_FONT, Vector2(0, size.y * 0.5 + lift), caption, HORIZONTAL_ALIGNMENT_CENTER, size.x, 88, faded)
+	if stars >= 0 and not locked:
+		for index: int in range(3):
+			StitchfallStarRow.draw_star(self, Vector2(size.x * 0.5 + float(index - 1) * 46.0, size.y * 0.66 + lift), 19.0, index < stars, StitchfallStarRow.GOLD)
+	draw_string(BODY_FONT, Vector2(0, size.y - 1.0 + lift), "Locked" if locked else subcaption, HORIZONTAL_ALIGNMENT_CENTER, size.x, 34, faded)
 
 
 func _draw_guide_card(hovered: bool) -> void:

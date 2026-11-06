@@ -3,10 +3,11 @@ extends Node
 # Plays a room by a short script and saves one frame, for the website, the blog and the press kit.
 # Run with --fixed-fps 60 so every frame steps the game by the same time:
 #   DISPLAY=:0 godot --path . --fixed-fps 60 res://tools/gallery.tscn -- <name> <room> "<frame>:<step>,..."
-# Steps: shift, +action and -action to hold and let go of an input action, and shot to save the frame.
+# Steps: a route's steps (shift, +action, -action), levels to open the level select, and shot to save the frame.
 # The PNG lands in user://gallery/<name>.png.
 
 func _ready() -> void:
+	StitchfallProgress.path = "user://gallery_progress.cfg"
 	var args: PackedStringArray = OS.get_cmdline_user_args()
 	var out_name: String = args[0]
 	var room: int = int(args[1])
@@ -24,13 +25,10 @@ func _ready() -> void:
 	game._load_level(room)
 	game._on_begin()
 	for frame: int in range(last + 1):
+		StitchfallRoute.apply(game, steps, frame)
 		for step: String in steps.get(frame, PackedStringArray()):
-			if step == "shift":
-				game._shift(1)
-			elif step.begins_with("+"):
-				Input.action_press(step.substr(1))
-			elif step.begins_with("-"):
-				Input.action_release(step.substr(1))
+			if step == "levels":
+				game._on_levels()
 			elif step == "shot":
 				await RenderingServer.frame_post_draw
 				var img: Image = get_viewport().get_texture().get_image()

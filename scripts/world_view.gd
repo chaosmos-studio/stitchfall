@@ -20,6 +20,10 @@ const NEEDLE_SINK: float = 4.0
 const NEEDLE_OUTLINE: float = 3.0
 const TRACK_SCALE: float = 0.3
 const TRACK_OVERHANG: float = 24.0
+const FLOWER_POP_TIME: float = 0.55
+const CONFETTI_COUNT: int = 70
+const CONFETTI_LIFE: float = 1.8
+const CONFETTI_FALL: float = 900.0
 const INK: Color = Color("493a37")
 const THREAD: Color = Color("f9e9ca")
 const RUST: Color = Color("b45d4c")
@@ -29,7 +33,6 @@ var level: Dictionary = {}
 var phase: int = 0
 var collected: Array[bool] = []
 var pad_armed: bool = false
-var checkpoint_active: bool = false
 var door_open: bool = false
 var time: float = 0.0
 var gravity_direction: Vector2 = Vector2.DOWN
@@ -45,6 +48,11 @@ var popup_raised: Array[bool] = []
 # Drawn positions, eased toward exit_position and the raised state so a move reads as motion.
 var exit_drawn: Vector2 = Vector2.ZERO
 var popup_rise: Array[float] = []
+var flower_lit: Array[bool] = []
+# Seconds since each flower bloomed, while its pop still plays.
+var flower_bloom: Dictionary[int, float] = {}
+# Thread snips and petals thrown up when the zipper takes the runner.
+var confetti: Array[Dictionary] = []
 
 
 func _ready() -> void:
@@ -58,6 +66,17 @@ func _process(delta: float) -> void:
 	if exit_drawn == Vector2.ZERO or exit_drawn.distance_to(exit_position) > 900.0:
 		exit_drawn = exit_position
 	exit_drawn = exit_drawn.move_toward(exit_position, delta * 2200.0)
+	for index: int in flower_bloom.keys():
+		flower_bloom[index] += delta
+		if flower_bloom[index] > FLOWER_POP_TIME:
+			flower_bloom.erase(index)
+	for bit: Dictionary in confetti:
+		var velocity: Vector2 = bit["velocity"]
+		bit["velocity"] = velocity * (1.0 - delta * 1.4) + gravity_direction * CONFETTI_FALL * delta
+		bit["pos"] += velocity * delta
+		bit["spin"] += float(bit["turn"]) * delta
+		bit["age"] += delta
+	confetti = confetti.filter(func(bit: Dictionary) -> bool: return float(bit["age"]) < CONFETTI_LIFE)
 	popup_rise.resize(popup_raised.size())
 	for index: int in range(popup_raised.size()):
 		popup_rise[index] = move_toward(popup_rise[index], 1.0 if popup_raised[index] else 0.0, delta * 9.0)
@@ -106,12 +125,13 @@ func _draw() -> void:
 			_draw_shard(level["shards"][index], index)
 	if level["pad"] != Vector2.ZERO:
 		_draw_pad(level["pad"])
-	if level["checkpoint"] != Vector2.ZERO:
-		_draw_checkpoint(level["checkpoint"])
+	for index: int in range(level["flowers"].size()):
+		_draw_flower(index)
 	_draw_door(exit_drawn)
 	_draw_loose_threads()
 	_draw_spark_bursts()
 	_draw_bloom_bursts()
+	_draw_confetti()
 	if shift_age < 0.68:
 		_draw_shift_seam()
 
@@ -398,10 +418,58 @@ func _draw_ferry_tracks() -> void:
 			draw_circle(end, 5.0, Color("d6b78d"))
 
 
-func _draw_checkpoint(pos: Vector2) -> void:
-	if checkpoint_active:
-		draw_circle(pos + Vector2(0, -37), 46.0 + sin(time * 3.0) * 3.0, Color("f6dda0", 0.2))
-	draw_texture_rect(CHECKPOINT, Rect2(pos + Vector2(-52, -76), Vector2(104, 130)), false, Color.WHITE if checkpoint_active else Color("c5b8a5"))
+# A flower stands on whichever surface its gravity points at. Unlit it is a faded, drooping bud; touched,
+# it pops open, glows and sways.
+func _draw_flower(index: int) -> void:
+	var flower: Dictionary = level["flowers"][index]
+	var gravity: Vector2 = flower["gravity"]
+	var lit: bool = index < flower_lit.size() and flower_lit[index]
+	var pop: float = 0.0
+	if flower_bloom.has(index):
+		var t: float = flower_bloom[index] / FLOWER_POP_TIME
+		pop = sin(t * PI) * (1.0 - t) * 0.9
+	var sway: float = sin(time * 1.8 + float(index)) * (0.05 if lit else 0.0) + (0.0 if lit else 0.12)
+	var grow: float = (1.0 if lit else 0.86) + pop
+	draw_set_transform(flower["pos"] + gravity * 54.0, gravity.angle() - PI * 0.5 + sway, Vector2.ONE * grow)
+	if lit:
+		draw_circle(Vector2(0, -92), 46.0 + sin(time * 3.0) * 3.0, Color("f6dda0", 0.22))
+	draw_texture_rect(CHECKPOINT, Rect2(Vector2(-52, -130), Vector2(104, 130)), false, Color.WHITE if lit else Color("b9ad9b", 0.9))
+	draw_set_transform(Vector2.ZERO)
+
+
+func bloom_flower(index: int) -> void:
+	flower_bloom[index] = 0.0
+	var flower: Dictionary = level["flowers"][index]
+	var gravity: Vector2 = flower["gravity"]
+	burst_bloom(flower["pos"] - gravity * 38.0)
+
+
+func celebrate(pos: Vector2) -> void:
+	var colours: Array[Color] = [Color(level.get("accent", RUST)), Color("e7c785"), THREAD, RUST, TEAL]
+	for index: int in range(CONFETTI_COUNT):
+		var angle: float = (-gravity_direction).angle() + randf_range(-1.1, 1.1)
+		confetti.append({
+			"pos": pos,
+			"velocity": Vector2.from_angle(angle) * randf_range(380.0, 900.0),
+			"spin": randf() * TAU,
+			"turn": randf_range(-9.0, 9.0),
+			"age": randf_range(0.0, 0.3),
+			"colour": colours[index % colours.size()],
+			"petal": index % 3 == 0,
+		})
+
+
+func _draw_confetti() -> void:
+	for bit: Dictionary in confetti:
+		var fade: float = clampf((CONFETTI_LIFE - float(bit["age"])) / 0.5, 0.0, 1.0)
+		var colour: Color = bit["colour"]
+		draw_set_transform(bit["pos"], bit["spin"], Vector2.ONE)
+		if bit["petal"]:
+			draw_circle(Vector2.ZERO, 7.0, Color(colour, fade))
+			draw_circle(Vector2(4, 0), 5.0, Color(colour.lightened(0.25), fade))
+		else:
+			draw_rect(Rect2(-9, -2, 18, 4), Color(colour, fade))
+	draw_set_transform(Vector2.ZERO)
 
 
 func _draw_shard(point: Vector2, index: int) -> void:

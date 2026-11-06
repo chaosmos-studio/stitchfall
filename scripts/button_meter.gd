@@ -2,6 +2,8 @@ class_name ButtonMeter
 extends Control
 
 var collected: int = 0
+# The first banked buttons are sewn on by a flower. The rest of the collected ones are loose and wobble.
+var banked: int = 0
 var total: int = 3
 var biome: int = 0
 var age: float = 0.0
@@ -57,9 +59,12 @@ func _draw() -> void:
 		draw_line(Vector2(x, size.y - 18), Vector2(x + 7, size.y - 18), colors[1], 1.6, true)
 	for index: int in range(total):
 		var center: Vector2 = Vector2(45.0 + float(index) * 55.0, size.y * 0.49)
-		var sewn: bool = index < collected
-		var button_color: Color = Color("e7c785") if sewn else colors[1].lightened(0.38)
-		var shimmer: float = sin(age * 2.8 + index * 0.7) * 0.7 if sewn else 0.0
+		var held: bool = index < collected
+		var sewn: bool = index < banked
+		if held and not sewn:
+			center += Vector2(sin(age * 9.0 + index), cos(age * 7.0 + index * 2.0)) * 1.6
+		var button_color: Color = Color("e7c785") if held else colors[1].lightened(0.38)
+		var shimmer: float = sin(age * 2.8 + index * 0.7) * 0.7 if held else 0.0
 		draw_circle(center + Vector2(2, 3), 17.0, Color("3e3533", 0.28))
 		draw_circle(center, 16.0 + shimmer, Color("493b36"))
 		draw_circle(center, 13.0 + shimmer, button_color)

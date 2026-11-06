@@ -7,6 +7,8 @@ signal restart_pressed
 signal home_pressed
 signal level_selected(index: int)
 signal sound_toggled(enabled: bool)
+signal next_pressed
+signal levels_pressed
 
 const INK: Color = Color("493a37")
 const PAPER: Color = Color("f7edda")
@@ -44,6 +46,19 @@ var level_buttons: Array[StitchedButton] = []
 var level_page_index: int = 0
 var level_previous: StitchedButton
 var level_next: StitchedButton
+var level_heading: Label
+var level_tally: Label
+var progress: StitchfallProgress
+var clear_page: Control
+var clear_name: Label
+var clear_stars: StitchfallStarRow
+var clear_time: Label
+var clear_quip: Label
+var clear_best: Label
+var clear_next: StitchedButton
+var clear_hero: AnimatedSprite2D
+var clear_tween: Tween
+var star_sound: AudioStreamPlayer
 var help_page: Control
 var about_page: Control
 var settings_page: Control
@@ -104,6 +119,7 @@ func _layout() -> void:
 	about_page.position.x = (root.size.x - 1920.0) * 0.5
 	settings_page.position.x = (root.size.x - 1920.0) * 0.5
 	pause_page.position.x = (root.size.x - 1920.0) * 0.5
+	clear_page.position.x = (root.size.x - 1920.0) * 0.5
 
 
 func _style(color: Color, border: Color, width: int) -> StyleBoxFlat:
@@ -198,6 +214,7 @@ func _build_pages() -> void:
 	_build_about()
 	_build_settings()
 	_build_pause()
+	_build_clear()
 	show_home()
 
 
@@ -266,34 +283,37 @@ func _dance_frames() -> SpriteFrames:
 func _build_levels() -> void:
 	level_page = _page()
 	_cloth_page(level_page, Rect2(65, 50, 1790, 970))
-	var heading: Label = _label(level_page, Vector2(290, 107), Vector2(1100, 105), 77, INK, true)
-	heading.add_theme_font_override("font", FONT_DISPLAY)
-	heading.text = "CHOOSE A SEAM"
+	level_heading = _label(level_page, Vector2(200, 100), Vector2(1200, 105), 77, INK, true)
+	level_heading.add_theme_font_override("font", FONT_DISPLAY)
+	level_tally = _label(level_page, Vector2(206, 200), Vector2(1100, 60), 36, ACCENT)
 	level_previous = _tag(level_page, Rect2(1460, 102, 100, 101), "", "back", Color("e5d5bc"))
 	level_previous.pressed.connect(func() -> void: _set_level_page(level_page_index - 1))
 	level_next = _tag(level_page, Rect2(1580, 102, 100, 101), "", "next", Color("e5d5bc"))
 	level_next.pressed.connect(func() -> void: _set_level_page(level_page_index + 1))
 	_tag(level_page, Rect2(1700, 102, 100, 101), "", "home", Color("e5d5bc")).pressed.connect(show_home)
-	for slot: int in range(8):
-		var column: int = slot % 4
-		var row: int = slot / 4
-		var button: StitchedButton = _tag(level_page, Rect2(165 + column * 405, 250 + row * 330, 385, 280), "", "seam", Color("f1e1c8"))
+	for slot: int in range(StitchfallLevels.CHAPTER_ROOMS):
+		var button: StitchedButton = _tag(level_page, Rect2(150 + slot * 330, 330, 310, 360), "", "seam", Color("f1e1c8"))
 		button.level_tile = true
 		button.pressed.connect(_select_visible_level.bind(slot))
 		level_buttons.append(button)
 	_set_level_page(0)
 
 
+# One page is one chapter, with its name, its stars so far, and its five rooms.
 func _set_level_page(value: int) -> void:
-	level_page_index = clampi(value, 0, floori(float(StitchfallLevels.count() - 1) / 8.0))
+	level_page_index = clampi(value, 0, StitchfallLevels.chapter_count() - 1)
 	level_previous.visible = level_page_index > 0
-	level_next.visible = (level_page_index + 1) * 8 < StitchfallLevels.count()
+	level_next.visible = level_page_index + 1 < StitchfallLevels.chapter_count()
+	level_heading.text = StitchfallLevels.chapter_name(level_page_index).to_upper()
+	var earned: int = 0
+	var rooms: int = 0
 	for slot: int in range(level_buttons.size()):
-		var index: int = level_page_index * 8 + slot
+		var index: int = level_page_index * StitchfallLevels.CHAPTER_ROOMS + slot
 		var button: StitchedButton = level_buttons[slot]
 		button.visible = index < StitchfallLevels.count()
 		if not button.visible:
 			continue
+		rooms += 1
 		var data: Dictionary = StitchfallLevels.get_level(index)
 		var biome: int = data["backdrop"]
 		var palette: Array[Color] = _biome_palette(biome)
@@ -302,8 +322,13 @@ func _set_level_page(value: int) -> void:
 		button.glyph = _biome_glyph(biome)
 		button.cloth = palette[0]
 		button.thread = palette[1]
+		button.stars = progress.stars(index) if progress != null else 0
+		button.locked = progress != null and not progress.is_open(index)
+		button.disabled = button.locked
 		button.tooltip_text = ""
+		earned += maxi(button.stars, 0)
 		button.queue_redraw()
+	level_tally.text = "Chapter %d     %d of %d stars" % [level_page_index + 1, earned, rooms * 3]
 
 
 func _build_help() -> void:
@@ -425,6 +450,91 @@ func _build_pause() -> void:
 	pause_home_button.pressed.connect(func() -> void: home_pressed.emit())
 
 
+# The card that closes a room: its stars pop in one by one, then the time against par and a line about how
+# many times the runner came apart.
+func _build_clear() -> void:
+	clear_page = _page()
+	_cloth_page(clear_page, Rect2(380, 110, 1160, 860))
+	var heading: Label = _label(clear_page, Vector2(450, 140), Vector2(800, 120), 92, INK, true)
+	heading.add_theme_font_override("font", FONT_DISPLAY)
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	heading.text = "SEWN!"
+	clear_name = _label(clear_page, Vector2(450, 250), Vector2(800, 56), 38, ACCENT, true)
+	clear_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	clear_stars = StitchfallStarRow.new()
+	clear_stars.position = Vector2(470, 310)
+	clear_stars.size = Vector2(760, 220)
+	clear_page.add_child(clear_stars)
+	clear_time = _label(clear_page, Vector2(450, 518), Vector2(800, 50), 34, INK)
+	clear_time.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	clear_quip = _label(clear_page, Vector2(450, 562), Vector2(800, 50), 30, ACCENT)
+	clear_quip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	clear_best = _label(clear_page, Vector2(450, 602), Vector2(800, 46), 30, Color("b8862a"), true)
+	clear_best.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var replay: StitchedButton = _tag(clear_page, Rect2(490, 660, 205, 210), "REPLAY", "restart", Color("dbe5d1"))
+	replay.pause_action = true
+	replay.pressed.connect(func() -> void: restart_pressed.emit())
+	var levels: StitchedButton = _tag(clear_page, Rect2(715, 660, 205, 210), "LEVELS", "levels", Color("e8d8bd"))
+	levels.pause_action = true
+	levels.pressed.connect(func() -> void: levels_pressed.emit())
+	clear_next = _tag(clear_page, Rect2(950, 640, 240, 240), "NEXT", "play", Color("e0a278"))
+	clear_next.pause_action = true
+	clear_next.pressed.connect(func() -> void: next_pressed.emit())
+	clear_hero = AnimatedSprite2D.new()
+	clear_hero.sprite_frames = _dance_frames()
+	clear_hero.sprite_frames.set_animation_speed("dance", 3.0)
+	clear_hero.scale = Vector2.ONE * 0.6
+	clear_hero.position = Vector2(1385, 560)
+	var material: ShaderMaterial = ShaderMaterial.new()
+	material.shader = CLEANUP_SHADER
+	clear_hero.material = material
+	clear_page.add_child(clear_hero)
+	star_sound = AudioStreamPlayer.new()
+	star_sound.stream = preload("res://assets/audio/sfx/spark.wav")
+	add_child(star_sound)
+
+
+func show_clear(_index: int, room_name: String, time: float, par: float, unravels: int, result: Dictionary) -> void:
+	clear_name.text = room_name
+	clear_time.text = "%.1f s     par %d s" % [time, ceili(par)]
+	clear_quip.text = _quip(unravels)
+	clear_best.text = "New best time" if result["faster"] else ("More stars than last time" if result["more_stars"] else "")
+	for star: int in range(3):
+		clear_stars.earned[star] = StitchfallProgress.star_earned(star, time, unravels, par)
+		clear_stars.pop[star] = 0.0
+	clear_stars.queue_redraw()
+	_show_screen("clear")
+	clear_hero.play("dance")
+	clear_next.grab_focus()
+	if clear_tween and clear_tween.is_running():
+		clear_tween.kill()
+	clear_tween = create_tween()
+	clear_tween.tween_interval(0.3)
+	for star: int in range(3):
+		clear_tween.tween_callback(_star_chime.bind(star))
+		clear_tween.tween_method(clear_stars.set_pop.bind(star), 0.0, 1.0, 0.38)
+
+
+func _star_chime(star: int) -> void:
+	if not audio_enabled or not clear_stars.earned[star]:
+		return
+	star_sound.pitch_scale = 1.0 + float(star) * 0.18
+	star_sound.play()
+
+
+# A line for the clear card, from how many times the runner unravelled in the room.
+func _quip(unravels: int) -> String:
+	if unravels == 0:
+		return "Not a thread out of place."
+	if unravels <= 2:
+		return "Unravelled %d %s. A little frayed, still standing." % [unravels, "time" if unravels == 1 else "times"]
+	if unravels <= 6:
+		return "Unravelled %d times. Worth it." % unravels
+	if unravels <= 14:
+		return "Unravelled %d times. The room enjoyed that." % unravels
+	return "Unravelled %d times. Stubborn as a knot." % unravels
+
+
 func _biome_palette(biome: int) -> Array[Color]:
 	match biome:
 		4: return [Color("d9e8e4"), Color("648b93")]
@@ -448,7 +558,7 @@ func _biome_glyph(biome: int) -> String:
 
 
 func _select_visible_level(slot: int) -> void:
-	level_selected.emit(level_page_index * 8 + slot)
+	level_selected.emit(level_page_index * StitchfallLevels.CHAPTER_ROOMS + slot)
 
 
 func _toggle_sound() -> void:
@@ -463,7 +573,10 @@ func _toggle_sound() -> void:
 func _show_screen(name: String) -> void:
 	screen = name
 	panel.visible = true
-	panel.color = Color("3c342f", 0.52) if name in ["pause", "finish"] else Color("f5ead5", 0.89)
+	panel.color = Color("3c342f", 0.52) if name in ["pause", "finish", "clear"] else Color("f5ead5", 0.89)
+	clear_page.visible = name == "clear"
+	if name != "clear":
+		clear_hero.stop()
 	fabric.visible = name in ["levels", "help", "about", "settings"]
 	home_page.visible = name == "home"
 	level_page.visible = name == "levels"
@@ -492,7 +605,8 @@ func _begin_from_home() -> void:
 
 
 func show_levels() -> void:
-	_set_level_page(0)
+	var resume: int = progress.continue_room(StitchfallLevels.count()) if progress != null else 0
+	_set_level_page(resume / StitchfallLevels.CHAPTER_ROOMS)
 	_show_screen("levels")
 
 
@@ -558,10 +672,14 @@ func _show_intro(title: String, instruction: String) -> void:
 	hint_body.text = instruction
 	hint_title.visible = not title.is_empty()
 	hint_body.position.y = 58 if not title.is_empty() else 35
+	# A name alone is a slim strip that leaves quickly, since a screen room's ceiling sits right under it.
+	var name_only: bool = instruction.is_empty()
+	hint_back.size.y = 66.0 if name_only else 154.0
+	hint_body.visible = not name_only
 	hint_back.visible = true
 	hint_back.modulate.a = 1.0
 	intro_tween = create_tween()
-	intro_tween.tween_interval(2.4)
+	intro_tween.tween_interval(1.4 if name_only else 2.4)
 	intro_tween.tween_property(hint_back, "modulate:a", 0.0, 0.55)
 	intro_tween.tween_callback(func() -> void: hint_back.visible = false)
 

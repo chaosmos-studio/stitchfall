@@ -42,7 +42,9 @@ Players also call it unfair and rage-inducing. Stitchfall should keep the surpri
 | Needle strip | `spikes` | Needles on any surface, pointing along `dir` |
 | Pop-up needles | `popups` | Lie flat, showing only their eyes, and stand up `delay` seconds after the runner enters `trigger` |
 | Runaway zipper | `exit_flee`, `flee_radius` | Once open, the zipper runs along its track to the next point when the runner comes near |
-| Fraying ledge | `fray_ledges` | Holds the runner for `delay` seconds, then comes apart |
+| Unpinned patch | `fray_ledges` | Looks sewn on but is only pinned. Shivers once stood on, drops after `delay` seconds, leaves its tacking stitches |
+| Pincushion | `pins` | Falls the way gravity points, as fast as the runner does, and hurts from every side. Pins stack on each other |
+| Flower | `flowers` | Stands on any surface (`gravity` is the way its stem points). Touching it banks your buttons, saves where the pins are, and makes it the place you come back to, facing that way |
 | Everything older | | Phase bridges, timed seams, moths, cutters, chains, weights, springs, blooms, the weighted patch, and the six worlds' forces |
 
 ## Chapter plan
@@ -55,8 +57,18 @@ Each chapter is one room layout played five times, each with a new prank, and th
    3. *Almost There*: the zipper runs up its track to the top corner. Turn the room over to reach it.
    4. *Nothing New*: needles on the floor and the ceiling, and a button in mid-air. Climb the left wall and fall sideways across the room.
    5. *One More Time*: everything at once, and the zipper starts on the ceiling and runs to the floor.
-2. **Loose Pins.** Pincushions that fall every time you turn. They block, they fill a pit you can then walk over, they land where you were about to land.
-3. **Unpinned.** Floors that come apart under you, and patches that only look sewn down.
+2. **Loose Pins** (built). A pin falls exactly as fast as you do, so it keeps its place in line with you through every turn.
+   1. *Mind the Pins*: jump the pin, grabbing the button over it.
+   2. *Heads Up*: the chapter one habit, turning over to the ceiling, lands the pin in your path. Get past the pin before you turn.
+   3. *Clean Sweep*: the zipper is on the ceiling and the pin waits under it. Turn once to sweep the pin into the far corner, climbing the wall to let it pass beneath you.
+   4. *Company*: two pins follow you all the way round the room. Jump as you turn so you fall in a different lane, and wait for them to settle before the last turn, or they drop on you from mid-room. A flower on the ceiling.
+   5. *Pin Drop*: pins on shelves over a needled floor, the ceiling button between where they land, and a race into the zipper before they land on it.
+3. **Unpinned** (built). The same needle pit five times, crossed on patches that look sewn on but are only pinned.
+   1. *Tacked On*: one patch, held long enough to cross.
+   2. *Keep Moving*: a row of patches that only lasts at a run. Stop for the button and you go in.
+   3. *Last Step*: two sewn steps and a third that only looks it. Jump the last step.
+   4. *No Way Back*: the bridge drops once crossed and the zipper is back at the start. Come home by the ceiling.
+   5. *Hold On*: Keep Moving's habit sends you onto a patch that drops at a touch. Stop at the flower on the island, turn up for the button between two needle strips, turn back down, and jump the trap.
 4. **The Turning Seam.** Stitched bands that turn gravity when you cross them, as trap and as help.
 5. **Lit Seams.** The phase bridges, now with the prank that a turn mid-crossing takes your bridge away.
 6. **The Weighted Patch.** The patch as a shield, a step and a falling danger.
@@ -64,7 +76,15 @@ Each chapter is one room layout played five times, each with a new prank, and th
 
 A chapter is built, proved by its routes, then played on a phone before the next one starts.
 
+## Rewards
+
+- **Three stars a room.** *Sewn* for finishing, *Unbroken* for finishing without an unravel, *Quick* for beating par. A room's par is its proved route's time times 1.5, rounded up (`SCREEN_PARS`), and the tests check every route earns all three.
+- **The clear card.** The stars pop in one by one with a chime, then the time against par, a line about how many times you unravelled, and a call-out for a new best. Next, Replay and Levels.
+- **Buttons are loose until a flower banks them.** An unravel shakes every loose button back to where it was found. A room without a flower is all or nothing.
+- **Saved progress** (`scripts/progress.gd`, `user://progress.cfg`): each room's best stars and time. A room opens once the one before it is sewn, Play continues from the first room not yet sewn, and Levels shows one chapter a page with its stars.
+- **Drama.** The camera shakes on a hit, on every prank (needles popping up, the zipper running, a patch giving way) and when a pin lands, and the zipper throws up thread snips and petals when it takes you.
+
 ## Art
 
 The needle strips (`needle_strip_raised.png`, `needle_strip_flat.png`) and the zipper track (`zipper_track.png`) are drawn by `scripts/world_view.gd`, tiled along any surface and turned to face it.
-The pincushion, the turning seam and the unpinned patch are in `assets/art/props/` for chapters 2 to 4, and are wired in with their parts.
+The pincushion (`scripts/pincushion.gd`) and the unpinned patch (`scripts/fray_ledge.gd`) draw their art. The turning seam waits for chapter 4.
