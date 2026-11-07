@@ -119,7 +119,6 @@ func _action(rect: Rect2, caption: String, glyph: String, colour: Color) -> Stit
 	value.caption = caption
 	value.glyph = glyph
 	value.cloth = colour
-	value.thread = Color("805d50")
 	value.pause_action = true
 	_page.add_child(value)
 	return value

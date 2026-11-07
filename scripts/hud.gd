@@ -291,7 +291,6 @@ func _tag(parent: Control, rect: Rect2, caption: String, glyph: String, color: C
 	value.caption = caption
 	value.glyph = glyph
 	value.cloth = color
-	value.thread = Color("805d50")
 	value.tooltip_text = glyph.capitalize() if caption.is_empty() else ""
 	value.pressed.connect(_tap)
 	parent.add_child(value)
@@ -454,12 +453,10 @@ func _set_level_page(value: int) -> void:
 		rooms += 1
 		var data: Dictionary = StitchfallLevels.get_level(index)
 		var biome: int = data["backdrop"]
-		var palette: Array[Color] = _biome_palette(biome)
 		button.caption = "%02d" % [index + 1]
 		button.subcaption = data["name"]
 		button.glyph = _biome_glyph(biome)
-		button.cloth = palette[0]
-		button.thread = palette[1]
+		button.cloth = _biome_cloth(biome)
 		button.stars = progress.stars(index) if progress != null else 0
 		button.locked = progress != null and not StitchfallShop.room_open(progress, index)
 		button.disabled = button.locked
@@ -1145,15 +1142,15 @@ static func version_name() -> String:
 	return "?"
 
 
-func _biome_palette(biome: int) -> Array[Color]:
+func _biome_cloth(biome: int) -> Color:
 	match biome:
-		4: return [Color("d9e8e4"), Color("648b93")]
-		5: return [Color("f1d7a8"), Color("ae754b")]
-		6: return [Color("dfe8c8"), Color("6f8962")]
-		7: return [Color("d8d3e3"), Color("79779d")]
-		8: return [Color("dce8e2"), Color("6d9aa2")]
-		9: return [Color("e9e9ec"), Color("91a5ba")]
-	return [Color("f1e1c8"), Color("a47660")]
+		4: return Color("d9e8e4")
+		5: return Color("f1d7a8")
+		6: return Color("dfe8c8")
+		7: return Color("d8d3e3")
+		8: return Color("dce8e2")
+		9: return Color("e9e9ec")
+	return Color("f1e1c8")
 
 
 func _biome_glyph(biome: int) -> String:
@@ -1343,7 +1340,7 @@ func set_room_intro(title: String) -> void:
 	intro_tween.tween_callback(func() -> void: hint_back.visible = false)
 
 
-func set_status(_index: int, _name: String, sparks: int, total_sparks: int, _cargo_needed: bool, _cargo_armed: bool, _time_text: String, _gravity: Vector2, biome: int) -> void:
+func set_status(sparks: int, total_sparks: int, biome: int) -> void:
 	meter.collected = sparks
 	meter.total = total_sparks
 	meter.biome = biome
@@ -1356,6 +1353,5 @@ func set_status(_index: int, _name: String, sparks: int, total_sparks: int, _car
 		border.thread_color = palette[1]
 		border.queue_redraw()
 	pause_button.cloth = palette[0]
-	pause_button.thread = palette[1]
 	pause_button.queue_redraw()
 	hint_back.add_theme_stylebox_override("panel", _style(palette[0], palette[1], 2))

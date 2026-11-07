@@ -16,9 +16,7 @@ var caption: String = ""
 var subcaption: String = ""
 var glyph: String = ""
 var cloth: Color = Color("f1e2c8")
-var thread: Color = Color("8f6758")
 var ink: Color = Color("493a37")
-var compact: bool = false
 var home_link: bool = false
 var pause_action: bool = false
 var level_tile: bool = false
@@ -27,7 +25,6 @@ var stars: int = -1
 var locked: bool = false
 # A caption's font size, or 0 to size it from the button.
 var caption_size: int = 0
-var guide_card: bool = false
 # A pack in the Shop: a tall felt patch with its icon, name, what it holds, and its price or that it is owned.
 var shop_card: bool = false
 var lines: PackedStringArray = PackedStringArray()
@@ -59,9 +56,6 @@ func _draw() -> void:
 	if level_tile:
 		_draw_level_tile(hovered)
 		return
-	if guide_card:
-		_draw_guide_card(hovered)
-		return
 	if shop_card:
 		_draw_shop_card(hovered)
 		return
@@ -71,15 +65,15 @@ func _draw() -> void:
 		draw_texture_rect(ICON_PATCH, Rect2(Vector2(0, lift), size), false, tint)
 	else:
 		_draw_plate(lift, tint)
-	var icon_center: Vector2 = Vector2(size.x * (0.5 if caption.is_empty() or compact else 0.18), size.y * (0.29 if compact else 0.48) + lift)
-	var icon_scale: float = minf(size.x, size.y) * (0.15 if compact else (0.26 if caption.is_empty() else 0.19))
+	var icon_center: Vector2 = Vector2(size.x * (0.5 if caption.is_empty() else 0.18), size.y * 0.48 + lift)
+	var icon_scale: float = minf(size.x, size.y) * (0.26 if caption.is_empty() else 0.19)
 	if not glyph.is_empty():
-		_draw_icon(icon_center, icon_scale, ink)
+		_draw_icon(icon_center, icon_scale)
 	if not caption.is_empty():
-		var font_size: int = caption_size if caption_size > 0 else (43 if compact else (55 if size.x >= 680 else (44 if size.y > 110 else 38)))
-		var text_left: float = 18.0 if compact or glyph.is_empty() else size.x * 0.33
-		var baseline: float = size.y * (0.74 if compact else (0.54 if subcaption.is_empty() else 0.42)) + lift
-		draw_string(FONT, Vector2(text_left, baseline), caption, HORIZONTAL_ALIGNMENT_CENTER if compact or subcaption.is_empty() else HORIZONTAL_ALIGNMENT_LEFT, size.x - text_left * 2.0 if compact or glyph.is_empty() else size.x - text_left - 34.0, font_size, ink)
+		var font_size: int = caption_size if caption_size > 0 else (55 if size.x >= 680 else (44 if size.y > 110 else 38))
+		var text_left: float = 18.0 if glyph.is_empty() else size.x * 0.33
+		var baseline: float = size.y * (0.54 if subcaption.is_empty() else 0.42) + lift
+		draw_string(FONT, Vector2(text_left, baseline), caption, HORIZONTAL_ALIGNMENT_CENTER if subcaption.is_empty() else HORIZONTAL_ALIGNMENT_LEFT, size.x - text_left * 2.0 if glyph.is_empty() else size.x - text_left - 34.0, font_size, ink)
 		if not subcaption.is_empty():
 			var small_size: int = 43 if size.x > 720 else 32
 			draw_string(BODY_FONT, Vector2(text_left, size.y * 0.78 + lift), subcaption, HORIZONTAL_ALIGNMENT_LEFT, size.x - text_left - 34.0, small_size, ink)
@@ -90,7 +84,7 @@ func _draw_home_link(hovered: bool) -> void:
 	var icon_position: Vector2 = Vector2(9.0, (size.y - icon_size) * 0.5)
 	var tint: Color = cloth.lightened(0.1) if hovered else cloth
 	draw_texture_rect(ICON_PATCH, Rect2(icon_position, Vector2.ONE * icon_size), false, tint)
-	_draw_icon(icon_position + Vector2.ONE * icon_size * 0.5, icon_size * 0.24, ink)
+	_draw_icon(icon_position + Vector2.ONE * icon_size * 0.5, icon_size * 0.24)
 	var baseline: float = size.y * 0.68
 	var font_size: int = 59 if glyph == "play" else 48
 	var label_color: Color = ink.lightened(0.1) if hovered else ink
@@ -103,7 +97,7 @@ func _draw_pause_action(hovered: bool) -> void:
 	var patch_position: Vector2 = Vector2((size.x - patch_size) * 0.5, 0.0 + lift)
 	var tint: Color = cloth.lightened(0.12) if hovered else cloth
 	draw_texture_rect(ICON_PATCH, Rect2(patch_position, Vector2.ONE * patch_size), false, tint)
-	_draw_icon(patch_position + Vector2.ONE * patch_size * 0.5, patch_size * 0.23, ink)
+	_draw_icon(patch_position + Vector2.ONE * patch_size * 0.5, patch_size * 0.23)
 	var font_size: int = caption_size if caption_size > 0 else (32 if caption.length() > 8 else (46 if size.x > 260.0 else 42))
 	draw_string(MENU_FONT, Vector2(0, size.y - 8.0 + lift), caption, HORIZONTAL_ALIGNMENT_CENTER, size.x, font_size, ink)
 
@@ -122,19 +116,11 @@ func _draw_level_tile(hovered: bool) -> void:
 	draw_string(BODY_FONT, Vector2(0, size.y - 1.0 + lift), "Locked" if locked else subcaption, HORIZONTAL_ALIGNMENT_CENTER, size.x, 34, faded)
 
 
-func _draw_guide_card(hovered: bool) -> void:
-	var tint: Color = cloth.lightened(0.1) if hovered else cloth
-	draw_texture_rect(ICON_PATCH, Rect2(20, 16, 148, 148), false, tint)
-	_draw_icon(Vector2(94, 90), 44.0, ink)
-	draw_string(MENU_FONT, Vector2(195, 82), caption, HORIZONTAL_ALIGNMENT_LEFT, size.x - 210.0, 50, ink)
-	draw_string(BODY_FONT, Vector2(195, 140), subcaption, HORIZONTAL_ALIGNMENT_LEFT, size.x - 210.0, 32, ink)
-
-
 func _draw_shop_card(hovered: bool) -> void:
 	var lift: float = -4.0 if hovered and not owned else 0.0
 	var tint: Color = cloth.lightened(0.1) if hovered and not owned else cloth
 	draw_texture_rect(ICON_PATCH, Rect2(Vector2(6, lift), Vector2(size.x - 12.0, size.y - 8.0)), false, tint)
-	_draw_icon(Vector2(size.x * 0.5, 104.0 + lift), 44.0, ink)
+	_draw_icon(Vector2(size.x * 0.5, 104.0 + lift), 44.0)
 	draw_string(MENU_FONT, Vector2(0, 214.0 + lift), caption, HORIZONTAL_ALIGNMENT_CENTER, size.x, caption_size if caption_size > 0 else 40, ink)
 	for index: int in range(lines.size()):
 		draw_string(BODY_FONT, Vector2(20, 262.0 + float(index) * 38.0 + lift), lines[index], HORIZONTAL_ALIGNMENT_CENTER, size.x - 40.0, 26, ink)
@@ -156,130 +142,23 @@ func _draw_plate(lift: float, tint: Color) -> void:
 			draw_texture_rect_region(PLATE, destination, source, tint)
 
 
-func _draw_icon(center: Vector2, radius: float, color: Color) -> void:
-	var p: Vector2 = center
-	var r: float = radius
-	var shown: String = glyph
+func _draw_icon(center: Vector2, radius: float) -> void:
 	var extra_index: int = EXTRA_GLYPHS.find(glyph)
 	if extra_index >= 0:
 		var extra_cell: Vector2 = Vector2(float(EXTRA_ICONS.get_width()) / 4.0, float(EXTRA_ICONS.get_height()) / 3.0)
 		var extra_source: Rect2 = Rect2(Vector2(float(extra_index % 4) * extra_cell.x, float(extra_index / 4) * extra_cell.y), extra_cell)
-		draw_texture_rect_region(EXTRA_ICONS, Rect2(p - Vector2.ONE * r * 1.325, Vector2.ONE * r * 2.65), extra_source)
+		draw_texture_rect_region(EXTRA_ICONS, Rect2(center - Vector2.ONE * radius * 1.325, Vector2.ONE * radius * 2.65), extra_source)
 		return
-	var icon_index: int = ["play", "home", "help", "settings", "pause", "restart", "levels", "back", "next", "sound", "mute", "fullscreen"].find(shown)
+	var icon_index: int = ["play", "home", "help", "settings", "pause", "restart", "levels", "back", "next", "sound", "mute", "fullscreen"].find(glyph)
 	if icon_index >= 0:
 		var cell: Vector2 = Vector2(float(ICONS.get_width()) / 4.0, float(ICONS.get_height()) / 3.0)
 		var source: Rect2 = Rect2(Vector2(float(icon_index % 4) * cell.x, float(icon_index / 4) * cell.y), cell)
-		var extent: Vector2 = Vector2.ONE * r * 2.65
-		draw_texture_rect_region(ICONS, Rect2(p - extent * 0.5, extent), source)
+		var extent: Vector2 = Vector2.ONE * radius * 2.65
+		draw_texture_rect_region(ICONS, Rect2(center - extent * 0.5, extent), source)
 		return
-	var world_index: int = ["move", "jump", "crouch", "shift", "seam", "water", "dunes", "forest", "night", "rain", "frost", "knot"].find(shown)
+	var world_index: int = ["move", "jump", "crouch", "shift", "seam", "water", "dunes", "forest", "night", "rain", "frost", "knot"].find(glyph)
 	if world_index >= 0:
 		var world_cell: Vector2 = Vector2(float(WORLD_ICONS.get_width()) / 4.0, float(WORLD_ICONS.get_height()) / 3.0)
 		var world_source: Rect2 = Rect2(Vector2(float(world_index % 4) * world_cell.x, float(world_index / 4) * world_cell.y), world_cell)
-		var world_extent: Vector2 = Vector2.ONE * r * 2.65
-		draw_texture_rect_region(WORLD_ICONS, Rect2(p - world_extent * 0.5, world_extent), world_source)
-		return
-	match glyph:
-		"left", "right":
-			var side: float = -1.0 if glyph == "left" else 1.0
-			var tip: Vector2 = p + Vector2(side * r * 0.7, 0)
-			var base: Vector2 = p + Vector2(-side * r * 0.1, 0)
-			draw_line(p + Vector2(-side * r * 0.62, 0), tip, color, 8.0, true)
-			draw_colored_polygon(PackedVector2Array([tip, base + Vector2(0, -r * 0.46), base + Vector2(0, r * 0.46)]), color)
-			draw_line(p + Vector2(-side * r * 0.42, 0), p + Vector2(side * r * 0.08, 0), Color("f7e8cc"), 2.5, true)
-			for offset: float in [-0.28, -0.05, 0.18]:
-				draw_circle(p + Vector2(side * r * offset, 0), 1.8, Color("f7e8cc"))
-		"pause":
-			draw_line(p + Vector2(-r * 0.34, -r * 0.62), p + Vector2(-r * 0.34, r * 0.62), color, 7.0, true)
-			draw_line(p + Vector2(r * 0.34, -r * 0.62), p + Vector2(r * 0.34, r * 0.62), color, 7.0, true)
-		"play":
-			draw_colored_polygon(PackedVector2Array([p + Vector2(-r * 0.5, -r * 0.72), p + Vector2(r * 0.7, 0), p + Vector2(-r * 0.5, r * 0.72)]), color)
-		"home":
-			draw_polyline(PackedVector2Array([p + Vector2(-r * 0.78, -r * 0.08), p + Vector2(0, -r * 0.75), p + Vector2(r * 0.78, -r * 0.08)]), color, 5.0, true)
-			draw_rect(Rect2(p + Vector2(-r * 0.54, -r * 0.05), Vector2(r * 1.08, r * 0.78)), color, false, 4.0, true)
-			draw_line(p + Vector2(0, r * 0.7), p + Vector2(0, r * 0.2), color, 3.0, true)
-		"back":
-			draw_line(p + Vector2(r * 0.62, 0), p + Vector2(-r * 0.62, 0), color, 5.0, true)
-			draw_polyline(PackedVector2Array([p + Vector2(-r * 0.1, -r * 0.55), p + Vector2(-r * 0.7, 0), p + Vector2(-r * 0.1, r * 0.55)]), color, 5.0, true)
-		"next":
-			draw_line(p + Vector2(-r * 0.62, 0), p + Vector2(r * 0.62, 0), color, 5.0, true)
-			draw_polyline(PackedVector2Array([p + Vector2(r * 0.1, -r * 0.55), p + Vector2(r * 0.7, 0), p + Vector2(r * 0.1, r * 0.55)]), color, 5.0, true)
-		"levels":
-			for x: int in range(2):
-				for y: int in range(2):
-					var q: Vector2 = p + Vector2((float(x) - 0.5) * r * 0.82, (float(y) - 0.5) * r * 0.82)
-					draw_rect(Rect2(q - Vector2.ONE * r * 0.27, Vector2.ONE * r * 0.54), color, false, 3.0, true)
-		"restart":
-			draw_arc(p, r * 0.64, -PI * 0.65, PI * 0.85, 20, color, 5.0, true)
-			draw_colored_polygon(PackedVector2Array([p + Vector2(-r * 0.67, -r * 0.12), p + Vector2(-r * 0.78, -r * 0.7), p + Vector2(-r * 0.15, -r * 0.51)]), color)
-		"help":
-			draw_arc(p + Vector2(0, -r * 0.18), r * 0.36, PI * 1.12, TAU * 1.08, 16, color, 4.0, true)
-			draw_line(p + Vector2(r * 0.2, r * 0.05), p + Vector2(0, r * 0.36), color, 4.0, true)
-			draw_circle(p + Vector2(0, r * 0.64), 3.5, color)
-		"sound":
-			draw_colored_polygon(PackedVector2Array([p + Vector2(-r * 0.74, -r * 0.27), p + Vector2(-r * 0.38, -r * 0.27), p + Vector2(0, -r * 0.6), p + Vector2(0, r * 0.6), p + Vector2(-r * 0.38, r * 0.27), p + Vector2(-r * 0.74, r * 0.27)]), color)
-			draw_arc(p, r * 0.49, -PI * 0.34, PI * 0.34, 12, color, 3.5, true)
-		"mute":
-			_draw_icon_speaker(p, r, color)
-			draw_line(p + Vector2(r * 0.28, -r * 0.44), p + Vector2(r * 0.83, r * 0.44), color, 4.0, true)
-		"settings":
-			draw_arc(p, r * 0.58, 0, TAU, 24, color, 4.0, true)
-			draw_circle(p, r * 0.18, color)
-			for angle: float in [0.0, PI * 0.5, PI, PI * 1.5]:
-				var q: Vector2 = p + Vector2.from_angle(angle) * r * 0.73
-				draw_line(q - Vector2.from_angle(angle) * r * 0.12, q + Vector2.from_angle(angle) * r * 0.12, color, 5.0, true)
-		"fullscreen":
-			for side_x: float in [-1.0, 1.0]:
-				for side_y: float in [-1.0, 1.0]:
-					var corner: Vector2 = p + Vector2(side_x, side_y) * r * 0.65
-					draw_line(corner, corner - Vector2(side_x * r * 0.37, 0), color, 5.0, true)
-					draw_line(corner, corner - Vector2(0, side_y * r * 0.37), color, 5.0, true)
-		"seam":
-			draw_arc(p, r * 0.52, 0, TAU, 24, color, 3.0, true)
-			for angle: float in [PI * 0.25, PI * 0.75, PI * 1.25, PI * 1.75]:
-				draw_circle(p + Vector2.from_angle(angle) * r * 0.29, 2.5, color)
-		"move":
-			draw_line(p + Vector2(-r * 0.65, 0), p + Vector2(r * 0.65, 0), color, 4.0, true)
-			for side: float in [-1.0, 1.0]:
-				var tip: Vector2 = p + Vector2(side * r * 0.74, 0)
-				draw_polyline(PackedVector2Array([tip - Vector2(side * r * 0.3, r * 0.3), tip, tip - Vector2(side * r * 0.3, -r * 0.3)]), color, 4.0, true)
-		"jump":
-			draw_line(p + Vector2(0, r * 0.7), p + Vector2(0, -r * 0.6), color, 4.0, true)
-			draw_polyline(PackedVector2Array([p + Vector2(-r * 0.34, -r * 0.22), p + Vector2(0, -r * 0.7), p + Vector2(r * 0.34, -r * 0.22)]), color, 4.0, true)
-			draw_arc(p + Vector2(0, r * 0.58), r * 0.42, PI, TAU, 14, color, 2.0, true)
-		"crouch":
-			draw_line(p + Vector2(0, -r * 0.65), p + Vector2(0, r * 0.28), color, 4.0, true)
-			draw_polyline(PackedVector2Array([p + Vector2(-r * 0.32, 0), p + Vector2(0, r * 0.4), p + Vector2(r * 0.32, 0)]), color, 4.0, true)
-			draw_line(p + Vector2(-r * 0.65, r * 0.68), p + Vector2(r * 0.65, r * 0.68), color, 4.0, true)
-		"shift":
-			draw_arc(p, r * 0.62, -PI * 0.72, PI * 0.28, 18, color, 4.0, true)
-			draw_arc(p, r * 0.62, PI * 0.28, PI * 1.28, 18, color, 4.0, true)
-			draw_colored_polygon(PackedVector2Array([p + Vector2(r * 0.51, -r * 0.47), p + Vector2(r * 0.8, -r * 0.47), p + Vector2(r * 0.68, -r * 0.07)]), color)
-		"water":
-			for row: int in range(2):
-				for column: int in range(2):
-					var q: Vector2 = p + Vector2((float(column) - 0.5) * r * 0.95, (float(row) - 0.5) * r * 0.6)
-					draw_arc(q, r * 0.32, 0, PI, 12, color, 3.0, true)
-		"dunes":
-			draw_polyline(PackedVector2Array([p + Vector2(-r * 0.78, r * 0.45), p + Vector2(-r * 0.12, -r * 0.36), p + Vector2(r * 0.72, r * 0.45)]), color, 3.0, true)
-			draw_line(p + Vector2(-r * 0.4, r * 0.57), p + Vector2(r * 0.7, r * 0.57), color, 2.0, true)
-		"forest":
-			draw_colored_polygon(PackedVector2Array([p + Vector2(-r * 0.5, r * 0.5), p + Vector2(-r * 0.28, -r * 0.5), p + Vector2(r * 0.5, -r * 0.42), p + Vector2(r * 0.32, r * 0.4)]), color)
-			draw_line(p + Vector2(-r * 0.64, r * 0.7), p + Vector2(r * 0.32, -r * 0.31), Color("f4ead4"), 2.0, true)
-		"night":
-			for q: Vector2 in [p, p + Vector2(-r * 0.5, -r * 0.3), p + Vector2(r * 0.48, r * 0.25)]:
-				draw_line(q + Vector2(0, -r * 0.23), q + Vector2(0, r * 0.23), color, 2.0, true)
-				draw_line(q + Vector2(-r * 0.23, 0), q + Vector2(r * 0.23, 0), color, 2.0, true)
-		"rain":
-			for column: int in range(3):
-				var q: Vector2 = p + Vector2((float(column) - 1.0) * r * 0.5, (float(column % 2) - 0.5) * r * 0.3)
-				draw_line(q + Vector2(3, -r * 0.36), q + Vector2(-3, r * 0.37), color, 3.0, true)
-		"frost":
-			for angle: float in [0.0, PI / 3.0, PI * 2.0 / 3.0]:
-				var d: Vector2 = Vector2.from_angle(angle) * r * 0.72
-				draw_line(p - d, p + d, color, 3.0, true)
-
-
-func _draw_icon_speaker(p: Vector2, r: float, color: Color) -> void:
-	draw_colored_polygon(PackedVector2Array([p + Vector2(-r * 0.74, -r * 0.27), p + Vector2(-r * 0.38, -r * 0.27), p + Vector2(0, -r * 0.6), p + Vector2(0, r * 0.6), p + Vector2(-r * 0.38, r * 0.27), p + Vector2(-r * 0.74, r * 0.27)]), color)
+		var world_extent: Vector2 = Vector2.ONE * radius * 2.65
+		draw_texture_rect_region(WORLD_ICONS, Rect2(center - world_extent * 0.5, world_extent), world_source)

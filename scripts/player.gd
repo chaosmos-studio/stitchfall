@@ -24,7 +24,6 @@ var touch_axis: float = 0.0
 var touch_jump: bool = false
 var touch_crouch: bool = false
 var crouching: bool = false
-var jump_cut_requested: bool = false
 var control_enabled: bool = true
 var coyote: float = 0.0
 var jump_buffer: float = 0.0
@@ -184,10 +183,8 @@ func _physics_process(delta: float) -> void:
 		takeoff_time = 0.14
 		landing_time = 0.0
 		jumped.emit()
-	if jump_cut_requested or Input.is_action_just_released("jump"):
-		if falling < -JUMP_SPEED * 0.48:
-			falling = -JUMP_SPEED * 0.48
-		jump_cut_requested = false
+	if Input.is_action_just_released("jump") and falling < -JUMP_SPEED * 0.48:
+		falling = -JUMP_SPEED * 0.48
 	velocity = tangent * along + gravity_direction * falling
 	move_and_slide()
 	if absf(axis) > 0.1:
@@ -244,10 +241,6 @@ func set_gravity_direction(direction: Vector2) -> void:
 
 func queue_touch_jump() -> void:
 	touch_jump = true
-
-
-func release_touch_jump() -> void:
-	jump_cut_requested = true
 
 
 func set_touch_crouch(value: bool) -> void:

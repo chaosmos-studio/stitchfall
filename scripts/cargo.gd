@@ -2,7 +2,6 @@ class_name StitchfallCargo
 extends RigidBody2D
 
 var gravity_direction: Vector2 = Vector2.DOWN
-var glow_time: float = 0.0
 # Where an unravel puts it back, the way a pin goes back: its start, until a flower saves where it is now.
 var start: Vector2 = Vector2.ZERO
 
@@ -32,10 +31,8 @@ func reset(gravity: Vector2) -> void:
 	reset_physics_interpolation()
 
 
-func _physics_process(delta: float) -> void:
+func _physics_process(_delta: float) -> void:
 	apply_central_force(gravity_direction * 1050.0 * mass)
-	glow_time += delta
-	queue_redraw()
 
 
 func _draw() -> void:

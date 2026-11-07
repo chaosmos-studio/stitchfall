@@ -76,7 +76,6 @@ var exit_flees: int = 0
 var unravel: StitchfallUnravel
 var camera: Camera2D
 var hud: StitchfallHud
-var sound: AudioStreamPlayer
 var step_sound: AudioStreamPlayer
 var music: AudioStreamPlayer
 var audio_enabled: bool = true
@@ -116,7 +115,6 @@ func _ready() -> void:
 		var voice: AudioStreamPlayer = AudioStreamPlayer.new()
 		add_child(voice)
 		voices.append(voice)
-	sound = voices[0]
 	step_sound = AudioStreamPlayer.new()
 	add_child(step_sound)
 	music = AudioStreamPlayer.new()
@@ -644,7 +642,6 @@ func _respawn() -> void:
 	pilot.set_physics_process(true)
 	pilot.velocity = Vector2.ZERO
 	pilot.jump_buffer = 0.0
-	pilot.jump_cut_requested = false
 	pilot.touch_jump = false
 	pilot.set_touch_crouch(false)
 	pilot.touch_axis = 0.0
@@ -1048,4 +1045,4 @@ func _update_hud() -> void:
 	if level.is_empty():
 		return
 	hud.meter.banked = banked.count(true)
-	hud.set_status(level_index, level["name"], collected.count(true), collected.size(), level["pad"] != Vector2.ZERO, pad_armed, _format_time(run_time), gravity_direction, world._backdrop())
+	hud.set_status(collected.count(true), collected.size(), world._backdrop())

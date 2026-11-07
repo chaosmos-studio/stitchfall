@@ -5,9 +5,8 @@ extends RefCounted
 
 const NAME: String = "Loose Pins"
 const LINE: String = "Whatever you turn, falls with you."
-# Where a pincushion rests on the floor or the ceiling, its centre one body radius off the surface.
+# Where a pincushion rests on the floor, its centre one body radius off the surface.
 const PIN_FLOOR: float = StitchfallLevels.FLOOR_Y - 30.0
-const PIN_CEILING: float = StitchfallLevels.CEILING_Y + 30.0
 # The naive runs are the habits the chapter punishes: flipping with a pin in line, and walking into one.
 const ROUTES: Array[Dictionary] = [
 	{"route": "0:+move_right,80:+jump,100:-jump", "naive": "0:+move_right", "caught": "hit"},

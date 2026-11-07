@@ -1164,15 +1164,6 @@ func _test_movement_feel() -> void:
 	pilot.set_gravity_direction(Vector2.LEFT)
 	_check("gravity turns preserve incoming momentum", pilot.velocity.is_equal_approx(momentum))
 	_check("the pilot art begins its turn from the previous world angle", absf(pilot.sprite.global_rotation) < 0.02)
-	_check("touch jump supports a release", pilot.has_method("release_touch_jump"))
-	if pilot.has_method("release_touch_jump"):
-		pilot.set_gravity_direction(Vector2.DOWN)
-		pilot.velocity = Vector2(0, -500)
-		pilot.control_enabled = true
-		pilot.release_touch_jump()
-		await physics_frame
-		await physics_frame
-		_check("releasing jump reduces upward speed", pilot.velocity.y > -400.0)
 	pilot.queue_free()
 	await process_frame
 	var inverted: StitchfallCourier = StitchfallCourier.new()
