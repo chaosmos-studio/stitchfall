@@ -251,7 +251,7 @@ jobs:
           ! grep -E 'SCRIPT ERROR|Parse Error' tests.log
           grep -Eq '==== TESTS: [0-9]+ passed, 0 failed ====' tests.log
 
-      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
         with:
           distribution: temurin
           java-version: "17"
@@ -489,7 +489,7 @@ jobs:
 
       # A real release keeps its files on the GitHub release, which costs no Actions storage. Only a dry run
       # needs a copy to download, kept three days: a full storage quota then never blocks a release.
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: ${{ env.DRY_RUN == 'true' }}
         with:
           name: ${{ github.event.repository.name }}-${{ env.VERSION_NAME }}-android
