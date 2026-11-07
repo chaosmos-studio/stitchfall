@@ -5,8 +5,9 @@
 
 mobile_icon.png is the full square icon: assets/branding/icon.png and Google Play's 512 icon come from it.
 adaptive_foreground.png (the runner on the patch, transparent) and adaptive_background.png (seamless felt) are
-Android's adaptive icon layers. It also writes build/logo/icon_masks.png, the adaptive icon under the shapes
-phones cut it to and the full icon at launcher size, to look at.
+Android's adaptive icon layers. The web build's favicons go in web/icons/, which Godot never imports. It also
+writes build/logo/icon_masks.png, the adaptive icon under the shapes phones cut it to and the full icon at
+launcher size, to look at.
 """
 
 from pathlib import Path
@@ -20,6 +21,8 @@ SIZE = 1024
 # under their mask, which is why the painted foreground keeps the runner inside the middle two thirds.
 ADAPTIVE = 432
 SHOWN = 288
+# The browser tab's icon, the home screen icon iOS saves, and the larger one Android's browsers use.
+WEB_ICONS = {"favicon-32.png": 32, "apple-touch-icon.png": 180, "icon-192.png": 192}
 
 
 def masks(art: Image.Image, background: Image.Image, foreground: Image.Image) -> Image.Image:
@@ -47,11 +50,16 @@ def main() -> None:
     background.save(ROOT / "assets/branding/adaptive_background.png", optimize=True)
     foreground = Image.open(SOURCE / "adaptive_foreground.png").convert("RGBA").resize((ADAPTIVE, ADAPTIVE), Image.LANCZOS)
     foreground.save(ROOT / "assets/branding/adaptive_foreground.png", optimize=True)
+    web = ROOT / "web/icons"
+    web.mkdir(exist_ok=True)
+    (web / ".gdignore").touch()
+    for name, side in WEB_ICONS.items():
+        art.resize((side, side), Image.LANCZOS).save(web / name, optimize=True)
     (ROOT / "build/logo").mkdir(parents=True, exist_ok=True)
     masks(art, background, foreground).save(ROOT / "build/logo/icon_masks.png")
     for path in ("assets/branding/icon.png", "assets/store/play_store_icon_512.png",
                  "assets/branding/adaptive_background.png", "assets/branding/adaptive_foreground.png",
-                 "build/logo/icon_masks.png"):
+                 *(f"web/icons/{name}" for name in WEB_ICONS), "build/logo/icon_masks.png"):
         print(ROOT / path)
 
 

@@ -22,6 +22,7 @@ const FONT_REGULAR: FontFile = preload("res://assets/fonts/Darn-UI.ttf")
 const FONT_BOLD: FontFile = preload("res://assets/fonts/Threadline-Satin.ttf")
 const FONT_DISPLAY: FontFile = preload("res://assets/fonts/Darn-Display.ttf")
 const HOME_SCENE: Texture2D = preload("res://assets/art/home_woodland.webp")
+const LOGO: Texture2D = preload("res://assets/art/logo_label.png")
 const HOME_CLEAN_PLATE: Texture2D = preload("res://assets/art/home_clean_plate.png")
 const HOME_REVEAL_MASK: Texture2D = preload("res://assets/art/home_reveal_mask.png")
 const HOME_BOTANICALS: GDScript = preload("res://scripts/home_botanicals.gd")
@@ -356,12 +357,15 @@ func _build_home() -> void:
 	var botanicals: Control = HOME_BOTANICALS.new() as Control
 	home_page.add_child(botanicals)
 	botanicals.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	# Low enough that the pocket's stitched top edge passes above it, not through it.
-	var eyebrow: Label = _label(home_page, Vector2(136, 144), Vector2(850, 55), 31, ACCENT, true)
-	eyebrow.text = "A STITCHED SHIFT ADVENTURE"
-	var title: Label = _label(home_page, Vector2(128, 172), Vector2(870, 158), 105, INK, true)
-	title.add_theme_font_override("font", FONT_DISPLAY)
-	title.text = "STITCHFALL"
+	# The logo's felt label, low enough that the pocket's stitched top edge passes above it, not through it.
+	var title: TextureRect = TextureRect.new()
+	title.texture = LOGO
+	title.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	title.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT
+	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	title.position = Vector2(126, 150)
+	title.size = Vector2(640, 640.0 * LOGO.get_height() / LOGO.get_width())
+	home_page.add_child(title)
 	var line: Label = _label(home_page, Vector2(138, 306), Vector2(840, 84), 36, INK)
 	line.text = "Find the buttons. Turn the pull.\nOpen the seam."
 	var menu_items: Array[Array] = [

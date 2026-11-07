@@ -7,8 +7,10 @@ The art in assets/branding/source/ was painted for the logo, on transparent back
 leaps from, and a round sew-on patch. The name goes on in Darn Display, the game's title font. It writes:
 
 - .github/logo.png, the label with the name, for the README (Godot never imports .github/);
+- assets/art/logo_label.png, the label and name without the runner, for Home, the web loader and the store art,
+  where the runner already stands beside it;
 - assets/branding/badge.png, the patch with the name on its upper arc, for avatars and the press kit;
-- build/logo/sheet.png, both on a light and a dark page, to look at.
+- build/logo/sheet.png, all three on a light and a dark page, to look at.
 """
 
 import math
@@ -24,6 +26,14 @@ EMBOSS = (70, 22, 10)
 
 # Where the name goes, in the source images' pixels. Measure again if the art is replaced.
 LABEL_TEXT_BOX = (135, 362, 1290, 548)
+# The plain label: the runner's boot rests on the label's top edge inside RUNNER_FOOT, so that strip is covered
+# with the same straight edge from CLONE_SHIFT pixels to the left, blended over FEATHER pixels at each side, and
+# LABEL_ONLY then leaves out the runner above and the thread below.
+RUNNER_FOOT = (1130, 300, 1240, 356)
+CLONE_SHIFT = 130
+FEATHER = 16
+LABEL_ONLY = (80, 318, 1340, 588)
+PLAIN_WIDTH = 1000
 PATCH_CENTRE = (508, 511)
 # The name's middle sits on this circle, between the runner's raised hands and the ring of stitches.
 PATCH_NAME_RADIUS = 366
@@ -45,7 +55,18 @@ def pressed(glyphs: Image.Image, blur: float = 3, offset: tuple = (3, 6)) -> Ima
     return out
 
 
-def label() -> Image.Image:
+def without_runner(art: Image.Image) -> Image.Image:
+    x0, y0, x1, y1 = RUNNER_FOOT
+    edge = art.crop((x0 - CLONE_SHIFT, y0, x1 - CLONE_SHIFT, y1))
+    ramp = [min(255, 255 * min(x + 1, x1 - x0 - x) // FEATHER) for x in range(x1 - x0)]
+    mask = Image.new("L", edge.size)
+    mask.putdata(ramp * edge.height)
+    art.paste(edge, (x0, y0), mask)
+    out = art.crop(LABEL_ONLY)
+    return out.crop(out.getbbox())
+
+
+def label(runner: bool = True) -> Image.Image:
     art = Image.open(SOURCE / "label_banner.png").convert("RGBA")
     x0, y0, x1, y1 = LABEL_TEXT_BOX
     size = 400
@@ -59,7 +80,7 @@ def label() -> Image.Image:
     ImageDraw.Draw(glyphs).text((4 - box[0], 4 - box[1]), "Stitchfall", font=font, fill=CREAM)
     name = pressed(glyphs)
     art.alpha_composite(name, ((x0 + x1 - name.width) // 2, (y0 + y1 - name.height) // 2))
-    return art.crop(art.getbbox())
+    return art.crop(art.getbbox()) if runner else without_runner(art)
 
 
 def badge() -> Image.Image:
@@ -103,11 +124,13 @@ def sheet(images: list) -> Image.Image:
 def main() -> None:
     wordmark = label()
     fit(wordmark, README_WIDTH).save(ROOT / ".github/logo.png", optimize=True)
+    plain = label(runner=False)
+    fit(plain, PLAIN_WIDTH).save(ROOT / "assets/art/logo_label.png", optimize=True)
     patch = badge()
     fit(patch, BADGE_WIDTH).save(ROOT / "assets/branding/badge.png", optimize=True)
     (ROOT / "build/logo").mkdir(parents=True, exist_ok=True)
-    sheet([wordmark, patch]).save(ROOT / "build/logo/sheet.png")
-    for path in (".github/logo.png", "assets/branding/badge.png", "build/logo/sheet.png"):
+    sheet([wordmark, plain, patch]).save(ROOT / "build/logo/sheet.png")
+    for path in (".github/logo.png", "assets/art/logo_label.png", "assets/branding/badge.png", "build/logo/sheet.png"):
         print(ROOT / path)
 
 

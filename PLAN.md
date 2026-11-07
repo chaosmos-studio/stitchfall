@@ -20,7 +20,7 @@ Each room's name appears briefly when the room begins.
 The HUD cloth palette follows the setting.
 The Home screen plays the runner's front-facing dance sheet.
 Its sewn woodland stage has a quiet fabric pocket for the menu.
-The title uses Darn Display, reading text uses Darn UI, the main menu uses Threadline Woven, and other stitched controls use Threadline Satin.
+The title is the logo's felt label (`assets/art/logo_label.png`, from `tools/make_logo.py`), headings use Darn Display, reading text uses Darn UI, the main menu uses Threadline Woven, and other stitched controls use Threadline Satin.
 An original music loop accompanies the dance and continues into play.
 Level Select shows one chapter a page, its five rooms as textile patches.
 Help uses sewn gesture diagrams, and Pause uses a stitched icon during play.
