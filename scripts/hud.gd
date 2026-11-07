@@ -472,7 +472,8 @@ func _set_level_page(value: int) -> void:
 func _build_help() -> void:
 	help_page = _page()
 	_cloth_page(help_page, Rect2(170, 70, 1580, 910))
-	var heading: Label = _label(help_page, Vector2(315, 135), Vector2(1150, 104), 67, INK, true)
+	# The card's left knots sit at about x 240 to 320, so the heading and the footer start clear of them.
+	var heading: Label = _label(help_page, Vector2(350, 135), Vector2(1150, 104), 67, INK, true)
 	heading.add_theme_font_override("font", FONT_DISPLAY)
 	heading.text = "HOW TO PLAY"
 	_tag(help_page, Rect2(1560, 130, 112, 105), "", "back", Color("e5d5bc")).pressed.connect(show_home)
@@ -498,7 +499,7 @@ func _build_help() -> void:
 		gesture.size = Vector2(405, 160)
 		gesture.kind = instruction[2]
 		card.add_child(gesture)
-	var footer: Label = _label(help_page, Vector2(265, 800), Vector2(1300, 70), 31, ACCENT)
+	var footer: Label = _label(help_page, Vector2(335, 800), Vector2(1140, 70), 31, ACCENT)
 	footer.text = "Keyboard: A / D, W / Space, S, Shift. Esc pauses. R retries."
 	var start: StitchedButton = _tag(help_page, Rect2(1490, 810, 145, 126), "", "play", Color("e0a278"))
 	start.tooltip_text = "Start playing"
@@ -508,19 +509,20 @@ func _build_help() -> void:
 func _build_about() -> void:
 	about_page = _page()
 	_cloth_page(about_page, Rect2(210, 90, 1500, 880))
-	var heading: Label = _label(about_page, Vector2(320, 135), Vector2(1080, 110), 78, INK, true)
+	# The card's left knots sit at about x 290 to 345, so the column starts clear of them.
+	var heading: Label = _label(about_page, Vector2(380, 135), Vector2(1080, 110), 78, INK, true)
 	heading.add_theme_font_override("font", FONT_DISPLAY)
 	heading.text = "A WORLD IN THREAD"
 	_tag(about_page, Rect2(1510, 138, 112, 105), "", "back", Color("e5d5bc")).pressed.connect(show_settings)
-	var note: Label = _label(about_page, Vector2(320, 250), Vector2(840, 230), 33, INK)
+	var note: Label = _label(about_page, Vector2(380, 250), Vector2(790, 230), 33, INK)
 	note.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 	note.text = "Stitchfall is a platformer sewn from cloth. Turn the whole room a quarter at a time, gather its buttons, and slip out through the zipper. Every room hides one trick, so look twice."
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	var studio: Label = _label(about_page, Vector2(320, 505), Vector2(840, 80), 30, INK)
+	var studio: Label = _label(about_page, Vector2(380, 505), Vector2(790, 80), 30, INK)
 	studio.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 	studio.text = "Made by Chaosmos, a small studio making clever little games, one at a time."
 	studio.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	var version: Label = _label(about_page, Vector2(320, 600), Vector2(820, 46), 28, ACCENT, true)
+	var version: Label = _label(about_page, Vector2(380, 600), Vector2(790, 46), 28, ACCENT, true)
 	version.text = "Version %s" % version_name()
 	var links: Array = [["WEBSITE", "link", StitchfallShop.WEBSITE], ["SUPPORT", "help", StitchfallShop.SUPPORT], ["PRIVACY", "seam", StitchfallShop.PRIVACY], ["GAMES", "play", StitchfallShop.MORE_GAMES]]
 	# The browser build can point to GitHub Sponsors. The Android build never may, by Play's Payments policy, and
@@ -531,7 +533,7 @@ func _build_about() -> void:
 		links.append(["RATE", "star", StitchfallShop.STORE])
 	for index: int in range(links.size()):
 		var link: Array = links[index]
-		var tag: StitchedButton = _tag(about_page, Rect2(300 + index * 172, 665, 162, 195), link[0], link[1], [Color("dbe5d1"), Color("e8d8bd"), Color("e4d0b1"), Color("efd3b8"), Color("e0a278")][index])
+		var tag: StitchedButton = _tag(about_page, Rect2(360 + index * 165, 665, 162, 195), link[0], link[1], [Color("dbe5d1"), Color("e8d8bd"), Color("e4d0b1"), Color("efd3b8"), Color("e0a278")][index])
 		tag.pause_action = true
 		tag.caption_size = 26
 		var url: String = link[2]
