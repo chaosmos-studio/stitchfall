@@ -7,8 +7,10 @@
 
 Each screenshot is captured at the game's full 1920 by 1080 through tools/gallery.gd (its hd mode), then sewn
 onto linen with a stitched border and a caption above it. Play takes 16:9 shots for phones and tablets alike, so
-the one set in screenshots/phone/ goes into the phone, 7-inch and 10-inch slots. The feature graphic is the woodland the Home screen opens on,
-with the runner and the name on a linen patch. Everything lands in assets/store/, which Godot ignores.
+the one set in screenshots/phone/ goes into the phone, 7-inch, 10-inch, Play Games on PC and desktop slots. The
+feature graphic is the woodland the Home screen opens on, with the runner and the logo's label in its pocket.
+Google Play Games on PC gets a cover with no words (gpg_pc_feature_1920x1080.png) and the label as its logo
+(gpg_pc_logo_600x400.png). Everything lands in assets/store/, which Godot ignores.
 
 Play's rules for graphics: no device frames, and no ranking, price or promotion words in a caption.
 """
@@ -78,6 +80,14 @@ FEATURE_LINE_GAP = 40
 FEATURE_RUNNER_HEIGHT = 400
 FEATURE_RUNNER_X = 690
 FEATURE_RUNNER_FEET = 40
+# Google Play Games on PC lays its 600 by 400 logo over the middle of a 16:9 cover with no words on it, so the
+# cover keeps its middle calm and the runner stands on the hills to the right.
+COVER = (1920, 1080)
+COVER_RUNNER_HEIGHT = 700
+COVER_RUNNER_X = 1640
+COVER_RUNNER_FEET = 150
+PC_LOGO = (600, 400)
+PC_LOGO_MARGIN = 20
 BANNED = re.compile(r"\b(best|#1|top|new|free|sale|discount|download|play now|try now|install)\b", re.I)
 
 
@@ -147,12 +157,8 @@ def feature() -> Image.Image:
     scale = size[0] / wood.width
     wood = wood.resize((size[0], int(wood.height * scale)), Image.LANCZOS)
     canvas = wood.crop((0, (wood.height - size[1]) // 2, size[0], (wood.height - size[1]) // 2 + size[1]))
-    runner = Image.open(ROOT / "assets/art/hero_pose_3.png").convert("RGBA")
-    runner = runner.crop(runner.getbbox())
-    runner = runner.resize((int(runner.width * FEATURE_RUNNER_HEIGHT / runner.height), FEATURE_RUNNER_HEIGHT), Image.LANCZOS)
+    runner, shadow = standing_runner(FEATURE_RUNNER_HEIGHT)
     runner_at = (FEATURE_RUNNER_X - runner.width // 2, size[1] - FEATURE_RUNNER_FEET - runner.height)
-    shadow = Image.new("RGBA", runner.size, (40, 30, 20, 0))
-    shadow.putalpha(runner.split()[3].filter(ImageFilter.GaussianBlur(10)).point(lambda v: int(v * 0.45)))
     canvas.paste(shadow, (runner_at[0] + 10, runner_at[1] + 12), shadow)
     canvas.paste(runner, runner_at, runner)
     # The logo's label and the line sit in the woodland's own stitched pocket, the one the Home menu sits in.
@@ -173,6 +179,34 @@ def feature() -> Image.Image:
         draw.line([(k, rule_y), (k + 10, rule_y)], fill=THREAD, width=3)
     draw.text((centre, top + logo.height + FEATURE_LINE_GAP - line_box[1]), line, font=line_font,
               fill=MUTED, anchor="mt")
+    return canvas
+
+
+def standing_runner(height: int) -> tuple[Image.Image, Image.Image]:
+    """The runner standing, and a soft shadow the same size to lay under it."""
+    runner = Image.open(ROOT / "assets/art/hero_pose_3.png").convert("RGBA")
+    runner = runner.crop(runner.getbbox())
+    runner = runner.resize((int(runner.width * height / runner.height), height), Image.LANCZOS)
+    shadow = Image.new("RGBA", runner.size, (40, 30, 20, 0))
+    shadow.putalpha(runner.split()[3].filter(ImageFilter.GaussianBlur(height // 40)).point(lambda v: int(v * 0.45)))
+    return runner, shadow
+
+
+def pc_cover() -> Image.Image:
+    canvas = Image.open(ROOT / "assets/art/linen_landscape.png").convert("RGB").resize(COVER, Image.LANCZOS)
+    runner, shadow = standing_runner(COVER_RUNNER_HEIGHT)
+    at = (COVER_RUNNER_X - runner.width // 2, COVER[1] - COVER_RUNNER_FEET - runner.height)
+    canvas.paste(shadow, (at[0] + 18, at[1] + 22), shadow)
+    canvas.paste(runner, at, runner)
+    return canvas
+
+
+def pc_logo() -> Image.Image:
+    logo = Image.open(ROOT / "assets/art/logo_label.png").convert("RGBA")
+    width = PC_LOGO[0] - 2 * PC_LOGO_MARGIN
+    logo = logo.resize((width, round(logo.height * width / logo.width)), Image.LANCZOS)
+    canvas = Image.new("RGBA", PC_LOGO, (0, 0, 0, 0))
+    canvas.alpha_composite(logo, ((PC_LOGO[0] - logo.width) // 2, (PC_LOGO[1] - logo.height) // 2))
     return canvas
 
 
@@ -198,6 +232,9 @@ def main() -> None:
         print("composed", name)
     feature().save(OUT / "feature_graphic_1024x500.png")
     print("composed feature graphic")
+    pc_cover().save(OUT / "gpg_pc_feature_1920x1080.png")
+    pc_logo().save(OUT / "gpg_pc_logo_600x400.png")
+    print("composed Google Play Games on PC cover and logo")
 
 
 if __name__ == "__main__":
