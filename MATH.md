@@ -63,23 +63,3 @@ So it never matters which phone saved first or how often a copy is read back: th
 best of each room, and nothing played on any of them is lost.
 The one thing a join cannot do is forget, which is why Reset writes the cloud copy over instead of joining it.
 The speedrun board adds up the five best times of Plain Linen, each of which can only fall, so the sum only falls too.
-
-## Lifting art off white paper
-
-The logo art was painted on white paper, and `tools/make_logo.py` lifts it off so the README shows it on a light or
-a dark page.
-A pixel over white is `c = α·F + (1 − α)·255`: some colour F, let through by α.
-One pixel gives three equations with four unknowns, so the cut needs one more fact about each pixel.
-
-Deep inside the art the fact is that α is 1.
-On the paper and its shadow, which are light and nearly grey, the fact is that α is as small as it can be.
-F cannot be darker than black, so the least α is `(255 − darkest channel) / 255`.
-A grey shadow of 230 becomes black at α ≈ 0.1, which looks the same as before on white and fades to nothing on a
-dark page.
-On the two pixels at the art's edge, F is taken to be the colour of the nearest solid pixel, and α is how far c has
-moved from white toward that colour: the length of `c − 255` along `F − 255`.
-
-The tell between paper and art is where a light patch is, not its colour.
-A light patch touching the image's edge is paper.
-So is any light patch too big to be a highlight, like the white inside a loop of thread.
-A light patch inside the art, like the cream of a scarf, is the art's own.
