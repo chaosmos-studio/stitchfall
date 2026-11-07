@@ -79,15 +79,15 @@ runner come apart. The browser build has none of it.
   (the `studio-ops` key has no access to this app), each copying Pyxis's prices for the same product (8 November)
 - [ ] AdMob linked to the listing once it is public (3.1)
 - [ ] Test purchase (2.7)
-- [ ] Play Games: Cloud project `chaosmos-stitchfall` and Play Games project `1647106634` made, properties saved,
+- [x] Play Games: Cloud project `chaosmos-stitchfall` and Play Games project `1647106634` made, properties saved,
   achievements, events, stats and the three leaderboards in as drafts. The OAuth consent screen is made (External,
   the game page, privacy and terms, the authorized domain `chaosmos.studio`), published by the owner on 8 November.
   Four Android OAuth clients and Play Games credentials, one per signing certificate above (the app signing key's
   is the one for new installs), and `play_games.json` committed (8 November). 1.0.0 was approved for Closed testing
   on 8 November, and 1.0.1, which carries Play Games, went up from the workflow and into review the same day.
   Achievements, leaderboards (formats, orders, limits, tamper protection), events and stats were read back as
-  "Ready to publish". Left: Play Games Services > Publishing > Publish (the owner's click: Claude Code's auto mode
-  refused it as a production deploy), and once 1.0.1 is approved, the listing's last bullet
+  "Ready to publish". 1.0.1 was approved and the Play Games project published with the owner's go, and the listing's
+  last bullet now names Play Games, sent for review (8 November)
 - [ ] 12 testers opted in for 14 days (write the date): ____
 - [ ] Applied for production (2.9)
 - [ ] Live on Play (2.10)
@@ -148,7 +148,7 @@ Full description:
 > • Flowers bank the buttons you carry and become the place you come back to
 > • A Wardrobe of runners, trails, unravel styles, buttons and fabrics. Stars open the trails, unravels and buttons, and the Wardrobe pack adds every runner and fabric
 > • Textile art and music made for this game
-> • Plays offline, with no account. Your progress stays on your phone
+> • Plays offline. Sign in with Play Games for achievements, leaderboards and progress that follows you to a new phone
 
 Screenshots (phone, 7-inch and 10-inch tablet, the same eight 1920 by 1080 images from `tools/store_art.py`), in
 this order:
@@ -346,6 +346,4 @@ All signed in as the studio account, in Play Console and Google Cloud (never gcl
 - **Before that release goes live**: the privacy page at chaosmos.studio/stitchfall/privacy/ says what the kit
   games' page says about Google Play Games (the `playGames` list in the studio site's
   `src/pages/[game]/privacy.astro`), in Stitchfall's terms: the three boards, the achievements, the room events
-  and the cloud save. The store listing's last bullet, "Plays offline, with no account. Your progress stays on your
-  phone", becomes "Sign in with Play Games for achievements, leaderboards and progress that follows you to a new
-  phone", as Pyxis says.
+  and the cloud save. The store listing's last bullet names Play Games, as Pyxis's does. Both done for 1.0.1.
