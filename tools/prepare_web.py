@@ -112,10 +112,13 @@ loader_tag = 'src="wasm-loader.js"'
 assert loader_tag in html_text
 html.write_text(html_text.replace(loader_tag, f'src="wasm-loader.js?v={assets["index.pck"]["sha256"][:12]}"'))
 (root / ".nojekyll").touch()
-for font_name in ("Threadline-Woven.ttf", "Darn-Display.ttf", "Darn-UI.ttf"):
+for font_name in ("Threadline-Woven.ttf", "Darn-UI.ttf"):
     shutil.copyfile(Path.cwd() / "assets" / "fonts" / font_name, root / font_name)
 shutil.copyfile(Path.cwd() / "assets" / "art" / "sewing_cursor.png", root / "sewing_cursor.png")
 shutil.copyfile(Path.cwd() / "assets" / "art" / "home_woodland.webp", root / "home_woodland.webp")
+shutil.copyfile(Path.cwd() / "assets" / "art" / "logo_label.png", root / "logo_label.png")
+for icon in (Path.cwd() / "web" / "icons").glob("*.png"):
+    shutil.copyfile(icon, root / icon.name)
 for pose in range(4):
     shutil.copyfile(Path.cwd() / "web" / f"loader_pose_{pose}.webp", root / f"loader_pose_{pose}.webp")
 (root / "build-info.json").write_text(
