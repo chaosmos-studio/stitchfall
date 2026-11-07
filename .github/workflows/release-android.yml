@@ -16,6 +16,12 @@ on:
         type: choice
         default: none
         options: [none, internal, alpha, beta, production]
+  # A new version at the top of CHANGELOG.md on main releases by itself, to the Play track in the repository
+  # variable AUTO_PLAY_TRACK (none until Play has the app's first AAB and ci-uploader has the app). Editing an
+  # already released version's notes releases nothing.
+  push:
+    branches: [main]
+    paths: [CHANGELOG.md]
 
 permissions:
   contents: write
@@ -25,7 +31,34 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # On a push, release only when the newest version in CHANGELOG.md has no tag yet.
+  decide:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      release: ${{ steps.check.outputs.release }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: check
+        run: |
+          set -euo pipefail
+          version="$(sed -n 's/^## \([0-9]*\.[0-9]*\.[0-9]*\).*$/\1/p' CHANGELOG.md | head -1)"
+          if [ -z "$version" ]; then
+            echo "::error file=CHANGELOG.md::no version heading"
+            exit 1
+          fi
+          if [ -n "$(git ls-remote --tags origin "refs/tags/v$version")" ]; then
+            echo "v$version is already released, so this push releases nothing"
+            echo "release=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "v$version is new: releasing it"
+            echo "release=true" >> "$GITHUB_OUTPUT"
+          fi
+
   release:
+    needs: decide
+    if: ${{ !cancelled() && (github.event_name == 'workflow_dispatch' || needs.decide.outputs.release == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
@@ -35,11 +68,11 @@ jobs:
       BUILD_TOOLS: "36.1.0"
       BUNDLETOOL: "1.18.3"
       GAME: ${{ github.event.repository.name }}
-      DRY_RUN: ${{ inputs.dry_run }}
-      PLAY_TRACK: ${{ inputs.play_track }}
+      DRY_RUN: ${{ inputs.dry_run || false }}
+      PLAY_TRACK: ${{ inputs.play_track || vars.AUTO_PLAY_TRACK || 'none' }}
       GH_TOKEN: ${{ github.token }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # The same rules as the kit's Changelog (kit/ui/changelog.gd), which the game's tests run, so a
       # changelog this refuses has already failed locally.
@@ -209,12 +242,21 @@ jobs:
             ls -l "$(sed -n 's/^dest_files=\["res:\/\/\(.*\)"\]$/\1/p' "$meta")"
           done
 
-      - uses: actions/setup-java@v5
+      # A release is never cut from a commit that fails its tests. --fixed-fps runs the replays as fast as the
+      # machine allows instead of in real time: about a minute instead of twenty.
+      - name: Run the tests
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --fixed-fps 60 -s res://tests/run_tests.gd 2>&1 | tee tests.log
+          ! grep -E 'SCRIPT ERROR|Parse Error' tests.log
+          grep -Eq '==== TESTS: [0-9]+ passed, 0 failed ====' tests.log
+
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin
           java-version: "17"
 
-      - uses: android-actions/setup-android@v4
+      - uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4
         with:
           packages: "platform-tools platforms;android-36 build-tools;${{ env.BUILD_TOOLS }}"
           log-accepted-android-sdk-licenses: false
@@ -447,8 +489,8 @@ jobs:
 
       # A real release keeps its files on the GitHub release, which costs no Actions storage. Only a dry run
       # needs a copy to download, kept three days: a full storage quota then never blocks a release.
-      - uses: actions/upload-artifact@v6
-        if: ${{ inputs.dry_run }}
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        if: ${{ env.DRY_RUN == 'true' }}
         with:
           name: ${{ github.event.repository.name }}-${{ env.VERSION_NAME }}-android
           path: |
@@ -461,19 +503,20 @@ jobs:
       # Before the GitHub release, so a failed upload leaves no tag and the same version can run again. The
       # API cannot create an app, so each app's first AAB goes up by hand in Play Console.
       - name: Upload to Google Play
-        if: ${{ !inputs.dry_run && inputs.play_track != 'none' }}
-        uses: r0adkll/upload-google-play@v1
+        if: ${{ env.DRY_RUN != 'true' && env.PLAY_TRACK != 'none' }}
+        # Pinned to a commit, since this action is handed the key that uploads to every studio game.
+        uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: ${{ env.PACKAGE }}
           releaseFiles: ${{ env.AAB }}
           releaseName: ${{ env.VERSION_CODE }} (${{ env.VERSION_NAME }})
-          tracks: ${{ inputs.play_track }}
-          status: ${{ inputs.play_track == 'production' && 'draft' || 'completed' }}
+          tracks: ${{ env.PLAY_TRACK }}
+          status: ${{ env.PLAY_TRACK == 'production' && 'draft' || 'completed' }}
           whatsNewDirectory: build/release/whatsnew
 
       - name: Publish the GitHub release
-        if: ${{ !inputs.dry_run }}
+        if: ${{ env.DRY_RUN != 'true' }}
         run: |
           set -euo pipefail
           gh release create "$TAG" "$AAB" "$APK" build/release/play-release-notes.txt --target "$GITHUB_SHA" \
