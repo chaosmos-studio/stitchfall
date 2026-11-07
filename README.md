@@ -1,5 +1,5 @@
 <p align="center">
-  <img src=".github/logo.png" alt="Stitchfall" width="560">
+  <img src=".github/banner.png" alt="Stitchfall: the name sewn into a felt label, the runner leaping off its end, over stitched linen hills" width="100%">
 </p>
 
 <p align="center">
@@ -38,7 +38,8 @@ Every room plays one trick on you. Watch for the tell, laugh, and try again.
 
 ## Made by
 
-Stitchfall is made by Shravan Goswami at [Chaosmos](https://chaosmos.studio). Everyone and everything it uses is in the [credits](CREDITS.md).
+Stitchfall is made by [Shravan Goswami](https://shravangoswami.com) at [Chaosmos](https://chaosmos.studio).
+Everyone and everything it uses is in the [credits](https://chaosmos.studio/stitchfall/credits/).
 It is built with Godot 4.7: open the project in Godot and press Play.
 
 ## License
