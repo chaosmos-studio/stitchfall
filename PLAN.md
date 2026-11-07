@@ -58,8 +58,6 @@ The browser build has none of it: no ads, no shop, no analytics, every Wardrobe 
 - Google Play Games as the kit games have it, off until `play_games.json` exists: a quiet sign-in, the Stars, Rooms sewn and Plain Linen speedrun boards, twelve achievements, Game Stats and a cloud save (`scripts/play_games.gd`, `scripts/android/play_games.gd`, `scripts/cloud_save.gd`, `play_games/catalog.json`), with Leaderboards and Achievements on the Stats page. The console setup is in `PUBLISHING.md`.
 - `scripts/ads.gd` places it all, `scripts/house_ads.gd`, `house_banner.gd`, `house_card.gd` and `house_games.gd` are the house ads, and `scripts/android/` holds what only the Android build may load.
 
-## Next milestones
-
 ## Campaign and presentation checklist
 
 The current rooms introduce movement, gravity, phase bridges, weighted patches, water, wind, canopy lift, low gravity, rain, and ice.
