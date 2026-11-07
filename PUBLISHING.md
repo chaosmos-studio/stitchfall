@@ -232,7 +232,7 @@ with the goal as its steps, so Play Games shows how far along a player is.
 | Neat work | Earn all three stars in 10 rooms. | 60 | Incremental, 10 steps |
 | Seamless | Sew each room of a chapter without unravelling. | 60 | Standard |
 | Quick fingers | Sew a room inside its par time. | 20 | Standard |
-| Safe keeping | Bank 25 buttons at flowers. | 35 | Incremental, 25 steps |
+| Safe keeping | Bank 15 buttons at flowers. | 35 | Incremental, 15 steps |
 | Head over heels | Turn the room 500 times. | 40 | Incremental, 500 steps |
 | Hanging by a thread | Unravel 100 times. The rooms enjoyed every one. | 25 | Incremental, 100 steps |
 

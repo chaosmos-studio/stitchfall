@@ -1,7 +1,7 @@
 # Room design
 
 How Stitchfall's rooms are built from now on, what we took from Level Devil, and the chapter plan.
-The whole campaign is built this way, twelve chapters of five rooms. The older wide rooms are gone from it.
+The whole campaign is built this way, twelve chapters of five rooms. The older wide rooms are gone, with the parts only they used.
 
 ## What was wrong with the old rooms
 
@@ -33,7 +33,7 @@ Players also call it unfair and rage-inducing. Stitchfall should keep the surpri
 - **A name, not an instruction.** The intro card shows only the room's name, like "Same Room" or "Nothing New".
 - **Short.** Five to twenty seconds once you know the room. A hit sends you back to the start, and your buttons stay sewn on.
 - **Gravity is the punchline.** Level Devil's pranks are about the floor. Ours are about down: the room that needs you to fall sideways, the zipper that runs to where gravity is not.
-- **Proved.** Every screen room has a recorded route that finishes it and the obvious run its prank is built to catch, both replayed by `tests/run_tests.gd` (`SCREEN_ROUTES`). Design a room with `tools/route.gd`, which prints where the runner goes.
+- **Proved.** Every room has a recorded route that finishes it and the obvious run its prank is built to catch, both replayed by `tests/run_tests.gd` (each chapter's `ROUTES`). Design a room with `tools/route.gd`, which prints where the runner goes.
 
 ## The parts
 
@@ -44,8 +44,11 @@ Players also call it unfair and rage-inducing. Stitchfall should keep the surpri
 | Runaway zipper | `exit_flee`, `flee_radius` | Once open, the zipper runs along its track to the next point when the runner comes near |
 | Unpinned patch | `fray_ledges` | Looks sewn on but is only pinned. Shivers once stood on, drops after `delay` seconds, leaves its tacking stitches |
 | Pincushion | `pins` | Falls the way gravity points, as fast as the runner does, and hurts from every side. Pins stack on each other |
-| Flower | `flowers` | Stands on any surface (`gravity` is the way its stem points). Touching it banks your buttons, saves where the pins are, and makes it the place you come back to, facing that way |
-| Everything older | | Phase bridges, timed seams, moths, cutters, chains, weights, springs, blooms, the weighted patch, and the six worlds' forces |
+| Flower | `flowers` | Stands on any surface (`gravity` is the way its stem points). Touching it banks your buttons, saves where the pins and the patch are, and makes it the place you come back to, facing that way |
+| Lit seam | `phase_walls` | Solid while gravity points left or right, after an odd number of turns, and a ghost while it points down or up |
+| Needle moth | `sentries` | Swings between `from` and `to` once every `period` seconds, and `offset` sets where in the swing it starts. A turn stills it, harmless, for 0.55 seconds |
+| Weighted patch | `crate`, `pad` | Falls the way gravity points. The zipper opens only once the patch has sat on its pad, and an unravel puts the patch back |
+| World | `environment`, `environment_zone` | Changes how the runner moves inside the zone: `water`, `dunes`, `forest`, `space` (the night quilt), `rain` or `frost` |
 
 ## Chapter plan
 
@@ -149,7 +152,7 @@ Numbers worth knowing, all at 60 physics frames a second:
 
 ## Rewards
 
-- **Three stars a room.** *Sewn* for finishing, *Unbroken* for finishing without an unravel, *Quick* for beating par. A room's par is its proved route's time times 1.5, rounded up (`SCREEN_PARS`), and the tests check every route earns all three.
+- **Three stars a room.** *Sewn* for finishing, *Unbroken* for finishing without an unravel, *Quick* for beating par. A room's par is its proved route's time times 1.5, rounded up (each room's `par`), and the tests check every route earns all three.
 - **The clear card.** The stars pop in one by one with a chime, then the time against par, a line about how many times you unravelled, and a call-out for a new best. Next, Replay and Levels.
 - **Buttons are loose until a flower banks them.** An unravel shakes every loose button back to where it was found. A room without a flower is all or nothing.
 - **Saved progress** (`scripts/progress.gd`, `user://progress.cfg`): each room's best stars and time. A room opens once the one before it is sewn, Play continues from the first room not yet sewn, and Levels shows one chapter a page with its stars.

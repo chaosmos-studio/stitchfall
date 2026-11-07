@@ -46,7 +46,6 @@ var meter: ButtonMeter
 var pause_button: StitchedButton
 var hint_back: Panel
 var hint_title: Label
-var hint_body: Label
 var panel: ColorRect
 var fabric: TextureRect
 var home_page: Control
@@ -160,13 +159,10 @@ func _ready() -> void:
 	unravel_label = _label(unravel_tag, Vector2(10, 2), Vector2(130, 52), 30, ACCENT, true)
 	unravel_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	unravel_tag.pivot_offset = Vector2(75, 29)
-	hint_back = _panel(root, Rect2(470, 102, 980, 154), Color("f5e8d1", 0.94))
+	hint_back = _panel(root, Rect2(470, 102, 980, 66), Color("f5e8d1", 0.94))
 	hint_back.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hint_title = _label(hint_back, Vector2(32, 6), Vector2(916, 52), 34, INK, true)
 	hint_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hint_body = _label(hint_back, Vector2(32, 57), Vector2(916, 80), 24, INK)
-	hint_body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hint_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	flash_rect = ColorRect.new()
 	flash_rect.color = Color("fff3e0", 0.0)
 	flash_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1330,29 +1326,15 @@ func bank_buttons() -> void:
 	meter.pulse = 1.0
 
 
-func set_room_intro(title: String, instruction: String) -> void:
-	_show_intro(title, instruction)
-
-
-func set_hint(instruction: String) -> void:
-	_show_intro("", instruction)
-
-
-func _show_intro(title: String, instruction: String) -> void:
+# The room's name, in a slim strip that leaves quickly, since the room's ceiling sits right under it.
+func set_room_intro(title: String) -> void:
 	if intro_tween and intro_tween.is_running():
 		intro_tween.kill()
 	hint_title.text = title
-	hint_body.text = instruction
-	hint_title.visible = not title.is_empty()
-	hint_body.position.y = 58 if not title.is_empty() else 35
-	# A name alone is a slim strip that leaves quickly, since a screen room's ceiling sits right under it.
-	var name_only: bool = instruction.is_empty()
-	hint_back.size.y = 66.0 if name_only else 154.0
-	hint_body.visible = not name_only
 	hint_back.visible = true
 	hint_back.modulate.a = 1.0
 	intro_tween = create_tween()
-	intro_tween.tween_interval(1.4 if name_only else 2.4)
+	intro_tween.tween_interval(1.4)
 	intro_tween.tween_property(hint_back, "modulate:a", 0.0, 0.55)
 	intro_tween.tween_callback(func() -> void: hint_back.visible = false)
 

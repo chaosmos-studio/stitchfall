@@ -15,8 +15,6 @@ const PLUGINS: PackedStringArray = [
 	"res://addons/shrink_build/plugin.cfg",
 	"res://addons/play_games/plugin.cfg",
 ]
-# The older rooms come after the chapters that open the campaign.
-var classic: int = StitchfallLevels.screen_rooms()
 
 var _passed: int = 0
 var _failed: int = 0
@@ -45,6 +43,7 @@ func _run() -> void:
 	await _test_house_ads()
 	await _test_back_gesture()
 	await _test_moments()
+	await _test_unravel_holds_the_zipper()
 	await _test_skip()
 	await _test_next_brings_the_ad()
 	await _test_banner_keeps_clear()
@@ -54,14 +53,8 @@ func _run() -> void:
 	await _test_movement_feel()
 	await _test_environment_forces()
 	await _test_gesture_controls()
-	await _test_timed_gate_and_bloom()
-	await _test_moving_ferry_lifecycle()
-	await _test_proximity_pulley()
 	await _test_fraying_ledge()
-	await _test_phase_buttons()
 	_test_room_clearance()
-	await _test_cargo_route()
-	await _test_opening_route()
 	await _test_screen_routes()
 	await _test_stitchfall_playthrough()
 	print("\n==== TESTS: %d passed, %d failed ====" % [_passed, _failed])
@@ -345,7 +338,7 @@ func _test_play_games_catalog() -> void:
 	var chapter: int = StitchfallLevels.chapter_ids.find(String(linen["chapter"]))
 	var par_ms: float = 0.0
 	for room: int in StitchfallPlayGames.chapter_rooms(maxi(chapter, 0)):
-		par_ms += StitchfallLevels.par(StitchfallLevels.get_level(room)) * 1000.0
+		par_ms += float(StitchfallLevels.get_level(room)["par"]) * 1000.0
 	_check("the speedrun is a time, the fastest first, on a chapter that opens the campaign, named for it",
 		linen["order"] == "SMALLER_IS_BETTER" and linen["format"] == "TIME_DURATION" and chapter >= 0
 		and String(linen["name"]).begins_with(StitchfallLevels.chapter_name(chapter)))
@@ -372,7 +365,7 @@ func _test_play_games_catalog() -> void:
 	progress.unravels = 100
 	var earned: PackedStringArray = StitchfallPlayGames.earned(StitchfallPlayGames.measures(progress))
 	_check("then it comes, with Quick fingers, Safe keeping and Hanging by a thread, but not one turn early",
-		earned.has("seamless") and earned.has("quick_1") and earned.has("banked_25") and earned.has("unravels_100")
+		earned.has("seamless") and earned.has("quick_1") and earned.has("banked_15") and earned.has("unravels_100")
 		and not earned.has("turns_500") and not earned.has("three_10"))
 	var first: int = chapter * StitchfallLevels.CHAPTER_ROOMS
 	var rooms: Array[int] = StitchfallPlayGames.chapter_rooms(chapter)
@@ -912,6 +905,30 @@ func _game() -> Node2D:
 	return game
 
 
+# A runner coming apart on needles beside an open zipper is not sewn out while it unravels.
+func _test_unravel_holds_the_zipper() -> void:
+	var game: Node2D = _game()
+	await process_frame
+	game.progress.reset()
+	game._load_level(0)
+	game._on_begin()
+	for index: int in range(game.collected.size()):
+		game.collected[index] = true
+	game._update_door()
+	game.pilot.position = game.level["spikes"][0]["rect"].get_center()
+	game.pilot.reset_physics_interpolation()
+	for frame: int in range(6):
+		await physics_frame
+	game.pilot.position = game.exit_position
+	game.pilot.reset_physics_interpolation()
+	await physics_frame
+	await physics_frame
+	_check("an unravelling runner is not sewn out by the open zipper", game.respawning and game.world.door_open and not game.cleared)
+	game.progress.reset()
+	game.queue_free()
+	await process_frame
+
+
 # Five unravels in a room offer a skip on the pause page. It opens the next room without stars, free off Android
 # and for a Supporter, after the video otherwise, and with nothing to play the room simply stays.
 func _test_skip() -> void:
@@ -1171,69 +1188,6 @@ func _test_movement_feel() -> void:
 	await process_frame
 
 
-func _test_moving_ferry_lifecycle() -> void:
-	var game: Node2D = load("res://scenes/game/game.tscn").instantiate() as Node2D
-	game.audio_enabled = false
-	root.add_child(game)
-	await process_frame
-	game._load_level(classic +3)
-	game._on_begin()
-	_check("the wide room starts its moving hem", game.ferries.size() == 1 and game.ferries[0].active)
-	var start: Vector2 = game.ferries[0].position
-	for frame: int in range(20):
-		await physics_frame
-	_check("the moving hem travels after play begins", game.ferries[0].position.distance_to(start) > 10.0)
-	game.pilot.position = game.ferries[0].position + Vector2(0, -55)
-	game.pilot.velocity = Vector2.ZERO
-	game.pilot.reset_physics_interpolation()
-	for frame: int in range(14):
-		await physics_frame
-	var rider_offset: float = game.pilot.position.x - game.ferries[0].position.x
-	for frame: int in range(20):
-		await physics_frame
-	_check("the moving hem carries its rider", absf((game.pilot.position.x - game.ferries[0].position.x) - rider_offset) < 35.0)
-	game._on_pause()
-	_check("the moving hem stops while paused", not game.ferries[0].active)
-	game._restart()
-	_check("the moving hem restarts with the room", game.ferries[0].active)
-	game.queue_free()
-	await process_frame
-
-
-func _test_proximity_pulley() -> void:
-	var pulley: StitchfallMechanism = StitchfallMechanism.new()
-	pulley.configure({
-		"kind": "pulley",
-		"from": Vector2(600, 280),
-		"to": Vector2(600, 720),
-		"anchor": Vector2(600, 210),
-		"period": 3.0,
-		"trigger": Vector2(400, 820),
-		"trigger_radius": 110.0,
-	})
-	root.add_child(pulley)
-	pulley.active = true
-	for frame: int in range(10):
-		await physics_frame
-	_check("the marked pulley waits for the runner", pulley.position == Vector2(600, 280))
-	var runner: StitchfallCourier = StitchfallCourier.new()
-	runner.control_enabled = false
-	runner.position = Vector2(400, 820)
-	root.add_child(runner)
-	for frame: int in range(3):
-		await physics_frame
-	_check("approaching the mark warns before the pulley falls", pulley.warning > 0.0)
-	for frame: int in range(48):
-		await physics_frame
-	_check("the marked pulley moves after its warning", pulley.position.y > 300.0)
-	runner.queue_free()
-	await process_frame
-	pulley.reset()
-	_check("retry restores the marked pulley", pulley.position == Vector2(600, 280) and pulley.warning == 0.0)
-	pulley.queue_free()
-	await process_frame
-
-
 func _test_fraying_ledge() -> void:
 	var script: GDScript = load("res://scripts/fray_ledge.gd") as GDScript
 	_check("a fraying ledge has a reusable physics body", script != null)
@@ -1383,91 +1337,6 @@ func _test_gesture_controls() -> void:
 	await process_frame
 
 
-func _test_timed_gate_and_bloom() -> void:
-	var game: Node2D = load("res://scenes/game/game.tscn").instantiate() as Node2D
-	game.audio_enabled = false
-	root.add_child(game)
-	await process_frame
-	game._load_level(classic +3)
-	game._on_begin()
-	_check("the timed seam begins closed", not game.timed_gate_shapes[0].disabled)
-	game._shift(1)
-	await physics_frame
-	_check("a shift opens the timed seam", game.timed_gate_shapes[0].disabled and game.world.gate_open)
-	game.pilot.position = Vector2(670, 815)
-	game.pilot.velocity = Vector2.ZERO
-	game.pilot.reset_physics_interpolation()
-	game.last_shift = -1.0
-	game._shift(1)
-	game.pilot.touch_axis = 1.0
-	for frame: int in range(75):
-		await physics_frame
-	_check("the runner crosses while the seam is open", game.pilot.position.x > 810.0)
-	game.pilot.touch_axis = 0.0
-	game.gate_remaining = 0.01
-	for frame: int in range(3):
-		await physics_frame
-	_check("the timed seam closes after its window", not game.world.gate_open)
-	game._load_level(classic +8)
-	game._on_begin()
-	game.pilot.position = Vector2(390, 740)
-	game.pilot.velocity = Vector2.ZERO
-	game.pilot.reset_physics_interpolation()
-	for frame: int in range(28):
-		await physics_frame
-	_check("the bloom launches the runner upward", game.pilot.velocity.y < -400.0 and not game.world.bloom_bursts.is_empty())
-	game.queue_free()
-	await process_frame
-
-
-func _test_phase_buttons() -> void:
-	var game: Node2D = load("res://scenes/game/game.tscn").instantiate() as Node2D
-	game.audio_enabled = false
-	root.add_child(game)
-	await process_frame
-	game._load_level(classic +2)
-	game._on_begin()
-	var button: Area2D = Area2D.new()
-	game.room.add_child(button)
-	game._on_spark_body(game.pilot, 1, button)
-	_check("mint button rejects the unlit seam", not game.collected[1])
-	game._shift(1)
-	game._on_spark_body(game.pilot, 1, button)
-	_check("mint button collects in the lit seam", game.collected[1])
-	game.queue_free()
-	await process_frame
-
-
-func _test_cargo_route() -> void:
-	var game: Node2D = load("res://scenes/game/game.tscn").instantiate() as Node2D
-	game.audio_enabled = false
-	root.add_child(game)
-	await process_frame
-	game._load_level(classic +4)
-	game._on_begin()
-	game.pilot.touch_axis = 1.0
-	for frame: int in range(125):
-		await physics_frame
-	game.pilot.touch_axis = 0.0
-	_check("the runner can move the weighted patch toward its mark", game.cargo.position.x > 720.0)
-	game.last_shift = -1.0
-	game._shift(1)
-	game.last_shift = -1.0
-	game._shift(1)
-	for frame: int in range(95):
-		await physics_frame
-	_check("the upward pull seats the patch on the ceiling mark", game.pad_armed)
-	game._load_level(classic +9)
-	game._on_begin()
-	game.pilot.touch_axis = -1.0
-	for frame: int in range(120):
-		await physics_frame
-	game.pilot.touch_axis = 0.0
-	_check("the forest route seats the patch against the root", game.pad_armed)
-	game.queue_free()
-	await process_frame
-
-
 func _test_room_clearance() -> void:
 	for index: int in range(StitchfallLevels.count()):
 		var level: Dictionary = StitchfallLevels.get_level(index)
@@ -1475,43 +1344,9 @@ func _test_room_clearance() -> void:
 			var blocked: bool = false
 			for wall: Rect2 in level["walls"]:
 				blocked = blocked or wall.grow(12.0).has_point(point)
-			for hazard: Rect2 in level["hazards"]:
-				blocked = blocked or hazard.grow(12.0).has_point(point)
+			for spike: Dictionary in level["spikes"]:
+				blocked = blocked or (spike["rect"] as Rect2).grow(12.0).has_point(point)
 			_check("room %d keeps a goal point clear" % index, not blocked)
-
-
-func _test_opening_route() -> void:
-	var game: Node2D = load("res://scenes/game/game.tscn").instantiate() as Node2D
-	game.audio_enabled = false
-	root.add_child(game)
-	await process_frame
-	game._load_level(classic)
-	game._on_begin()
-	game.pilot.touch_axis = 1.0
-	for frame: int in range(36):
-		await physics_frame
-	_check("the opening button can be collected while running", game.collected[0])
-	game.last_shift = -1.0
-	game._shift(1)
-	game.last_shift = -1.0
-	game._shift(1)
-	for frame: int in range(180):
-		await physics_frame
-	_check("the ceiling route reaches its button without teleporting", game.collected[1])
-	game.last_shift = -1.0
-	game._shift(1)
-	game.last_shift = -1.0
-	game._shift(1)
-	game.pilot.touch_axis = -1.0
-	for frame: int in range(65):
-		await physics_frame
-	_check("the return to the floor reaches the last button", game.collected[2])
-	game.pilot.touch_axis = 1.0
-	for frame: int in range(100):
-		await physics_frame
-	_check("the opening route reaches the zipper without teleporting", game.cleared)
-	game.queue_free()
-	await process_frame
 
 
 func _test_screen_routes() -> void:
@@ -1540,20 +1375,22 @@ func _test_stitchfall_playthrough() -> void:
 	game._shift(1)
 	_check("a shift turns gravity and changes the light phase", game.gravity_direction == Vector2.LEFT and game.phase == 1)
 	game._restart()
+	# Dead Weight has moths, a flower, buttons and needles in one room.
+	var flower_room: int = StitchfallLevels.room_of("patch", 4)
 	for level_number: int in range(StitchfallLevels.count()):
 		if level_number > 0:
 			game._on_begin()
-		if level_number == classic +3:
+		if level_number == flower_room:
 			var sentry_start: Vector2 = game.sentries[0].position
 			for frame: int in range(12):
 				await physics_frame
 			_check("the needle moth patrols its track", game.sentries[0].position.distance_to(sentry_start) > 10.0)
-			game.pilot.position = game.level["checkpoint"]
+			game.pilot.position = game.level["flowers"][0]["pos"]
 			game.pilot.velocity = Vector2.ZERO
 			game.pilot.reset_physics_interpolation()
 			await physics_frame
 			await physics_frame
-			_check("the flower blooms when the runner reaches it", game.checkpoint_active and game.flower_lit[0])
+			_check("the flower blooms when the runner reaches it", game.flower_lit[0])
 			game.last_shift = -1.0
 			game._shift(1)
 			await process_frame
@@ -1566,7 +1403,7 @@ func _test_stitchfall_playthrough() -> void:
 			await physics_frame
 			await physics_frame
 			_check("a button is collected before a hazard hit", game.collected[0])
-			game.pilot.position = game.level["hazards"][0].get_center() + Vector2(0, -25)
+			game.pilot.position = game.level["spikes"][0]["rect"].get_center() + Vector2(0, -25)
 			game.pilot.velocity = Vector2.ZERO
 			game.pilot.reset_physics_interpolation()
 			await physics_frame
@@ -1580,22 +1417,17 @@ func _test_stitchfall_playthrough() -> void:
 			game.pilot.reset_physics_interpolation()
 			await physics_frame
 			await physics_frame
-			game.pilot.position = game.level["checkpoint"]
+			game.pilot.position = game.level["flowers"][0]["pos"]
 			game.pilot.reset_physics_interpolation()
 			await physics_frame
 			await physics_frame
 			_check("touching the flower again banks the button", game.banked[0])
-			game.pilot.position = game.level["hazards"][0].get_center() + Vector2(0, -25)
+			game.pilot.position = game.level["spikes"][0]["rect"].get_center() + Vector2(0, -25)
 			game.pilot.reset_physics_interpolation()
 			for frame: int in range(50):
 				await physics_frame
 			_check("a banked button survives an unravel", game.collected[0] and game.room_deaths == 2)
-		for spark_index: int in range(game.level["shards"].size()):
-			var spark: Vector2 = game.level["shards"][spark_index]
-			var required_phases: Array = game.level["shard_phases"]
-			if spark_index < required_phases.size() and int(required_phases[spark_index]) >= 0 and game.phase != int(required_phases[spark_index]):
-				game.last_shift = -1.0
-				game._shift(1)
+		for spark: Vector2 in game.level["shards"]:
 			game.pilot.position = spark
 			game.pilot.velocity = Vector2.ZERO
 			game.pilot.reset_physics_interpolation()

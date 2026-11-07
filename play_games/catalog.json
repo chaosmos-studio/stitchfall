@@ -14,7 +14,7 @@
 		{"key": "three_10", "name": "Neat work", "text": "Earn all three stars in 10 rooms.", "points": 60, "three": 10},
 		{"key": "seamless", "name": "Seamless", "text": "Sew each room of a chapter without unravelling.", "points": 60, "seamless": 1},
 		{"key": "quick_1", "name": "Quick fingers", "text": "Sew a room inside its par time.", "points": 20, "quick": 1},
-		{"key": "banked_25", "name": "Safe keeping", "text": "Bank 25 buttons at flowers.", "points": 35, "banked": 25},
+		{"key": "banked_15", "name": "Safe keeping", "text": "Bank 15 buttons at flowers.", "points": 35, "banked": 15},
 		{"key": "turns_500", "name": "Head over heels", "text": "Turn the room 500 times.", "points": 40, "turns": 500},
 		{"key": "unravels_100", "name": "Hanging by a thread", "text": "Unravel 100 times. The rooms enjoyed every one.", "points": 25, "unravels": 100}
 	],

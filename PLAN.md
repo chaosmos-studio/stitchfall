@@ -16,13 +16,13 @@ Backgrounds are layered textile scenes with visible fiber, cut edges, and embroi
 The runner uses hand-drawn character sheets with a longer run cycle and separate action poses.
 Platforms, hazards, pickups, exits, enemies, cargo, and HUD elements are drawn in Godot to match the fabric scenes.
 The HUD keeps button progress and pause available during play.
-Each room name and its instruction appear briefly when the room begins.
+Each room's name appears briefly when the room begins.
 The HUD cloth palette follows the setting.
 The Home screen plays a slow front-facing loop from four high-resolution poses.
 Its sewn woodland stage has a quiet fabric pocket for the menu.
 The title uses Darn Display, reading text uses Darn UI, the main menu uses Threadline Woven, and other stitched controls use Threadline Satin.
 An original music loop accompanies the dance and continues into play.
-Level Select presents the current rooms as two pages of textile patches.
+Level Select shows one chapter a page, its five rooms as textile patches.
 Help uses sewn gesture diagrams, and Pause uses a stitched icon during play.
 
 ## Settings and rules
@@ -37,8 +37,8 @@ Frost preserves horizontal momentum.
 
 ## Structure
 
-`scripts/level_data.gd` holds authored room geometry and goals.
-`scripts/game_controller.gd` owns progression, pickups, checkpoints, and shifts.
+`scripts/level_data.gd` lists the chapters in order, and each chapter's rooms and the routes that prove them are in `scripts/chapters/`.
+`scripts/game_controller.gd` owns progression, pickups, flowers, and shifts.
 `scripts/player.gd` owns movement, environmental forces, and sprite animation.
 `scripts/cargo.gd` and `scripts/sentry.gd` own moving obstacles.
 `scripts/world_view.gd` draws the textile world.
@@ -63,7 +63,6 @@ The browser build has none of it: no ads, no shop, no analytics, every Wardrobe 
 ## Campaign and presentation checklist
 
 The current rooms introduce movement, gravity, phase bridges, weighted patches, water, wind, canopy lift, low gravity, rain, and ice.
-Several rooms repeat the same left-to-right wall rhythm, so a new backdrop alone will not make them feel different.
 
 Plumb's generator uses chapter rules, seeded candidates, a solver, difficulty bands, and duplicate rejection.
 Carillon grows an answer first and checks that added rules matter.
@@ -77,17 +76,13 @@ Stitchfall needs the same discipline for movement routes, with a replayable phys
 - [x] Replace the home dance with a front-facing, detailed loop and give menu controls textile artwork.
 - [x] Add an About page with a short studio introduction.
 - [x] Give the studio site a game page and publish the playable build at `/stitchfall/play/`.
-- [ ] Design room families around a single movement idea: ceiling runs, timed bridge crossings, cargo transport, water ascent, wind carry, canopy lift, low-gravity arcs, rain reversal, and ice braking.
+- [ ] Design room families around a single movement idea: ceiling runs, cargo transport, water ascent, wind carry, canopy lift, low-gravity arcs, rain reversal, and ice braking.
 - [ ] Add setting families beyond the current route, with a visible interaction and sound identity for each.
 - [ ] Build deterministic candidate generation with protected start and exit zones, reachable collectibles, hazard clearance, and repeated-layout rejection.
 - [ ] Replay generated candidates with the actual movement constants, reject unreachable routes, and order accepted rooms by measured difficulty.
-- [ ] Play every family on desktop and phone, tune checkpoints, then expand the campaign in reviewed batches.
+- [ ] Play every family on desktop and phone, tune flowers, then expand the campaign in reviewed batches.
 - [ ] Finish transitions, ending, accessibility, performance, and Android export.
 - [x] Submit the playable public build to Game Off with the source repository and AI disclosure.
-
-The current wider-room pass extends Needle Clock, Sand Drift, Green Canopy, and Rainline with a following camera, moving cloth platforms, new route targets, and longer crossings.
-These rooms still need human route playtests before they count as finished campaign stages.
-The next pass should change the route structure in the remaining rooms, then add short family-specific interactions and physics replay checks before increasing the room count.
 
 ## Surprise and mechanism pass, 5 November 2026
 
@@ -95,21 +90,12 @@ The next pass should change the route structure in the remaining rooms, then add
 Stitchfall takes the pacing idea, then uses visible cloth machinery that reacts to a gravity shift.
 A trap must show its track or anchor before it moves, give the player a short wind-up, and restart quickly after a hit.
 
-The first trap vocabulary is a spinning cutter, a moving chain, a hanging pulley weight, and a sewn spring launcher.
-Needle Clock and Rainline wake a moving hazard when the player shifts.
-Sand Drift puts a pulley weight over the ferry crossing.
-Green Canopy uses a spring to change the climb.
-Frostline combines momentum with a moving cutter.
-The Last Seam combines a spring with a shift-armed chain.
-
-On a hit, the runner's drawn fabric image separates into patches and thread for a short beat, then reappears at the pin.
+On a hit, the runner's drawn fabric image separates into patches and thread for a short beat, then reappears at the start or the last flower touched.
 This is a non-graphic cloth effect with no blood or human injury detail.
 Before an Android release, complete the current [Google Play content rating questionnaire](https://support.google.com/googleplay/android-developer/answer/9859655) for the actual build and review its [violence policy](https://support.google.com/googleplay/android-developer/answer/9878810).
 The [itch.io quality guidelines](https://itch.io/docs/creators/quality-guidelines) require the listing and AI disclosure to match the game.
 
-- [x] Make the first four mechanism types playable in selected authored rooms.
 - [x] Add a cloth-scatter hit animation and a timed retry.
-- [ ] Play the whole route through each new mechanism on keyboard and touch, then tune the wind-up and safe gaps.
 - [ ] Add one new route rule per room and reject layouts that share the same route shape.
 - [ ] Develop more trap families, including seams that fold, bridges with counterweights, and flowers that open only during a shift.
 - [ ] Build and validate new rooms in reviewed batches before increasing the campaign count.
@@ -151,34 +137,14 @@ Vary direction and shape: short vertical climbs, loops, descending runs, two-scr
 
 For every family, ship an introduction, a reversal, a combination with an earlier rule, and a short mastery room before generating close variants.
 Revisit earlier families after each new world so a later room feels like a new situation, not a reskin.
-World art, sound, hazard silhouettes, and HUD materials should explain the physical rule before the player reads a hint.
+World art, sound, hazard silhouettes, and HUD materials should explain the physical rule without a written hint.
 
 The generator should assemble authored route segments and vary their spacing, orientation, safe landing area, and optional detours from a saved seed.
-It should reserve start, exit, and checkpoint clearances before placing hazards.
+It should reserve start, exit, and flower clearances before placing hazards.
 A deterministic fixed-step replay using the game's movement values should prove at least one exit route and record jumps, shifts, airtime, retraces, and near misses.
 Compare route signatures and geometry after translation or reflection to reject repetitions.
 Rank candidates within a family, then playtest the chosen rooms on phone and desktop before releasing them.
 Automated reachability is a gate, while human playtesting decides whether a route is readable and fun.
-
-## Next playable batch
-
-Replace the opening rooms before adding more settings.
-Each room needs a different route and a different reason to shift.
-
-| Room | Main action | What makes it distinct |
-| --- | --- | --- |
-| First Stitch | Turn onto a wall, then return to the floor | A short safe route teaches the quarter turn without a sentry or cargo |
-| Reverse Hem | Run across the ceiling to reach a button behind a floor barrier | The player must read the same space from the opposite side |
-| Loose Bridge | Shift while airborne to sew a missing bridge under the landing | The bridge changes the path, not only the look of the room |
-| Needle Clock | Shift to freeze a moth, cross its patrol, and land before it moves again | Timing matters, with a safe place to observe before committing |
-| Weighted Patch | Move cargo onto its mark through a gravity turn | Cargo and player need different routes through one room |
-| Stitch Relay | Carry the patch, reveal a bridge, then cross back for the exit | The earlier ideas combine without adding a new control |
-
-The first implementation slice is First Stitch through Loose Bridge.
-Play those rooms on phone and keyboard before changing the later route.
-Each room gets a sketched solution path, a fixed-step replay from its actual movement rules, and one optional button detour.
-Record shifts, jumps, airtime, safe landing width, hits, retries, and completion time from playtests.
-Difficulty rises through route reasoning, timing, and recovery pressure, not by adding more hazards to the same crossing.
 
 ## Campaign production order
 
@@ -186,34 +152,18 @@ Difficulty rises through route reasoning, timing, and recovery pressure, not by 
 2. Give each setting a physical rule that changes the route, then make an introduction, variation, reversal, combination, and mastery room for that rule.
 3. Generate candidates from fixed seeds within one family, replay them with the real physics constants, and reject blocked pickups, unsafe starts, impossible exits, and repeated route shapes.
 4. Hand-pick and tune accepted rooms in small batches on phone and desktop.
-5. Add textile art, sound, and HUD cues that show the rule before the player reads a hint.
+5. Add textile art, sound, and HUD cues that show the rule without a written hint.
 
 The first families are gravity routing, phase seams, cargo, water currents, dunes wind, canopy lift, low gravity, rain gusts, and frost momentum.
 New nature settings should earn a place by changing movement or interaction, not by changing the backdrop alone.
 
-## Campaign scope, 5 November 2026
+## Campaign scope, 7 November 2026
 
-The current target is 50 authored rooms across gravity, phase seams, cargo, water, dunes, canopy, rain, frost, low gravity, and a final recombination.
-The authored data reaches that target, including marked falling bobbins, long moving-hem relays, vertical corner routes, and reverse entrances.
-The room-clearance checks and scripted completion flow pass, but most rooms still need physics-driven route replays and manual phone and desktop playthroughs.
-Revise or remove rooms that repeat a route shape or cannot be finished reliably with normal controls.
-Keep the campaign count private until those route checks prove the target is worth keeping.
-
-## Room revision, 5 November 2026
-
-The authored rooms use different start and exit sides, ceiling routes, wall turns, cargo placements, environmental fields, and landing shapes.
-Mint buttons require a lit seam and make the phase change part of the route.
-The runner can push cargo into a corner before a gravity turn moves it to a ceiling mark.
-The opening ceiling button and both cargo marks have physics-driven checks.
-All room goals have a basic geometry clearance check.
-The campaign still needs full manual playthroughs and route replays before release quality is claimed.
+The campaign is twelve chapters of five rooms, each built and proved by its routes as `LEVELS.md` describes.
+The 50 older wide rooms are gone, and with them the parts only they used: moving hems, cutters, chains, pulley weights, springs, timed seams, bloom pads, mint buttons and thorn strips.
+Keep the campaign count private.
 
 ## Interaction pass, 5 November 2026
 
-Needle Clock, Rainline, and the finale now use timed seams that open on Shift and close after a room-specific window.
-The runner can stay inside a seam without being crushed when the window expires.
-Forest, night, and finale rooms use bloom pads that launch the runner opposite the current pull.
-The forest pad teaches the launch before a canopy lift, while later pads combine it with longer arcs or a timed seam.
 The first phone Play opens a guide that illustrates movement, crouch, jump, and Shift with animated gestures.
 The first compressed Web export transfers about 45.2 MB instead of the previous 83.4 MB on browsers with stream decompression, with the same art and a raw fallback.
-The new mechanics have physics checks, but the full campaign still needs manual phone and desktop playthroughs.

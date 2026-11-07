@@ -2,8 +2,7 @@
 
 Stitchfall is a 2D action puzzle game in a world made of cloth and thread.
 Run, jump, and shift gravity to collect buttons and reach each open seam.
-Each shift also changes sewn bridges, opens timed seams, moves weighted patches, and briefly stills needle moths.
-Some rooms add blooming launch pads to the route.
+Each shift also changes sewn bridges, moves weighted patches, and briefly stills needle moths.
 
 ## Play
 
@@ -12,7 +11,7 @@ Turn a phone sideways.
 Use the Home screen to play, choose a seam, or open the illustrated controls.
 The first phone Play opens an animated gesture guide, which is also available from Home.
 Slide left or right to walk, swipe up to jump, swipe down to crouch, and tap the playfield to turn gravity.
-Preview the [water](https://chaosmos.studio/stitchfall/play/?room=20), [dunes](https://chaosmos.studio/stitchfall/play/?room=21), [forest](https://chaosmos.studio/stitchfall/play/?room=23), [night quilt](https://chaosmos.studio/stitchfall/play/?room=25), [rain meadow](https://chaosmos.studio/stitchfall/play/?room=27), or [frost woodland](https://chaosmos.studio/stitchfall/play/?room=29).
+Preview the [water](https://chaosmos.studio/stitchfall/play/?room=30), [dunes](https://chaosmos.studio/stitchfall/play/?room=35), [forest](https://chaosmos.studio/stitchfall/play/?room=40), [night quilt](https://chaosmos.studio/stitchfall/play/?room=45), [rain meadow](https://chaosmos.studio/stitchfall/play/?room=50), or [frost woodland](https://chaosmos.studio/stitchfall/play/?room=55).
 Each room earns up to three stars, and the stars open trails, unravels and buttons in the Wardrobe.
 Run `./play.sh` from this directory to play locally with Godot 4.7.
 

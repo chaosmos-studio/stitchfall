@@ -5,9 +5,7 @@ const CARGO_SCRIPT: Script = preload("res://scripts/cargo.gd")
 const WORLD_SCRIPT: Script = preload("res://scripts/world_view.gd")
 const HUD_SCRIPT: Script = preload("res://scripts/hud.gd")
 const SENTRY_SCRIPT: Script = preload("res://scripts/sentry.gd")
-const FERRY_SCRIPT: Script = preload("res://scripts/ferry.gd")
 const FRAY_LEDGE_SCRIPT: Script = preload("res://scripts/fray_ledge.gd")
-const MECHANISM_SCRIPT: Script = preload("res://scripts/mechanism.gd")
 const UNRAVEL_SCRIPT: Script = preload("res://scripts/unravel.gd")
 const PIN_SCRIPT: Script = preload("res://scripts/pincushion.gd")
 # How hard the camera shakes for each kind of moment, in pixels, and how fast a shake dies away per second.
@@ -33,7 +31,6 @@ var collected: Array[bool] = []
 var banked: Array[bool] = []
 var spark_areas: Array[Area2D] = []
 var pad_armed: bool = false
-var checkpoint_active: bool = false
 var flower_lit: Array[bool] = []
 var respawn_position: Vector2 = Vector2.ZERO
 var respawn_gravity: Vector2 = Vector2.DOWN
@@ -68,13 +65,8 @@ var world: StitchfallWorldView
 var pilot: StitchfallCourier
 var cargo: StitchfallCargo
 var bridges: Array[CollisionShape2D] = []
-var timed_gate_shapes: Array[CollisionShape2D] = []
-var gate_remaining: float = 0.0
-var gates_open: bool = false
 var sentries: Array[StitchfallWatcher] = []
-var ferries: Array[StitchfallFerry] = []
 var fray_ledges: Array[StitchfallFrayLedge] = []
-var mechanisms: Array[StitchfallMechanism] = []
 # A pop-up strip's needles stay flat until the runner walks into its trigger.
 var popup_areas: Array[Area2D] = []
 var popup_raised: Array[bool] = []
@@ -83,7 +75,6 @@ var exit_position: Vector2 = Vector2.ZERO
 var exit_flees: int = 0
 var unravel: StitchfallUnravel
 var camera: Camera2D
-var default_zoom: Vector2 = Vector2.ONE
 var hud: StitchfallHud
 var sound: AudioStreamPlayer
 var step_sound: AudioStreamPlayer
@@ -117,8 +108,6 @@ func _ready() -> void:
 	add_child(world)
 	camera = Camera2D.new()
 	camera.position = Vector2(960, 540)
-	default_zoom = Vector2.ONE * (2.0 if DisplayServer.is_touchscreen_available() else 1.6)
-	camera.zoom = default_zoom
 	add_child(camera)
 	camera.make_current()
 	for name: String in sound_names:
@@ -252,17 +241,8 @@ func _notification(what: int) -> void:
 
 
 func _camera_target() -> Vector2:
-	if bool(level["screen"]):
-		var chamber: Rect2 = level["chamber"]
-		return chamber.get_center()
-	if float(level.get("width", 1920.0)) <= 1920.0:
-		return Vector2(960, 540) + (pilot.position - Vector2(960, 540)) * 0.34
-	var half_view: Vector2 = get_viewport_rect().size / camera.zoom * 0.5
-	var ahead: float = clampf(pilot.velocity.x * 0.22, -120.0, 120.0)
-	return Vector2(
-		clampf(pilot.position.x + ahead, half_view.x, float(level["width"]) - half_view.x),
-		clampf(540.0 + (pilot.position.y - 540.0) * 0.6, half_view.y, 1080.0 - half_view.y)
-	)
+	var chamber: Rect2 = level["chamber"]
+	return chamber.get_center()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -370,20 +350,11 @@ func _sync_touch_controls() -> void:
 	pilot.set_touch_crouch(mobile_crouched)
 
 
-func _physics_process(delta: float) -> void:
+func _physics_process(_delta: float) -> void:
 	if not playing or finished or not is_instance_valid(pilot):
 		return
 	world.gust_clock = pilot.environment_clock
-	if gates_open:
-		gate_remaining = maxf(0.0, gate_remaining - delta)
-		world.gate_fraction = gate_remaining / float(level["gate_window"])
-		if gate_remaining == 0.0:
-			var occupied: bool = false
-			for gate: Rect2 in level["timed_gates"]:
-				occupied = occupied or gate.grow(48.0).has_point(pilot.position)
-			if not occupied:
-				_close_timed_gates()
-	if world.door_open and pilot.position.distance_to(exit_position) < 65.0:
+	if world.door_open and not respawning and pilot.position.distance_to(exit_position) < 65.0:
 		_clear_room()
 		return
 	var flee: Array = level["exit_flee"]
@@ -404,7 +375,6 @@ func _load_level(index: int) -> void:
 	gravity_direction = Vector2.DOWN
 	phase = 0
 	pad_armed = false
-	checkpoint_active = false
 	respawn_position = level["start"]
 	respawn_gravity = Vector2.DOWN
 	respawning = false
@@ -428,17 +398,10 @@ func _load_level(index: int) -> void:
 	room.name = "Compartment"
 	add_child(room)
 	bridges.clear()
-	timed_gate_shapes.clear()
-	gate_remaining = 0.0
-	gates_open = false
 	for wall: Rect2 in level["walls"]:
 		_add_wall(wall, false)
 	for bridge: Rect2 in level["phase_walls"]:
 		_add_wall(bridge, true)
-	for gate: Rect2 in level["timed_gates"]:
-		timed_gate_shapes.append(_add_wall(gate, false))
-	for hazard: Rect2 in level["hazards"]:
-		_add_hazard(hazard)
 	for spike: Dictionary in level["spikes"]:
 		_add_hazard(spike["rect"])
 	popup_areas.clear()
@@ -456,7 +419,7 @@ func _load_level(index: int) -> void:
 		tripwire.body_entered.connect(_on_popup_tripped.bind(popup_index))
 	exit_position = level["exit"]
 	exit_flees = 0
-	camera.zoom = Vector2.ONE * StitchfallLevels.SCREEN_ZOOM if bool(level["screen"]) else default_zoom
+	camera.zoom = Vector2.ONE * StitchfallLevels.SCREEN_ZOOM
 	fray_ledges.clear()
 	for data: Dictionary in level["fray_ledges"]:
 		var ledge: StitchfallFrayLedge = FRAY_LEDGE_SCRIPT.new() as StitchfallFrayLedge
@@ -472,28 +435,9 @@ func _load_level(index: int) -> void:
 		room.add_child(sentry)
 		sentry.body_entered.connect(_on_hazard_body)
 		sentries.append(sentry)
-	ferries.clear()
-	for data: Dictionary in level["ferries"]:
-		var ferry: StitchfallFerry = FERRY_SCRIPT.new() as StitchfallFerry
-		ferry.configure(data)
-		room.add_child(ferry)
-		ferry.active = playing
-		ferries.append(ferry)
-	mechanisms.clear()
-	for data: Dictionary in level["mechanisms"]:
-		var mechanism: StitchfallMechanism = MECHANISM_SCRIPT.new() as StitchfallMechanism
-		mechanism.configure(data)
-		room.add_child(mechanism)
-		mechanism.active = playing
-		mechanism.struck.connect(_on_hazard_body)
-		mechanism.launched.connect(_on_mechanism_launch)
-		mechanisms.append(mechanism)
 	spark_areas.clear()
 	for spark_index: int in range(collected.size()):
 		_add_spark(level["shards"][spark_index], spark_index)
-	for bloom: Vector2 in level["bloom_pads"]:
-		var bloom_area: Area2D = _make_area(bloom + Vector2(0, -9), Vector2(112, 45), 2)
-		bloom_area.body_entered.connect(_on_bloom_body.bind(bloom))
 	for flower_index: int in range(level["flowers"].size()):
 		var flower: Dictionary = level["flowers"][flower_index]
 		var gravity: Vector2 = flower["gravity"]
@@ -542,19 +486,17 @@ func _load_level(index: int) -> void:
 	world.door_progress = 0.0
 	world.spark_bursts.clear()
 	world.bloom_bursts.clear()
-	world.gate_open = false
-	world.gate_fraction = 0.0
 	world.gravity_direction = gravity_direction
 	world.exit_position = exit_position
 	world.popup_raised = popup_raised.duplicate()
-	hud.set_room_intro(level["name"], level["hint"])
+	hud.set_room_intro(level["name"])
 	hud.set_room_label(StitchfallLevels.chapter_name(index / StitchfallLevels.CHAPTER_ROOMS), index % StitchfallLevels.CHAPTER_ROOMS + 1, level["name"])
 	hud.set_unravels(0)
 	_update_hud()
 	print("STITCHFALL_ROOM ", index)
 
 
-func _add_wall(rect: Rect2, is_bridge: bool) -> CollisionShape2D:
+func _add_wall(rect: Rect2, is_bridge: bool) -> void:
 	var body: StaticBody2D = StaticBody2D.new()
 	body.position = rect.get_center()
 	body.collision_layer = 1
@@ -568,7 +510,6 @@ func _add_wall(rect: Rect2, is_bridge: bool) -> CollisionShape2D:
 	room.add_child(body)
 	if is_bridge:
 		bridges.append(shape)
-	return shape
 
 
 func _add_hazard(rect: Rect2) -> void:
@@ -650,16 +591,6 @@ func _on_popup_tripped(body: Node2D, index: int) -> void:
 	print("STITCHFALL_POPUP ", level_index, " ", index)
 
 
-func _on_mechanism_launch(body: Node2D) -> void:
-	if body != pilot or not playing or respawning:
-		return
-	pilot.velocity = pilot.velocity.slide(gravity_direction) - gravity_direction * 1040.0
-	pilot.coyote = 0.0
-	pilot.jump_buffer = 0.0
-	pilot.takeoff_time = 0.18
-	_play_sound("jump")
-
-
 # Touching a flower banks every button the runner carries and makes it the place to come back to,
 # facing the way its stem points. The first touch makes it bloom.
 func _on_flower_body(body: Node2D, index: int) -> void:
@@ -686,7 +617,6 @@ func _on_flower_body(body: Node2D, index: int) -> void:
 	if flower_lit[index]:
 		return
 	flower_lit[index] = true
-	checkpoint_active = true
 	world.flower_lit = flower_lit.duplicate()
 	world.bloom_flower(index)
 	_play_sound("bloom")
@@ -742,16 +672,12 @@ func _respawn() -> void:
 	create_tween().tween_property(pilot.sprite, "scale", Vector2.ONE * 0.32, 0.32).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	world.collected = collected.duplicate()
 	world.door_open = not collected.has(false) and (level["pad"] == Vector2.ZERO or pad_armed)
-	gate_remaining = 0.0
-	_close_timed_gates()
 	world.phase = phase
 	world.gravity_direction = gravity_direction
 	world.shift_origin = respawn_position
 	world.shift_age = 0.0
 	for sentry: StitchfallWatcher in sentries:
 		sentry.freeze_for(0.7)
-	for mechanism: StitchfallMechanism in mechanisms:
-		mechanism.reset()
 	for ledge: StitchfallFrayLedge in fray_ledges:
 		ledge.reset()
 	for popup_index: int in range(popup_areas.size()):
@@ -767,9 +693,6 @@ func _respawn() -> void:
 
 func _on_spark_body(body: Node2D, index: int, area: Area2D) -> void:
 	if body != pilot or not playing or collected[index]:
-		return
-	var required_phases: Array = level.get("shard_phases", [])
-	if index < required_phases.size() and int(required_phases[index]) >= 0 and phase != int(required_phases[index]):
 		return
 	collected[index] = true
 	print("STITCHFALL_SPARK ", level_index, " ", index)
@@ -790,27 +713,6 @@ func _on_pad_body(body: Node2D) -> void:
 	_play_sound("spark")
 	_update_door()
 	_update_hud()
-
-
-func _on_bloom_body(body: Node2D, bloom: Vector2) -> void:
-	if body != pilot or not playing or respawning:
-		return
-	pilot.velocity = pilot.velocity.slide(gravity_direction) - gravity_direction * 870.0
-	pilot.coyote = 0.0
-	pilot.jump_buffer = 0.0
-	pilot.takeoff_time = 0.18
-	pilot.landing_time = 0.0
-	world.burst_bloom(bloom)
-	_play_sound("jump")
-	print("STITCHFALL_BLOOM ", level_index)
-
-
-func _close_timed_gates() -> void:
-	gates_open = false
-	world.gate_open = false
-	world.gate_fraction = 0.0
-	for shape: CollisionShape2D in timed_gate_shapes:
-		shape.set_deferred("disabled", false)
 
 
 func _update_door() -> void:
@@ -834,19 +736,10 @@ func _shift(step: int) -> void:
 		cargo.sleeping = false
 	for sentry: StitchfallWatcher in sentries:
 		sentry.freeze_for(0.55)
-	for mechanism: StitchfallMechanism in mechanisms:
-		mechanism.arm()
 	for pin: StitchfallPin in pins:
 		pin.gravity_direction = gravity_direction
 	for bridge: CollisionShape2D in bridges:
 		bridge.set_deferred("disabled", phase == 0)
-	if not timed_gate_shapes.is_empty():
-		gate_remaining = float(level["gate_window"])
-		gates_open = true
-		world.gate_open = true
-		world.gate_fraction = 1.0
-		for shape: CollisionShape2D in timed_gate_shapes:
-			shape.set_deferred("disabled", true)
 	world.phase = phase
 	world.gravity_direction = gravity_direction
 	world.shift_origin = pilot.position
@@ -866,10 +759,6 @@ func _set_running(running: bool) -> void:
 		pilot.control_enabled = running
 	for sentry: StitchfallWatcher in sentries:
 		sentry.active = running
-	for ferry: StitchfallFerry in ferries:
-		ferry.active = running
-	for mechanism: StitchfallMechanism in mechanisms:
-		mechanism.active = running
 	for ledge: StitchfallFrayLedge in fray_ledges:
 		ledge.active = running
 	for pin: StitchfallPin in pins:
@@ -881,7 +770,7 @@ func _clear_room() -> void:
 	_set_running(false)
 	cleared = true
 	progress.play_time += room_time
-	var par: float = StitchfallLevels.par(level)
+	var par: float = level["par"]
 	last_result = progress.record(level_index, room_time, room_deaths, par)
 	StitchfallAnalytics.room_cleared(level_index, int(last_result["stars"]), room_deaths)
 	StitchfallPlayGames.room_sewn(level_index, int(last_result["stars"]), room_deaths, room_time)
@@ -1111,7 +1000,7 @@ func _on_begin() -> void:
 		_load_level(level_index)
 	_set_running(true)
 	hud.hide_panel()
-	hud.set_room_intro(level["name"], level["hint"])
+	hud.set_room_intro(level["name"])
 	print("STITCHFALL_START ", level_index)
 
 

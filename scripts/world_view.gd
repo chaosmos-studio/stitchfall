@@ -41,8 +41,6 @@ var shift_age: float = 1.0
 var door_progress: float = 0.0
 var spark_bursts: Array[Dictionary] = []
 var bloom_bursts: Array[Dictionary] = []
-var gate_open: bool = false
-var gate_fraction: float = 0.0
 var exit_position: Vector2 = Vector2.ZERO
 var popup_raised: Array[bool] = []
 # The runner's rain clock, so the drawn rain leans with the gust the runner feels.
@@ -97,28 +95,16 @@ func _process(delta: float) -> void:
 
 
 func _draw() -> void:
-	var backdrop: Texture2D = _backdrop_texture()
-	draw_texture_rect(backdrop, Rect2(-330, -180, 2580, 1440), false)
+	draw_texture_rect(_backdrop_texture(), Rect2(-330, -180, 2580, 1440), false)
 	if level.is_empty():
 		return
-	var width: float = float(level["width"])
-	if width > 1920.0:
-		var source: Rect2 = Rect2(Vector2(backdrop.get_width() * 330.0 / 2580.0, 0), Vector2(backdrop.get_width() * 2250.0 / 2580.0, backdrop.get_height()))
-		draw_texture_rect_region(backdrop, Rect2(1920, -180, width - 1920.0 + 330.0, 1440), source)
 	_draw_chamber()
 	_draw_environment()
 	for wall: Rect2 in level["walls"]:
 		_draw_wall(wall)
 	for bridge: Rect2 in level["phase_walls"]:
 		_draw_bridge(bridge)
-	for gate: Rect2 in level["timed_gates"]:
-		_draw_timed_gate(gate)
-	for bloom: Vector2 in level["bloom_pads"]:
-		_draw_bloom_pad(bloom)
-	_draw_ferry_tracks()
 	_draw_sentry_tracks()
-	for hazard: Rect2 in level["hazards"]:
-		_draw_hazard(hazard)
 	for spike: Dictionary in level["spikes"]:
 		_draw_needles(spike["rect"], spike["dir"], 1.0)
 	for index: int in range(level["popups"].size()):
@@ -182,22 +168,9 @@ func _cloth_color() -> Color:
 
 
 func _draw_chamber() -> void:
-	if bool(level["screen"]):
-		var chamber: Rect2 = level["chamber"]
-		draw_rect(chamber.grow(12.0), Color("644f43", 0.15))
-		draw_rect(chamber, Color("f7efdc", 0.2))
-		return
-	var width: float = float(level["width"])
-	var inset: Rect2 = Rect2(110, 168, width - 220.0, 760)
-	draw_rect(inset.grow(12.0), Color("644f43", 0.15))
-	draw_rect(inset, Color("f7efdc", 0.2))
-	for x: int in range(170, int(width - 150.0), 48):
-		var sway: float = sin(float(x) * 0.021 + time * 1.2) * 2.0
-		draw_line(Vector2(x, 205 + sway), Vector2(x + 19, 198 + sway), Color("9c8471", 0.36), 2.0, true)
-	if width > 1920.0:
-		draw_rect(Rect2(1907, 198, 26, 700), Color("a78c72", 0.23))
-		for y: int in range(210, 895, 24):
-			draw_line(Vector2(1913, y), Vector2(1927, y + 9), Color("f7e5c6", 0.8), 2.0, true)
+	var chamber: Rect2 = level["chamber"]
+	draw_rect(chamber.grow(12.0), Color("644f43", 0.15))
+	draw_rect(chamber, Color("f7efdc", 0.2))
 
 
 func _draw_environment() -> void:
@@ -289,79 +262,6 @@ func _draw_bridge(bridge: Rect2) -> void:
 		draw_line(Vector2(x, bridge.end.y - 5), Vector2(x + 7, bridge.end.y - 5), Color(0.2, 0.35, 0.34, opacity), 2.0, true)
 
 
-func _draw_timed_gate(gate: Rect2) -> void:
-	var opacity: float = 0.2 if gate_open else 0.96
-	draw_rect(gate.grow(5.0), Color("4b514b", opacity))
-	draw_texture_rect(FELT, gate, true, Color("d4ab86", opacity))
-	for y: int in range(int(gate.position.y + 14.0), int(gate.end.y - 8.0), 28):
-		var left: Vector2 = Vector2(gate.position.x + 5.0, float(y))
-		var right: Vector2 = Vector2(gate.end.x - 5.0, float(y) + 18.0)
-		draw_line(left, right, Color("f6e6c5", opacity), 3.0, true)
-		draw_line(Vector2(right.x, left.y), Vector2(left.x, right.y), Color("6f7161", opacity), 2.0, true)
-	if gate_open:
-		var remaining: float = gate.size.y * gate_fraction
-		draw_line(gate.position + Vector2(-11, 0), gate.position + Vector2(-11, remaining), Color("f4d9a4", 0.86), 5.0, true)
-
-
-func _draw_bloom_pad(pos: Vector2) -> void:
-	var center: Vector2 = pos + Vector2(0, -10.0)
-	var bloom_color: Color = Color("e8c98d") if int(level["backdrop"]) == 7 else Color("d9a88f")
-	draw_rect(Rect2(pos + Vector2(-59, 7), Vector2(118, 13)), INK)
-	draw_rect(Rect2(pos + Vector2(-55, 8), Vector2(110, 9)), Color("7a8c71"))
-	for petal: int in range(5):
-		var spread: float = float(petal - 2)
-		var sway: float = sin(time * 1.4 + float(petal) * 0.5) * 1.8
-		var tip: Vector2 = center + Vector2(spread * 13.0 + sway, -33.0 + absf(spread) * 7.0)
-		var root: Vector2 = center + Vector2(spread * 5.0, 4.0)
-		var petal_shape: PackedVector2Array = PackedVector2Array([
-			root + Vector2(-5, 0),
-			tip + Vector2(-9, 2),
-			tip + Vector2(-5, -7),
-			tip + Vector2(5, -7),
-			tip + Vector2(9, 2),
-			root + Vector2(5, 0),
-		])
-		draw_colored_polygon(petal_shape, INK)
-		draw_colored_polygon(petal_shape, bloom_color.lerp(Color.WHITE, 0.16 + float(petal % 2) * 0.12))
-		draw_line(root + Vector2(0, -3), tip + Vector2(0, 3), Color("f7e7ca", 0.7), 1.5, true)
-	draw_arc(center + Vector2(0, 2), 14.0, PI, TAU, 12, INK, 4.0, true)
-	draw_arc(center + Vector2(0, 2), 11.0, PI, TAU, 12, Color("e9d78f"), 8.0, true)
-
-
-func _draw_hazard(area: Rect2) -> void:
-	var thorn: Color = Color("5b6256")
-	match _backdrop():
-		4:
-			thorn = Color("466d72")
-		5:
-			thorn = Color("846348")
-		6:
-			thorn = Color("506e54")
-		7:
-			thorn = Color("777082")
-		8:
-			thorn = Color("587477")
-		9:
-			thorn = Color("6b7a83")
-	var root_y: float = area.end.y - 5.0
-	draw_rect(Rect2(area.position.x - 5.0, root_y - 7.0, area.size.x + 10.0, 17.0), INK)
-	draw_rect(Rect2(area.position.x - 2.0, root_y - 5.0, area.size.x + 4.0, 12.0), thorn)
-	for index: int in range(ceili(area.size.x / 31.0)):
-		var x: float = area.position.x + 13.0 + float(index) * 31.0
-		var height: float = 22.0 + float((index * 17 + 11) % 19)
-		var bend: float = sin(time * 1.8 + float(index) * 1.4) * 3.0
-		var root: Vector2 = Vector2(x, root_y - 5.0)
-		var tip: Vector2 = Vector2(x + bend + float(index % 3 - 1) * 5.0, root_y - height)
-		draw_line(root, tip, INK, 5.0, true)
-		draw_line(root + Vector2(1, -2), tip + Vector2(1, 2), thorn.lightened(0.25), 2.5, true)
-		for side: float in [-1.0, 1.0]:
-			var origin: Vector2 = root.lerp(tip, 0.58) + Vector2(side * 2.0, 0)
-			var leaf: Vector2 = origin + Vector2(side * 11.0, -8.0)
-			draw_colored_polygon(PackedVector2Array([origin, leaf, origin + Vector2(side * 5.0, 5.0)]), thorn.darkened(0.14))
-			draw_line(origin, leaf, Color("e9ddc2", 0.55), 1.0, true)
-	_draw_stitches(Vector2(area.position.x, root_y + 4.0), Vector2(area.end.x, root_y + 4.0), THREAD, 17.0)
-
-
 # Steel needles sewn into a band, tips along dir. The art points up, so it is turned to face dir with its
 # band sunk a little into the surface. A pop-up strip at rise 0 shows only its band with the needle eyes
 # peeking through the cloth, the tell that the strip is there, and grows its needles out of it as it rises.
@@ -421,17 +321,6 @@ func _draw_sentry_tracks() -> void:
 		draw_circle(to, 5.0, RUST)
 
 
-func _draw_ferry_tracks() -> void:
-	for data: Dictionary in level["ferries"]:
-		var from: Vector2 = data["from"]
-		var to: Vector2 = data["to"]
-		draw_line(from, to, Color("705f50", 0.35), 4.0, true)
-		_draw_stitches(from, to, Color("f7e3c7", 0.75), 22.0)
-		for end: Vector2 in [from, to]:
-			draw_circle(end, 10.0, INK)
-			draw_circle(end, 5.0, Color("d6b78d"))
-
-
 # A flower stands on whichever surface its gravity points at. Unlit it is a faded, drooping bud; touched,
 # it pops open, glows and sways.
 func _draw_flower(index: int) -> void:
@@ -488,20 +377,14 @@ func _draw_confetti() -> void:
 
 func _draw_shard(point: Vector2, index: int) -> void:
 	var center: Vector2 = point + Vector2(0, sin(time * 4.4 + index * 1.7) * 3.0)
-	var required_phases: Array = level.get("shard_phases", [])
-	var required_phase: int = int(required_phases[index]) if index < required_phases.size() else -1
-	var ready: bool = required_phase < 0 or required_phase == phase
-	var tint: Color = button_colour if required_phase < 0 else (Color("8cd1be") if required_phase == 1 else Color("d7a998"))
-	draw_circle(center, 36.0, Color(tint, 0.25 if ready else 0.08))
+	draw_circle(center, 36.0, Color(button_colour, 0.25))
 	for spoke: int in range(8):
 		var angle: float = float(spoke) * TAU / 8.0 + time * 0.25
-		draw_line(center + Vector2.from_angle(angle) * 27.0, center + Vector2.from_angle(angle) * 35.0, Color(tint, 0.78 if ready else 0.28), 2.0, true)
+		draw_line(center + Vector2.from_angle(angle) * 27.0, center + Vector2.from_angle(angle) * 35.0, Color(button_colour, 0.78), 2.0, true)
 	draw_circle(center, 18.0, INK)
-	draw_circle(center, 15.0, tint.darkened(0.43) if not ready else tint)
+	draw_circle(center, 15.0, button_colour)
 	for hole: int in range(4):
 		draw_circle(center + Vector2.from_angle(float(hole) * TAU / 4.0 + PI * 0.25) * 7.0, 2.2, INK)
-	if required_phase >= 0:
-		_draw_stitches(center + Vector2(-33, 42), center + Vector2(33, 42), tint, 11.0)
 
 
 func _draw_pad(pos: Vector2) -> void:
