@@ -104,10 +104,10 @@ jobs:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    permissions:
-      contents: write
+    # Two of this repository's deploys never run at once. A push from another repository can still land first, and
+    # force: false with attempt-limit makes the action rebase onto it and try again.
     concurrency:
-      group: stitchfall-pages
+      group: studio-site
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -115,23 +115,9 @@ jobs:
         with:
           name: stitchfall-web
           path: build/web
-      # This repository's gh-pages is what the studio site copies into /stitchfall/play/ on each of its deploys.
-      - name: Publish to this repository's gh-pages
-        uses: JamesIves/github-pages-deploy-action@fa24774553152dd7873cd16ebd8d959b010c5445 # v4.9.0
-        with:
-          branch: gh-pages
-          folder: build/web
-          force: false
-          commit-message: Publish Stitchfall
-      # With the studio site's deploy key, the build also goes live at once rather than at the site's next deploy.
-      - name: Check for the studio site's deploy key
-        id: site
-        env:
-          SITE_DEPLOY_KEY: ${{ secrets.SITE_DEPLOY_KEY }}
-        run: |
-          if [ -n "$SITE_DEPLOY_KEY" ]; then echo "ready=true"; else echo "ready=false"; fi >> "$GITHUB_OUTPUT"
+      # The studio site's gh-pages serves chaosmos.studio. This writes only stitchfall/play/, which the site's own
+      # deploy leaves alone (its clean-exclude), the way every other game publishes its browser version.
       - name: Publish to chaosmos.studio/stitchfall/play/
-        if: steps.site.outputs.ready == 'true'
         uses: JamesIves/github-pages-deploy-action@fa24774553152dd7873cd16ebd8d959b010c5445 # v4.9.0
         with:
           repository-name: chaosmos-studio/chaosmos-studio.github.io

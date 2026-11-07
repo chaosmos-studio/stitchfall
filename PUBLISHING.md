@@ -34,9 +34,9 @@ runner come apart. The browser build has none of it.
 
 - **CI** (`.github/workflows/ci.yml`), on every push and pull request: the tests (run with `--fixed-fps 60`, about
   a minute) and the browser build with its phone check (`tools/check_web.cjs`) side by side. A push to `main` that
-  passes both publishes the browser build to this repository's `gh-pages`, which the studio site copies into
-  `chaosmos.studio/stitchfall/play/` on its deploys. With the `SITE_DEPLOY_KEY` secret it also goes straight
-  there.
+  passes both publishes the browser build to `chaosmos.studio/stitchfall/play/`, writing only that folder of the
+  studio site's `gh-pages` with the `SITE_DEPLOY_KEY` secret (a write deploy key on
+  `chaosmos-studio.github.io`), as every other game does.
 - **Android** (`.github/workflows/release-android.yml`): a new version at the top of `CHANGELOG.md` pushed to
   `main` releases by itself. The run tests, builds and signs the AAB and APK, makes the `v<version>` tag and the
   GitHub release, and uploads to the Play track named by the repository variable `AUTO_PLAY_TRACK`. That variable
