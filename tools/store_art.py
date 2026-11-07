@@ -7,7 +7,7 @@
 
 Each screenshot is captured at the game's full 1920 by 1080 through tools/gallery.gd (its hd mode), then sewn
 onto linen with a stitched border and a caption above it. Play takes 16:9 shots for phones and tablets alike, so
-one set serves the phone, 7-inch and 10-inch slots. The feature graphic is the woodland the Home screen opens on,
+the one set in screenshots/phone/ goes into the phone, 7-inch and 10-inch slots. The feature graphic is the woodland the Home screen opens on,
 with the runner and the name on a linen patch. Everything lands in assets/store/, which Godot ignores.
 
 Play's rules for graphics: no device frames, and no ranking, price or promotion words in a caption.
@@ -190,13 +190,10 @@ def main() -> None:
     if "--compose" not in sys.argv:
         capture([arg for arg in sys.argv[1:] if not arg.startswith("--")])
     phone = OUT / "screenshots/phone"
-    for folder in (phone, OUT / "screenshots/tablet7", OUT / "screenshots/tablet10"):
-        shutil.rmtree(folder, ignore_errors=True)
-        folder.mkdir(parents=True)
+    shutil.rmtree(phone, ignore_errors=True)
+    phone.mkdir(parents=True)
     for name, _, _, headline, subline in SHOTS:
-        image = screenshot(name, headline, subline)
-        for folder in ("phone", "tablet7", "tablet10"):
-            image.save(OUT / f"screenshots/{folder}/{name}.png")
+        screenshot(name, headline, subline).save(phone / f"{name}.png")
         print("composed", name)
     feature().save(OUT / "feature_graphic_1024x500.png")
     print("composed feature graphic")

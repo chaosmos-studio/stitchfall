@@ -18,7 +18,7 @@ Platforms, hazards, pickups, exits, enemies, cargo, and HUD elements are drawn i
 The HUD keeps button progress and pause available during play.
 Each room's name appears briefly when the room begins.
 The HUD cloth palette follows the setting.
-The Home screen plays a slow front-facing loop from four high-resolution poses.
+The Home screen plays the runner's front-facing dance sheet.
 Its sewn woodland stage has a quiet fabric pocket for the menu.
 The title uses Darn Display, reading text uses Darn UI, the main menu uses Threadline Woven, and other stitched controls use Threadline Satin.
 An original music loop accompanies the dance and continues into play.
@@ -110,10 +110,9 @@ The [itch.io quality guidelines](https://itch.io/docs/creators/quality-guideline
 
 These decisions use Shravan's earlier creative freedom and instruction to build without waiting for concept approval.
 
-## Room design audit, 4 November 2026
+## Room design rules, 4 November 2026
 
-The 16 current rooms establish useful movement rules, but most start near the left floor, end near the right floor, place a wall in the middle, and scatter three sparks along the route.
-Changing the setting or adding a sentry does not change the route the player has to understand.
+A room must change the route the player has to understand, not only its setting or its hazards.
 Plumb's lesson is to make each stage earn its place through a new rule, a proved solution, a difficulty target, and a difference from nearby stages.
 Stitchfall needs those checks around continuous movement and timing rather than a grid solver.
 
@@ -164,4 +163,4 @@ Keep the campaign count private.
 ## Interaction pass, 5 November 2026
 
 The first phone Play opens a guide that illustrates movement, crouch, jump, and Shift with animated gestures.
-The first compressed Web export transfers about 45.2 MB instead of the previous 83.4 MB on browsers with stream decompression, with the same art and a raw fallback.
+The web build streams a gzip-compressed engine on browsers with stream decompression, with a raw fallback.
