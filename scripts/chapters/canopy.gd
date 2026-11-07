@@ -49,7 +49,7 @@ static func build(index: int) -> Dictionary:
 			# the runner over the pit in an arch.
 			room.merge({
 				"name": "Updraft",
-				"par": 12.0,
+				"par": 11.0,
 				"accent": Color("5f9b5a"),
 				"spikes": [pit],
 				"pins": [Vector2(1330, PIN_FLOOR)],

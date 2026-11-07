@@ -61,15 +61,20 @@ static func replay(tree: SceneTree, room: int, script: String, frames: int = 900
 	game._on_begin()
 	var steps: Dictionary[int, PackedStringArray] = parse(script)
 	var finished: bool = false
+	var played: int = 0
 	for frame: int in range(frames):
 		apply(game, steps, frame)
 		await tree.physics_frame
+		played += 1
 		if game.cleared:
 			finished = true
 			break
 	release_all()
 	var stars: int = game.last_result.get("stars", 0)
-	var result: Dictionary = {"finished": finished, "deaths": game.deaths, "stars": stars, "time": game.room_time}
+	# The route's time in physics frames, the same on every machine. The game's own room_time ticks with drawn
+	# frames, which a headless replay does not keep in step with physics.
+	var time: float = float(played) / float(Engine.physics_ticks_per_second)
+	var result: Dictionary = {"finished": finished, "deaths": game.deaths, "stars": stars, "time": time}
 	game.queue_free()
 	await tree.process_frame
 	return result
@@ -90,7 +95,6 @@ static func prove(tree: SceneTree, id: String) -> Array[Array]:
 		var solved: Dictionary = await replay(tree, room, proof["route"])
 		checks.append(["%s is finished by its route without an unravel" % label, solved["finished"] and solved["deaths"] == 0])
 		checks.append(["%s's route earns all three stars inside par" % label, solved["stars"] == 3])
-		# Room time ticks with drawn frames, so a replay's time wanders a little from run to run.
 		var par: float = StitchfallLevels.get_level(room)["par"]
 		var target: float = float(solved["time"]) * 1.5
 		checks.append(["%s's par %.0f is about its route's %.2f s times 1.5" % [label, par, solved["time"]], par >= target - 0.5 and par <= target + 1.5])
