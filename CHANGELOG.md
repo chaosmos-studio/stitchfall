@@ -7,6 +7,11 @@ one line, at most 500 characters in all. The release workflow turns it into the 
 bumps the patch.
 -->
 
+## 1.0.1
+
+- Sign in with Google Play Games for twelve achievements, three leaderboards and progress that follows you to a new phone.
+- Leaderboards and Achievements sit on the Stats page, in Settings.
+
 ## 1.0.0
 
 - Stitchfall is here. Run, jump and turn the whole room over to sew your way through a world made of cloth.
