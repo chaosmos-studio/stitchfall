@@ -1,28 +1,46 @@
-# Stitchfall
+<p align="center">
+  <img src=".github/logo.png" alt="Stitchfall" width="560">
+</p>
 
-Stitchfall is a 2D action puzzle game in a world made of cloth and thread.
-Run, jump, and shift gravity to collect buttons and reach each open seam.
-Each shift also changes sewn bridges, moves weighted patches, and briefly stills needle moths.
+<p align="center">
+  <b>Turn the whole room over and sew your way past every trick.</b><br>
+  A platformer in a world sewn from cloth.
+</p>
 
-## Play
+<p align="center">
+  <a href="https://chaosmos.studio/stitchfall/"><b>Play Stitchfall</b></a>
+</p>
 
-[Play Stitchfall in your browser](https://chaosmos.studio/stitchfall/play/).
-Turn a phone sideways.
-Use the Home screen to play, choose a seam, or open the illustrated controls.
-The first phone Play opens an animated gesture guide, which is also available from Home.
-Slide left or right to walk, swipe up to jump, swipe down to crouch, and tap the playfield to turn gravity.
-Preview the [water](https://chaosmos.studio/stitchfall/play/?room=30), [dunes](https://chaosmos.studio/stitchfall/play/?room=35), [forest](https://chaosmos.studio/stitchfall/play/?room=40), [night quilt](https://chaosmos.studio/stitchfall/play/?room=45), [rain meadow](https://chaosmos.studio/stitchfall/play/?room=50), or [frost woodland](https://chaosmos.studio/stitchfall/play/?room=55).
-Each room earns up to three stars, and the stars open trails, unravels and buttons in the Wardrobe.
-Run `./play.sh` from this directory to play locally with Godot 4.7.
+<p align="center">
+  <img src="assets/store/screenshots/phone/01_turn.png" alt="The runner walking the ceiling of a green forest room" width="49%">
+  <img src="assets/store/screenshots/phone/03_night.png" alt="A long floaty jump under the stars of the night quilt" width="49%">
+</p>
 
-On desktop, use A and D or the arrow keys to move, W, Up, or Space to jump, S or Down to crouch, and Shift or a mouse click to turn gravity.
-Use R to restart the chamber and P or Escape to pause.
-The sewn pause icon opens Resume, Restart, and Home.
-The Sound control is in Settings, and M toggles music and effects during play.
+## How to play
 
-## Development
+Collect every button in the room, then slip out through the zipper.
+Tap to turn the whole room a quarter turn, so a wall becomes the floor and the ceiling becomes the way across.
+Every room plays one trick on you. Watch for the tell, laugh, and try again.
 
-The project uses GDScript and the GL Compatibility renderer.
-Run `godot --headless --path . -s res://tests/run_tests.gd` for the gameplay checks.
-After importing the project, run `godot --headless --path . --export-release Web build/web/index.html` and `python3 tools/prepare_web.py` to make a browser build.
-See [PLAN.md](PLAN.md), [MATH.md](MATH.md), and [CREDITS.md](CREDITS.md).
+| | Phone | Keyboard |
+| --- | --- | --- |
+| Run | Slide left or right | A and D, or the arrow keys |
+| Jump | Swipe up | W, Up or Space |
+| Crouch | Swipe down | S or Down |
+| Turn the room | Tap the cloth | Shift or a click |
+
+## What you will find
+
+- Small rooms you see whole, with instant retries
+- Chapters of water, wind, forest drafts, a night quilt, rain and frost, each with its own pull
+- Up to three stars a room: sew it, sew it without coming apart, sew it fast
+- A Wardrobe of runners, trails, unravel styles, buttons and fabrics
+
+## Made by
+
+Stitchfall is made by Shravan Goswami at [Chaosmos](https://chaosmos.studio). Everyone and everything it uses is in the [credits](CREDITS.md).
+It is built with Godot 4.7: open the project in Godot and press Play.
+
+## License
+
+[MIT](LICENSE). The fonts are under the SIL Open Font License, and the plugins in `addons/` keep their own licenses.
