@@ -155,22 +155,23 @@ def feature() -> Image.Image:
     shadow.putalpha(runner.split()[3].filter(ImageFilter.GaussianBlur(10)).point(lambda v: int(v * 0.45)))
     canvas.paste(shadow, (runner_at[0] + 10, runner_at[1] + 12), shadow)
     canvas.paste(runner, runner_at, runner)
-    # The name and line sit in the woodland's own stitched pocket, the one the Home menu sits in.
+    # The logo's label and the line sit in the woodland's own stitched pocket, the one the Home menu sits in.
     draw = ImageDraw.Draw(canvas)
     centre = (POCKET[0] + POCKET[2]) // 2
-    name_font = fit_font(DISPLAY_FONT, "STITCHFALL", POCKET[2] - POCKET[0] - 2 * POCKET_PADDING, 96)
-    name_box = draw.textbbox((centre, 0), "STITCHFALL", font=name_font, anchor="mt")
+    logo = Image.open(ROOT / "assets/art/logo_label.png").convert("RGBA")
+    logo_width = POCKET[2] - POCKET[0] - 2 * POCKET_PADDING
+    logo = logo.resize((logo_width, round(logo.height * logo_width / logo.width)), Image.LANCZOS)
     line = "Turn the room. Sew your way out."
     line_font = fit_font(BODY_FONT, line, POCKET[2] - POCKET[0] - 2 * POCKET_PADDING, 30)
     line_box = draw.textbbox((centre, 0), line, font=line_font, anchor="mt")
-    block = (name_box[3] - name_box[1]) + FEATURE_LINE_GAP + (line_box[3] - line_box[1])
+    block = logo.height + FEATURE_LINE_GAP + (line_box[3] - line_box[1])
     top = (POCKET[1] + POCKET[3] - block) // 2
-    draw.text((centre, top - name_box[1]), "STITCHFALL", font=name_font, fill=INK, anchor="mt")
-    rule_y = top + (name_box[3] - name_box[1]) + FEATURE_LINE_GAP // 2
+    canvas.paste(logo, (centre - logo.width // 2, top), logo)
+    rule_y = top + logo.height + FEATURE_LINE_GAP // 2
     half = (line_box[2] - line_box[0]) // 2
     for k in range(centre - half, centre + half, 18):
         draw.line([(k, rule_y), (k + 10, rule_y)], fill=THREAD, width=3)
-    draw.text((centre, top + (name_box[3] - name_box[1]) + FEATURE_LINE_GAP - line_box[1]), line, font=line_font,
+    draw.text((centre, top + logo.height + FEATURE_LINE_GAP - line_box[1]), line, font=line_font,
               fill=MUTED, anchor="mt")
     return canvas
 
