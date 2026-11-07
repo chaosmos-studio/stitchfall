@@ -3,6 +3,8 @@ extends RigidBody2D
 
 var gravity_direction: Vector2 = Vector2.DOWN
 var glow_time: float = 0.0
+# Where an unravel puts it back, the way a pin goes back: its start, until a flower saves where it is now.
+var start: Vector2 = Vector2.ZERO
 
 
 func _ready() -> void:
@@ -20,6 +22,14 @@ func _ready() -> void:
 	add_child(shape)
 	can_sleep = false
 	queue_redraw()
+
+
+func reset(gravity: Vector2) -> void:
+	position = start
+	linear_velocity = Vector2.ZERO
+	gravity_direction = gravity
+	sleeping = false
+	reset_physics_interpolation()
 
 
 func _physics_process(delta: float) -> void:

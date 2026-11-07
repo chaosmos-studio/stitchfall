@@ -1,7 +1,7 @@
 # Room design
 
 How Stitchfall's rooms are built from now on, what we took from Level Devil, and the chapter plan.
-The first chapter, Plain Linen, is built this way and opens the campaign. The older wide rooms follow it until each is rebuilt.
+The whole campaign is built this way, twelve chapters of five rooms. The older wide rooms are gone from it.
 
 ## What was wrong with the old rooms
 
@@ -69,15 +69,60 @@ Each chapter is one room layout played five times, each with a new prank, and th
    3. *Last Step*: two sewn steps and a third that only looks it. Jump the last step.
    4. *No Way Back*: the bridge drops once crossed and the zipper is back at the start. Come home by the ceiling.
    5. *Hold On*: Keep Moving's habit sends you onto a patch that drops at a touch. Stop at the flower on the island, turn up for the button between two needle strips, turn back down, and jump the trap.
-4. **Lit Seams** (`seams`). *Lit seams hold only while you fall sideways.* A lit seam is solid after an odd number of turns, when gravity points left or right, and a ghost when it points down or up. The habit: turn once, stand on a seam, walk it. The pranks: the turn that brings you down takes the seam from under you over the needles, a seam that is a floor one way is a wall the other, the button sits where you can only be while the seam is a ghost.
-5. **Needle Moths** (`moths`). *Every turn stills the moths for a breath.* Moths fly their tracks, and a turn freezes them, harmless, for about half a second. The habit: turn to still a moth, then slip past. The pranks: the turn that stills the moth also drops you or a pin onto it, two moths out of step so one turn is not enough, a moth that waits beside the zipper, a still moth you can only pass by turning again in the air.
-6. **The Weighted Patch** (`patch`). *The zipper opens only with the patch on its pad.* The patch falls the way gravity points and can be pushed. The habit: turn the room to send the patch home. The pranks: the turn that sends the patch also sends you, the patch is the only step over the needles and you must use it before you send it, the pad is on the ceiling, the patch lands in the pit with the button.
-7. **Blue Thread** (`water`). *The water slows every fall and lifts every jump.* Inside the pool falls are slow and a jump goes twice as high. The habit: use the pool to climb. The pranks: needles under the surface you sink onto slowly, a turn inside the pool that sends you up out of it, a jump that only works from the water, a pool that is overhead after a turn.
-8. **Sand Drift** (`dunes`). *The wind always blows to the right.* The wind pushes right however the room is turned, so turning makes it a pull, a push or a floor-wind. The habit: let the wind carry your jumps. The pranks: the wind carries you past the landing into the needles, the zipper is upwind, after a turn the wind is what holds you on the wall.
-9. **Green Canopy** (`canopy`). *The canopy lifts you up.* Inside a canopy draft the runner floats upward, stronger than gravity. The habit: ride the draft up to the ceiling buttons. The pranks: the draft carries you into ceiling needles, turning upside down inside a draft throws you at the ceiling twice as hard, a draft that holds you away from the zipper.
-10. **Night Quilt** (`night`). *The night quilt makes every jump long and slow.* Gravity is a quarter as strong, so jumps are high and falls take time. The habit: big floaty jumps. The pranks: the long jump overshoots into needles, the slow fall gives the pins time to land first, a turn in mid-air is the only way to stop.
-11. **Rainline** (`rain`). *The rain gusts come and go.* The rain pushes sideways, strongly then weakly, on a steady beat. The habit: wait for the gust to ease, then go. The pranks: the room that needs the strong gust, a gust that turns into gravity after a turn, a patch you must cross between gusts.
-12. **Frost** (`frost`). *On frost you cannot stop.* The runner is slow to start and slow to stop. The habit: start running early, let go early. The pranks: needles where you would stop, a turn as the only brake, a slide off the edge of a sewn island, a zipper that flees across the ice.
+4. **Lit Seams** (`seams`, built). *Some floors only hold you sideways.* A lit seam is solid after an odd number of turns, when gravity points left or right, and a ghost when it points down or up. A seam hangs over a needled pit.
+   1. *Lights On*: fall sideways onto the seam, walk it for a button, turn down onto a sewn shelf and jump the pit.
+   2. *Lights Out*: the shelf is a seam now, lit while you stand sideways above it and gone the moment you turn down onto it.
+   3. *See Through*: a wall seam from roof to floor catches the sideways fall. Turn upright just before it to slide through, past a button sewn inside it.
+   4. *Round the Back*: the zipper runs up the back of the wall seam, where only a sideways runner can stand.
+   5. *Seam Ripper*: everything at once, and the zipper runs to the roof corner, where turning up off the seam lands in needles. Jump clear and turn in the air.
+5. **Needle Moths** (`moths`, built). *Every turn holds its breath.* Moths fly their tracks, and a turn stills them, harmless, for about half a second.
+   1. *Hush*: climb past the wall moth, wait on the roof for the roof moth, and turn to dash past it.
+   2. *Cornered*: a moth waits where the roof dash ends, awake by the time you arrive. Turn down again in the air.
+   3. *Out of Step*: two roof moths fly opposite ways, and one turn passes both only when they bunch up.
+   4. *Doorman*: two moths sit on the zipper and wake before a fall from the roof arrives. Walk down the right wall sideways and turn when the zipper is a short fall away.
+   5. *Flutter By*: everything at once, with a lit seam catching the roof dash short of the corner moth.
+6. **The Weighted Patch** (`patch`, built). *Some doors need a little weight.* The zipper opens only with the patch on its pad, and the patch falls the way gravity points. It sits in the pit, and a turn up lifts it slowly to the pad on the roof while you wait pinned under a shelf. The patch resets with you when you unravel.
+   1. *Weighted*: wait for the patch to arrive before turning on.
+   2. *Stepping Stone*: a button over the pit can only be reached standing on the patch, so use it before you send it.
+   3. *Pushover*: turning off the patch throws you into needles on the left wall. Jump and turn at the top of the jump.
+   4. *Hold the Door*: the door moths wake before a fall from the top of the wall arrives, so walk down the wall first.
+   5. *Dead Weight*: everything at once, plus a moth where the turn off the patch lands. One turn in the air stills the moth, pins you under the shelf and sends the patch home.
+7. **Blue Thread** (`water`, built). *Hold your breath.* One pool over a needle strip, with a pin and a step by the zipper. A dry jump clears about 180 px of needles, a jump from the water about 265.
+   1. *Deep End*: only a jump from inside the pool clears the strip.
+   2. *Step Up*: a second step that only a water jump from the first step reaches.
+   3. *High Water*: the pool, strip and steps hang from the ceiling, so turn over and play the room upside down.
+   4. *Slow Motion*: the landing raises pop-up needles while you hang in slow water, and the pin, which water does not slow, beats you to the ceiling.
+   5. *Hold Your Breath*: Slow Motion upside down.
+8. **Sand Drift** (`dunes`, built). *The wind only knows one way.* In the air the wind always wins. One turn sets it against gravity, so you drift slowly left.
+   1. *Tailwind*: a strip only a wind-carried jump clears, a hop over the pin, a ceiling button, and a turn down near the wall that throws you into the zipper's corner.
+   2. *Kite*: a second strip right after the landing, so the second jump leaves as you land.
+   3. *Upwind*: the zipper is back by the start, and a jump into the wind falls short. Hop, turn once at the top, and drift home.
+   4. *Crosswind*: needles high on the right wall catch the climb rooms 1 and 2 taught. Turn down further out.
+   5. *Sand Drift*: both strips, the wall needles, the ceiling button and a flower, then the drift home.
+9. **Green Canopy** (`canopy`, built). *Up is where the leaves go.* A draft column over the needle pit, stronger than gravity, is the only way across and back.
+   1. *Updraft*: ride the draft up to the ceiling button, then jump into it at a run and it carries you home.
+   2. *Treetops*: the far floor is needled, so turn over inside the draft and walk the ceiling there and back.
+   3. *Thorns*: needles at the top of the draft. Cross it at a run so it lifts you only part way.
+   4. *Pin Drop*: turned over inside the draft you are pressed up too hard to jump, and the pin lands beside you.
+   5. *Green Canopy*: Pin Drop with thorns at the near end of the ceiling.
+10. **Night Quilt** (`night`, built). *Everything floats a little longer here.* The whole room is night quilt, with a sewn moon over a needle pit. Pins ignore the quilt.
+    1. *Hang Time*: a floaty jump to the moon, one off it, then a slow turn at the wall up to the zipper.
+    2. *Soft Landing*: the far floor's needles pop up while your floaty jump is still drifting down. Turn in mid-air and come home by the ceiling.
+    3. *Mind Your Head*: a needled cloud hangs where a full jump peaks.
+    4. *After You*: after an early turn in the air, the pin reaches the ceiling first and waits where you land.
+    5. *Moonset*: the moon is only pinned, and the zipper runs down its track into raised needles.
+11. **Rainline** (`rain`, built). *The rain keeps its own time.* The way out on the floor runs with the gusts, and the way home on the ceiling runs into them. The drawn rain leans with the real push.
+    1. *Rain Check*: a gust carries a jump past the island and blows a homeward jump short.
+    2. *Don't Wait Up*: the ceiling island is a pinned patch, so waiting on it for a calm drops you.
+    3. *Second Wind*: the far strip is wider than any calm jump.
+    4. *Featherweight*: on its side, the gust holds you up for a long leap off the left wall.
+    5. *Cloudburst*: both islands pinned, a strip that needs a gust, and a flower to bank the way out.
+12. **Frost** (`frost`, built). *Nothing here stops when you do.* The whole room is ice, with a pit and a sewn step, and the way across is the ceiling. A turn while running the right way brakes you dead, and any other turn throws you.
+    1. *Black Ice*: across by the ceiling and back, braking with a turn while running left.
+    2. *Slip Up*: stopping above the step and turning throws you past it.
+    3. *Wrong Way*: turning while running right over the step throws you, so go round and come back left.
+    4. *Hard Stop*: no room to glide, so turn in mid-air while running left.
+    5. *Runaway*: the zipper waits on the step, then runs home across the ice the moment you land beside it.
 
 Every chapter after Plain Linen keeps the earlier parts in play (needles, pop-up needles, the running zipper, pins, unpinned patches, flowers), so its rooms get harder by having more pieces, never more rules. A chapter's first room teaches its idea in a room at least as demanding as the chapter before it ended.
 
@@ -100,7 +145,7 @@ Numbers worth knowing, all at 60 physics frames a second:
 - The inside of a screen room runs from x 360 to 1560 and y 280 (ceiling) to 860 (floor). The runner stands at y 821 on the floor and 319 on the ceiling, starts at (430, 821), and the zipper sits at (1500, 781) on the floor or (1500, 359) on the ceiling.
 - The runner runs at 360 px/s and jumps about 112 px high, about 270 px across at a run. Letting go of jump early cuts the jump.
 - A turn rotates gravity a quarter turn: down, left, up, right, down. Two turns 15 frames apart put the runner on the ceiling. Left and right stay left and right on the screen.
-- Water: falls are capped at 400 px/s, a jump goes about 250 px, running is 240 px/s. Night quilt: gravity is 0.27 times as strong, a jump goes about 220 px, running is 300 px/s. Dunes: the wind adds 1100 px/s² to the right. Canopy: the draft adds 1850 px/s² upward. Rain: the push to the right is 900·sin(1.7t) + 360 px/s². Frost: on the ground the runner speeds up and slows down at 300 px/s² rather than 1850. Each force works only inside its `environment_zone`, and always in screen directions, whatever way gravity points.
+- Water: falls are capped at 400 px/s, a jump rises about 135 px and hangs about 1.5 s, carrying about 360 px across, and running is 240 px/s. Night quilt: gravity is 0.27 times as strong, a jump goes about 220 px, running is 300 px/s. Dunes: the wind adds 1100 px/s² to the right. Canopy: the draft adds 1850 px/s² upward. Rain: the push to the right is 900·sin(1.7t) + 360 px/s². Frost: on the ground the runner speeds up and slows down at 300 px/s² rather than 1850. Each force works only inside its `environment_zone`, and always in screen directions, whatever way gravity points.
 
 ## Rewards
 

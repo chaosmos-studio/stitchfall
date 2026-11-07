@@ -12,7 +12,7 @@ const FRAME: Array[Rect2] = [
 # The campaign's chapters in order, built the way LEVELS.md describes: small rooms, seen whole, one prank
 # each, five rooms a chapter. Each is a script in scripts/chapters/ with its name, its line, its rooms and the
 # routes that prove them. The older wide rooms follow them, five to a page, until each is rebuilt.
-const CHAPTER_IDS: PackedStringArray = ["linen", "pins", "unpinned"]
+const CHAPTER_IDS: PackedStringArray = ["linen", "pins", "unpinned", "seams", "moths", "patch", "water", "dunes", "canopy", "night", "rain", "frost"]
 const CHAPTER_ROOMS: int = 5
 const CLASSIC_ROOMS: int = 50
 const CLASSIC_NAME: String = "Old Seams"

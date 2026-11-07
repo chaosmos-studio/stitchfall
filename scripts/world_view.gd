@@ -45,6 +45,8 @@ var gate_open: bool = false
 var gate_fraction: float = 0.0
 var exit_position: Vector2 = Vector2.ZERO
 var popup_raised: Array[bool] = []
+# The runner's rain clock, so the drawn rain leans with the gust the runner feels.
+var gust_clock: float = 0.0
 # Drawn positions, eased toward exit_position and the raised state so a move reads as motion.
 var exit_drawn: Vector2 = Vector2.ZERO
 var popup_rise: Array[float] = []
@@ -205,10 +207,13 @@ func _draw_environment() -> void:
 		return
 	match kind:
 		"water":
-			draw_rect(zone, Color("86b6b5", 0.22))
+			draw_rect(zone, Color("3d7c90", 0.26))
+			# A pool hanging from the ceiling shows its surface along its bottom edge, where it can be seen.
+			var chamber: Rect2 = level["chamber"]
+			var surface: float = zone.end.y if zone.end.y < chamber.end.y - 40.0 else zone.position.y
 			for x: int in range(int(zone.position.x), int(zone.end.x), 30):
 				var wave: float = sin(float(x) * 0.025 + time * 2.3) * 4.0
-				draw_line(Vector2(x, zone.position.y + wave), Vector2(x + 15, zone.position.y + wave - 2), Color("f3f2d9", 0.85), 3.0, true)
+				draw_line(Vector2(x, surface + wave), Vector2(x + 15, surface + wave - 2), Color("f3f2d9", 0.85), 3.0, true)
 			for index: int in range(11):
 				var pos: Vector2 = Vector2(zone.position.x + fposmod(float(index * 93), zone.size.x), zone.end.y - fposmod(float(index * 113) + time * 15.0, zone.size.y))
 				draw_arc(pos, 5.0 + float(index % 3) * 2.0, 0.0, TAU, 20, Color("d9e4cf", 0.55), 2.0, true)
@@ -238,7 +243,7 @@ func _draw_environment() -> void:
 			for index: int in range(38):
 				var x: float = zone.position.x + fposmod(float(index * 61) + time * 105.0, zone.size.x)
 				var y: float = zone.position.y + fposmod(float(index * 117) + time * 240.0, zone.size.y)
-				var slant: float = 8.0 + sin(time * 1.7) * 6.0
+				var slant: float = (900.0 * sin(gust_clock * 1.7) + 360.0) * 0.02
 				draw_line(Vector2(x, y), Vector2(x + slant, y + 22), Color("d8eeeb", 0.63), 2.0, true)
 		"frost":
 			for index: int in range(32):

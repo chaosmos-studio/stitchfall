@@ -373,6 +373,7 @@ func _sync_touch_controls() -> void:
 func _physics_process(delta: float) -> void:
 	if not playing or finished or not is_instance_valid(pilot):
 		return
+	world.gust_clock = pilot.environment_clock
 	if gates_open:
 		gate_remaining = maxf(0.0, gate_remaining - delta)
 		world.gate_fraction = gate_remaining / float(level["gate_window"])
@@ -512,6 +513,7 @@ func _load_level(index: int) -> void:
 		_add_pad(level["pad"])
 		cargo = CARGO_SCRIPT.new() as StitchfallCargo
 		cargo.position = level["crate"]
+		cargo.start = level["crate"]
 		room.add_child(cargo)
 	else:
 		cargo = null
@@ -668,6 +670,8 @@ func _on_flower_body(body: Node2D, index: int) -> void:
 	respawn_gravity = flower["gravity"]
 	for pin: StitchfallPin in pins:
 		pin.start = pin.position
+	if is_instance_valid(cargo):
+		cargo.start = cargo.position
 	var newly_banked: int = 0
 	for button: int in range(collected.size()):
 		if collected[button] and not banked[button]:
@@ -718,7 +722,7 @@ func _respawn() -> void:
 	pilot.control_enabled = playing
 	last_shift = -1.0
 	if is_instance_valid(cargo):
-		cargo.gravity_direction = gravity_direction
+		cargo.reset(gravity_direction)
 	for bridge: CollisionShape2D in bridges:
 		bridge.set_deferred("disabled", phase == 0)
 	for pin: StitchfallPin in pins:
