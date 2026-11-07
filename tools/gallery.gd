@@ -3,9 +3,11 @@ extends Node
 # Plays a room by a short script and saves one frame, for the website, the blog and the press kit.
 # Run with --fixed-fps 60 so every frame steps the game by the same time:
 #   DISPLAY=:0 godot --path . --fixed-fps 60 res://tools/gallery.tscn -- <name> <room> "<frame>:<step>,..."
-# The room is an index or a chapter room like "seams/2".
+# The room is an index or a chapter room like "seams/2". A fourth argument, hd, renders offscreen at the
+# game's full 1920 by 1080 whatever the window's size, for store images.
 # Steps: a route's steps (shift, +action, -action), levels to open the level select, hud=<method>[/<arg>] to
-# open a page, wear=<kind>/<piece> to dress the runner, and shot to save the frame.
+# open a page, wear=<kind>/<piece> to dress the runner, 0:play to show the Google Play build's pages, shot to
+# save the frame, and snap to save it as <name>_<frame>, for choosing a moment among several.
 # The PNG lands in user://gallery/<name>.png.
 
 func _ready() -> void:
@@ -22,8 +24,17 @@ func _ready() -> void:
 		list.append(parts[1])
 		steps[frame] = list
 		last = maxi(last, frame)
+	var host: Node = self
+	if args.size() > 3 and args[3] == "hd":
+		var view: SubViewport = SubViewport.new()
+		view.size = Vector2i(1920, 1080)
+		view.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+		add_child(view)
+		host = view
+	# Pages are built as the game loads, so the Play build's pages need the switch before it.
+	StitchfallShop.on_play = args[2].split(",").has("0:play")
 	var game: Node = load("res://scenes/game/game.tscn").instantiate()
-	add_child(game)
+	host.add_child(game)
 	game._load_level(room)
 	game._on_begin()
 	for frame: int in range(last + 1):
@@ -43,11 +54,12 @@ func _ready() -> void:
 				var piece: PackedStringArray = step.substr(5).split("/")
 				game.progress.wear[piece[0]] = piece[1]
 				game._apply_wardrobe()
-			elif step == "shot":
+			elif step == "shot" or step == "snap":
 				await RenderingServer.frame_post_draw
-				var img: Image = get_viewport().get_texture().get_image()
+				var img: Image = game.get_viewport().get_texture().get_image()
 				DirAccess.make_dir_recursive_absolute("user://gallery")
-				img.save_png("user://gallery/%s.png" % out_name)
-				print("GALLERY_SAVED ", ProjectSettings.globalize_path("user://gallery/%s.png" % out_name))
+				var file: String = out_name if step == "shot" else "%s_%d" % [out_name, frame]
+				img.save_png("user://gallery/%s.png" % file)
+				print("GALLERY_SAVED ", ProjectSettings.globalize_path("user://gallery/%s.png" % file))
 		await get_tree().process_frame
 	get_tree().quit()

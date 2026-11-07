@@ -357,7 +357,8 @@ func _build_home() -> void:
 	var botanicals: Control = HOME_BOTANICALS.new() as Control
 	home_page.add_child(botanicals)
 	botanicals.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var eyebrow: Label = _label(home_page, Vector2(136, 120), Vector2(850, 55), 31, ACCENT, true)
+	# Low enough that the pocket's stitched top edge passes above it, not through it.
+	var eyebrow: Label = _label(home_page, Vector2(136, 144), Vector2(850, 55), 31, ACCENT, true)
 	eyebrow.text = "A STITCHED SHIFT ADVENTURE"
 	var title: Label = _label(home_page, Vector2(128, 172), Vector2(870, 158), 105, INK, true)
 	title.add_theme_font_override("font", FONT_DISPLAY)
@@ -419,9 +420,10 @@ func _dress_dancers() -> void:
 func _build_levels() -> void:
 	level_page = _page()
 	_cloth_page(level_page, Rect2(65, 50, 1790, 970))
-	level_heading = _label(level_page, Vector2(200, 100), Vector2(1200, 105), 77, INK, true)
+	# The wide card's corner knot sits at x 160 to 240, so a heading starts clear of it.
+	level_heading = _label(level_page, Vector2(255, 100), Vector2(1200, 105), 77, INK, true)
 	level_heading.add_theme_font_override("font", FONT_DISPLAY)
-	level_tally = _label(level_page, Vector2(206, 200), Vector2(1100, 60), 36, ACCENT)
+	level_tally = _label(level_page, Vector2(261, 200), Vector2(1100, 60), 36, ACCENT)
 	level_previous = _tag(level_page, Rect2(1460, 102, 100, 101), "", "back", Color("e5d5bc"))
 	level_previous.pressed.connect(func() -> void: _set_level_page(level_page_index - 1))
 	level_next = _tag(level_page, Rect2(1580, 102, 100, 101), "", "next", Color("e5d5bc"))
@@ -904,7 +906,7 @@ func _build_credits() -> void:
 func _build_wardrobe() -> void:
 	wardrobe_page = _page()
 	_cloth_page(wardrobe_page, Rect2(65, 50, 1790, 970))
-	var heading: Label = _label(wardrobe_page, Vector2(170, 95), Vector2(700, 105), 77, INK, true)
+	var heading: Label = _label(wardrobe_page, Vector2(255, 95), Vector2(700, 105), 77, INK, true)
 	heading.add_theme_font_override("font", FONT_DISPLAY)
 	heading.text = "WARDROBE"
 	_tag(wardrobe_page, Rect2(1700, 100, 100, 101), "", "home", Color("e5d5bc")).pressed.connect(show_home)
@@ -947,11 +949,11 @@ func _build_wardrobe() -> void:
 func _build_shop() -> void:
 	shop_page = _page()
 	_cloth_page(shop_page, Rect2(65, 50, 1790, 970))
-	var heading: Label = _label(shop_page, Vector2(170, 95), Vector2(700, 105), 77, INK, true)
+	var heading: Label = _label(shop_page, Vector2(255, 95), Vector2(700, 105), 77, INK, true)
 	heading.add_theme_font_override("font", FONT_DISPLAY)
 	heading.text = "SHOP"
 	_tag(shop_page, Rect2(1700, 100, 100, 101), "", "back", Color("e5d5bc")).pressed.connect(leave_shop)
-	shop_line = _label(shop_page, Vector2(176, 196), Vector2(1480, 52), 31, ACCENT)
+	shop_line = _label(shop_page, Vector2(261, 196), Vector2(1400, 52), 31, ACCENT)
 	var cloths: Array[Color] = [Color("e0a278"), Color("efd3b8"), Color("dbe5d1"), Color("e8d8bd")]
 	var ids: PackedStringArray = StitchfallShop.one_time_ids()
 	for index: int in range(ids.size()):

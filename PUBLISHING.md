@@ -37,21 +37,26 @@ runner come apart. The browser build has none of it.
 - [x] Release workflow dry run: signed AAB 1.0.0, code 10000, target 36
 - [x] Store settings (2.3): Game > Arcade, tags Arcade, Brain teaser, Casual, Physics-based, Platformer, contact
 - [x] App content: privacy policy, sign-in details, ads, government apps
-- [ ] App content, Ads, answered again: **Yes, my app contains ads** (it was answered for a build without ads)
-- [ ] App content: financial features, health, content rating, target audience, data safety, advertising ID, trader status (the owner, below)
+- [x] App content, Ads: **Yes, my app contains ads**
+- [x] App content: financial features, health, content rating, target audience, data safety, advertising ID,
+  trader status ("You're all caught up", 7 November 2026)
 - [x] AdMob app and its three units (above)
-- [ ] AdMob, Privacy & messaging: Stitchfall added to both consent messages, with its privacy URL (1.3)
+- [x] AdMob, Privacy & messaging: Stitchfall on both consent messages, with its privacy URL (1.3)
 - [ ] Firebase API key restricted to Stitchfall's upload and app signing SHA-1s too (1.8), once the first AAB is up
-- [ ] The privacy page at chaosmos.studio/stitchfall/privacy/ says what the kit games' pages say about ads, AdMob, consent and Analytics
+- [x] The privacy page at chaosmos.studio/stitchfall/privacy/ covers ads, AdMob, consent and Analytics (live 7 November)
 - [x] Closed testing track: Google Group `chaosmos@googlegroups.com`, feedback URL, all countries
-- [ ] Store listing graphics and words (2.2)
+- [x] Store listing words and graphics (2.2), saved as a draft. The AI asset declaration on its Review step is the
+  owner's call, unanswered
 - [ ] First AAB dragged into Closed testing by hand (2.8), then sent for review
-- [ ] `ci-uploader` given this app in Users and permissions (3.4), so later releases upload from the workflow
+- [ ] `ci-uploader` given this app in Users and permissions (3.4), so later releases upload from the workflow. Claude
+  Code's auto mode refused this grant, so the owner adds it
 - [ ] Products (2.6): the ten below. The old single `tip` is gone, so do not create it
 - [ ] AdMob linked to the listing once it is public (3.1)
 - [ ] Test purchase (2.7)
-- [ ] Play Games project set up (Play Games, below), and `play_games.json` written, then shipped and published
-  with the release that carries it
+- [ ] Play Games: Cloud project `chaosmos-stitchfall` and Play Games project `1647106634` made, properties saved,
+  achievements, events, stats and the three leaderboards in as drafts, `build/play_games/play_games.json` written
+  (not committed). Left: the OAuth consent screen (its User Data Policy box is the owner's to tick), the
+  credentials once the app signing key exists, then committing `play_games.json` and publishing with that release
 - [ ] 12 testers opted in for 14 days (write the date): ____
 - [ ] Applied for production (2.9)
 - [ ] Live on Play (2.10)
@@ -104,24 +109,30 @@ Full description:
 
 > Stitchfall is a platformer in a world sewn from cloth. Run, jump and turn gravity a quarter turn at a time. Walls become floors, the ceiling becomes the way across, and every button you collect brings a room's zipper closer to opening.
 >
-> Every room plays a trick on you. The landing grows needles as you jump. The zipper runs off up its track. The patch that looks sewn down was only pinned. Each trick has a tell, so the first fall makes you laugh and the second try gets you through.
+> Every room plays a trick on you. The landing grows needles as you jump. The zipper runs off across the ice. The patch that looks sewn down was only pinned. Each trick has a tell, so the first fall makes you laugh and the second try gets you through.
 >
 > • Small rooms you see whole, with instant retries
 > • Chapters that each turn one idea into five jokes: falling pins, lit seams, needle moths, a weighted patch, water, wind, canopy drafts, a night quilt, rain and frost
 > • Up to three stars a room: finish it, finish it without coming apart, finish it fast
 > • Flowers bank the buttons you carry and become the place you come back to
 > • A Wardrobe of runners, trails, unravel styles, buttons and fabrics. Stars open the trails, unravels and buttons, and the Wardrobe pack adds every runner and fabric
-> • Hand-drawn textile art and an original score
+> • Textile art and music made for this game
 > • Plays offline, with no account. Your progress stays on your phone
 
-Screenshots (phone, 7-inch and 10-inch tablet, the same six 1920 by 1080 images), with alt text:
+Screenshots (phone, 7-inch and 10-inch tablet, the same eight 1920 by 1080 images from `tools/store_art.py`), in
+this order:
 
-1. `01_turn`: The runner falls sideways across a cloth room after turning gravity, with needles on the floor and ceiling.
-2. `02_trick`: Needles spring up from the floor where the runner is about to land.
-3. `03_pins`: Pincushions drop from cloth shelves as the runner turns the room.
-4. `04_stars`: The room-clear card with three stars, the time and the par.
-5. `05_wardrobe`: The Wardrobe, with the knitted fox runner dancing beside the runner tiles.
-6. `06_home`: The Home screen: the runner dancing in an embroidered woodland.
+1. `01_turn`: Treetops in the Green Canopy, the runner walking the ceiling beside a pin.
+2. `02_trick`: Runaway on the frost, the zipper gone home across the ice while the runner stands at the flower.
+3. `03_night`: Hang Time on the night quilt, a floaty jump with its dotted arc over the moon.
+4. `04_water`: Deep End, the runner jumping out of the pool toward a button.
+5. `05_wind`: Tailwind in the dunes, a jump carried by the wind.
+6. `06_stars`: The Sewn card with three stars, the time and the par.
+7. `07_wardrobe`: The Wardrobe's trails, with the Seam Runner and the Google Play build's pack button.
+8. `08_home`: Home in the Google Play build, the runner dancing in the embroidered woodland.
+
+The feature graphic is the woodland with the name in its stitched pocket. Play Games' copy of it must be 1 MB or
+less, so it takes `build/play_games/feature_graphic_1024x500.jpg`.
 
 ## Products (2.6)
 
