@@ -83,9 +83,11 @@ runner come apart. The browser build has none of it.
   achievements, events, stats and the three leaderboards in as drafts. The OAuth consent screen is made (External,
   the game page, privacy and terms, the authorized domain `chaosmos.studio`), published by the owner on 8 November.
   Four Android OAuth clients and Play Games credentials, one per signing certificate above (the app signing key's
-  is the one for new installs), and `play_games.json` committed (8 November). Left: the release that carries it
-  (1.0.1, once Play has approved 1.0.0, so its review does not restart), then Review and publish the Play Games
-  project and change the listing's last bullet as the release goes out
+  is the one for new installs), and `play_games.json` committed (8 November). 1.0.0 was approved for Closed testing
+  on 8 November, and 1.0.1, which carries Play Games, went up from the workflow and into review the same day.
+  Achievements, leaderboards (formats, orders, limits, tamper protection), events and stats were read back as
+  "Ready to publish". Left: Play Games Services > Publishing > Publish (the owner's click: Claude Code's auto mode
+  refused it as a production deploy), and once 1.0.1 is approved, the listing's last bullet
 - [ ] 12 testers opted in for 14 days (write the date): ____
 - [ ] Applied for production (2.9)
 - [ ] Live on Play (2.10)
