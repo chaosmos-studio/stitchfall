@@ -654,7 +654,6 @@ func _respawn() -> void:
 		bridge.set_deferred("disabled", phase == 0)
 	for pin: StitchfallPin in pins:
 		pin.reset(gravity_direction)
-	# Loose buttons shake back to where they were found.
 	var lost: bool = false
 	for button: int in range(collected.size()):
 		if collected[button] and not banked[button]:
@@ -664,7 +663,6 @@ func _respawn() -> void:
 			world.collect_spark(level["shards"][button])
 	if lost:
 		_play_sound("loose")
-	# The runner sews itself back together with a little pop.
 	pilot.sprite.scale = Vector2.ONE * 0.18
 	create_tween().tween_property(pilot.sprite, "scale", Vector2.ONE * 0.32, 0.32).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	world.collected = collected.duplicate()

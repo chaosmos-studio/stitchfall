@@ -8,7 +8,7 @@ const PLATE: Texture2D = preload("res://assets/art/linen_button_plate.png")
 const ICON_PATCH: Texture2D = preload("res://assets/art/linen_icon_patch.png")
 const ICONS: Texture2D = preload("res://assets/art/stitched_icons.png")
 const WORLD_ICONS: Texture2D = preload("res://assets/art/stitched_world_icons.png")
-# The icons added with the wardrobe and the fuller menus, a 4 by 3 sheet in this order.
+# A 4 by 3 sheet whose icons run in this order.
 const EXTRA_ICONS: Texture2D = preload("res://assets/art/stitched_icons_extra.png")
 const EXTRA_GLYPHS: PackedStringArray = ["wardrobe", "music", "music_off", "shake", "shake_off", "stats", "credits", "star", "lock", "bag", "gift", "link"]
 

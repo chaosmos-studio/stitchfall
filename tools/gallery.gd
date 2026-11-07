@@ -50,7 +50,6 @@ func _ready() -> void:
 					arguments.append(argument.to_int() if argument.is_valid_int() else argument)
 				game.hud.callv(call[0], arguments)
 			elif step.begins_with("wear="):
-				# wear=<kind>/<piece>, to dress the runner for a picture.
 				var piece: PackedStringArray = step.substr(5).split("/")
 				game.progress.wear[piece[0]] = piece[1]
 				game._apply_wardrobe()
