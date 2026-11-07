@@ -1,0 +1,144 @@
+name: CI
+
+# Every push and pull request runs the tests and builds the browser version with its phone check, side by side.
+# A push to main that passes both publishes the browser version to chaosmos.studio/stitchfall/play/.
+on:
+  pull_request:
+  push:
+    branches: [main]
+    # Store art and docs change nothing in the game. CHANGELOG.md does, since the game shows its version.
+    paths-ignore: ["assets/store/**", "**.md", "!CHANGELOG.md"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  # A newer push to a pull request replaces its older run. Runs on main all finish, so none is half published.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  GODOT_URL: https://github.com/godotengine/godot/releases/download/4.7-stable/Godot_v4.7-stable_linux.x86_64.zip
+  GODOT_SHA256: 0b1a6c54c2c619c12e169fe9241edda4b81080b519451cec2984bf0d2c6cb73c
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install Godot 4.7
+        run: |
+          set -euo pipefail
+          curl -fLsS "$GODOT_URL" -o "$RUNNER_TEMP/godot.zip"
+          echo "$GODOT_SHA256  $RUNNER_TEMP/godot.zip" | sha256sum --check --quiet
+          unzip -q "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP"
+          install -m 755 "$RUNNER_TEMP/Godot_v4.7-stable_linux.x86_64" "$RUNNER_TEMP/godot"
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+      - name: Import
+        run: |
+          set -euo pipefail
+          godot --headless --editor --path . --import --quit 2>&1 | tee "$RUNNER_TEMP/import.log"
+          ! grep -E 'SCRIPT ERROR|Parse Error|ERROR:' "$RUNNER_TEMP/import.log"
+      # --fixed-fps steps every frame by the same time and runs them as fast as the machine allows, so the room
+      # replays take about a minute instead of twenty in real time, and time the same on every machine.
+      - name: Run the tests
+        run: |
+          set -euo pipefail
+          godot --headless --fixed-fps 60 --path . -s res://tests/run_tests.gd 2>&1 | tee "$RUNNER_TEMP/tests.log"
+          ! grep -E 'SCRIPT ERROR|Parse Error|ERROR:' "$RUNNER_TEMP/tests.log"
+          grep -Eq '==== TESTS: [0-9]+ passed, 0 failed ====' "$RUNNER_TEMP/tests.log"
+
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install Godot 4.7
+        run: |
+          set -euo pipefail
+          curl -fLsS "$GODOT_URL" -o "$RUNNER_TEMP/godot.zip"
+          echo "$GODOT_SHA256  $RUNNER_TEMP/godot.zip" | sha256sum --check --quiet
+          unzip -q "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP"
+          install -m 755 "$RUNNER_TEMP/Godot_v4.7-stable_linux.x86_64" "$RUNNER_TEMP/godot"
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+      # The Web preset exports with the trimmed template in web/, so Godot's full template bundle is never needed.
+      - name: Import and export the browser version
+        run: |
+          set -euo pipefail
+          mkdir -p build/web
+          touch build/.gdignore
+          godot --headless --editor --path . --import --quit 2>&1 | tee "$RUNNER_TEMP/import.log"
+          ! grep -E 'SCRIPT ERROR|Parse Error|ERROR:' "$RUNNER_TEMP/import.log"
+          godot --headless --path . --export-release Web build/web/index.html 2>&1 | tee "$RUNNER_TEMP/export.log"
+          ! grep -E 'SCRIPT ERROR|Parse Error|ERROR:' "$RUNNER_TEMP/export.log"
+          grep -aq ECFG build/web/index.pck
+          # The pack is public, so the Firebase config, its key and the Android-only scripts stay out of it.
+          ! grep -aq -E 'google-services|"project_info"|AIza|scripts/android/' build/web/index.pck
+          python3 tools/prepare_web.py
+          test -s build/web/wasm-loader.js
+      - name: Check phone loading and touch controls
+        run: |
+          set -euo pipefail
+          npm ci
+          export CHROME_PATH="$(command -v google-chrome)"
+          npm run test:web
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: stitchfall-web
+          path: build/web
+          retention-days: 1
+      # A failed check keeps its screenshots, so it can be fixed against them locally.
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        if: failure()
+        with:
+          name: stitchfall-web-check
+          path: |
+            build/web
+            build/test-results
+          retention-days: 2
+
+  deploy:
+    needs: [test, web]
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    concurrency:
+      group: stitchfall-pages
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          name: stitchfall-web
+          path: build/web
+      # This repository's gh-pages is what the studio site copies into /stitchfall/play/ on each of its deploys.
+      - name: Publish to this repository's gh-pages
+        uses: JamesIves/github-pages-deploy-action@fa24774553152dd7873cd16ebd8d959b010c5445 # v4.9.0
+        with:
+          branch: gh-pages
+          folder: build/web
+          force: false
+          commit-message: Publish Stitchfall
+      # With the studio site's deploy key, the build also goes live at once rather than at the site's next deploy.
+      - name: Check for the studio site's deploy key
+        id: site
+        env:
+          SITE_DEPLOY_KEY: ${{ secrets.SITE_DEPLOY_KEY }}
+        run: |
+          if [ -n "$SITE_DEPLOY_KEY" ]; then echo "ready=true"; else echo "ready=false"; fi >> "$GITHUB_OUTPUT"
+      - name: Publish to chaosmos.studio/stitchfall/play/
+        if: steps.site.outputs.ready == 'true'
+        uses: JamesIves/github-pages-deploy-action@fa24774553152dd7873cd16ebd8d959b010c5445 # v4.9.0
+        with:
+          repository-name: chaosmos-studio/chaosmos-studio.github.io
+          ssh-key: ${{ secrets.SITE_DEPLOY_KEY }}
+          branch: gh-pages
+          folder: build/web
+          target-folder: stitchfall/play
+          force: false
+          attempt-limit: 10
+          commit-message: Update Stitchfall's web build
