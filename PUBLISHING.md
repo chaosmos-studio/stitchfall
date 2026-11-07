@@ -59,20 +59,23 @@ runner come apart. The browser build has none of it.
   trader status ("You're all caught up", 7 November 2026)
 - [x] AdMob app and its three units (above)
 - [x] AdMob, Privacy & messaging: Stitchfall on both consent messages, with its privacy URL (1.3)
-- [ ] Firebase API key restricted to Stitchfall's upload and app signing SHA-1s too (1.8), once the first AAB is up
+- [ ] Firebase API keys (1.8): Stitchfall's upload SHA-1 is on both Android keys (7 November). Its app signing SHA-1
+  goes on both too, once the first AAB is up. Builds use the Oct 10 key (`0dd826c1`), the first in
+  `google-services.json`, and the Oct 25 key (`1882a81e`) now accepts the same 17 app entries
 - [x] The privacy page at chaosmos.studio/stitchfall/privacy/ covers ads, AdMob, consent and Analytics (live 7 November)
 - [x] Closed testing track: Google Group `chaosmos@googlegroups.com`, feedback URL, all countries
-- [x] Store listing words and graphics (2.2), saved as a draft. The AI asset declaration on its Review step is the
-  owner's call, unanswered
+- [x] Store listing words and graphics (2.2), saved. AI asset declaration: "Don't label assets", the owner's choice
 - [ ] First AAB dragged into Closed testing by hand (2.8), then sent for review
-- [ ] `ci-uploader` given this app in Users and permissions (3.4), so later releases upload from the workflow. Claude
-  Code's auto mode refused this grant, so the owner adds it
+- [x] `ci-uploader` given this app in Users and permissions (3.4), 7 permissions with "Release apps to testing
+  tracks", so later releases upload from the workflow (7 November). After the first AAB, set the repository variable
+  `AUTO_PLAY_TRACK` to `alpha`
 - [ ] Products (2.6): the ten below. The old single `tip` is gone, so do not create it
 - [ ] AdMob linked to the listing once it is public (3.1)
 - [ ] Test purchase (2.7)
 - [ ] Play Games: Cloud project `chaosmos-stitchfall` and Play Games project `1647106634` made, properties saved,
   achievements, events, stats and the three leaderboards in as drafts, `build/play_games/play_games.json` written
-  (not committed). Left: the OAuth consent screen (its User Data Policy box is the owner's to tick), the
+  (not committed). The OAuth consent screen is made (External, the game page, privacy and terms, the authorized
+  domain `chaosmos.studio`), still in Testing: Audience > Publish app is the owner's click. Left after that: the
   credentials once the app signing key exists, then committing `play_games.json` and publishing with that release
 - [ ] 12 testers opted in for 14 days (write the date): ____
 - [ ] Applied for production (2.9)
