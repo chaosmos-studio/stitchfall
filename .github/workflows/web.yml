@@ -48,6 +48,15 @@ jobs:
           npm ci
           export CHROME_PATH="$(command -v google-chrome)"
           npm run test:web
+      # A failed check keeps the build and its screenshots, so the check can be fixed against them locally.
+      - uses: actions/upload-artifact@v6
+        if: failure()
+        with:
+          name: stitchfall-web-check
+          path: |
+            build/web
+            build/test-results
+          retention-days: 2
       - name: Publish browser build
         if: github.event_name != 'pull_request'
         uses: JamesIves/github-pages-deploy-action@fa24774553152dd7873cd16ebd8d959b010c5445 # v4.9.0
