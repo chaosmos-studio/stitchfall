@@ -69,12 +69,38 @@ Each chapter is one room layout played five times, each with a new prank, and th
    3. *Last Step*: two sewn steps and a third that only looks it. Jump the last step.
    4. *No Way Back*: the bridge drops once crossed and the zipper is back at the start. Come home by the ceiling.
    5. *Hold On*: Keep Moving's habit sends you onto a patch that drops at a touch. Stop at the flower on the island, turn up for the button between two needle strips, turn back down, and jump the trap.
-4. **The Turning Seam.** Stitched bands that turn gravity when you cross them, as trap and as help.
-5. **Lit Seams.** The phase bridges, now with the prank that a turn mid-crossing takes your bridge away.
-6. **The Weighted Patch.** The patch as a shield, a step and a falling danger.
-7. to 10. **Water, Dunes and Canopy, Night Quilt, Rain and Frost.** Each world's pull as the prank, ending in a finale that mixes chapters.
+4. **Lit Seams** (`seams`). *Lit seams hold only while you fall sideways.* A lit seam is solid after an odd number of turns, when gravity points left or right, and a ghost when it points down or up. The habit: turn once, stand on a seam, walk it. The pranks: the turn that brings you down takes the seam from under you over the needles, a seam that is a floor one way is a wall the other, the button sits where you can only be while the seam is a ghost.
+5. **Needle Moths** (`moths`). *Every turn stills the moths for a breath.* Moths fly their tracks, and a turn freezes them, harmless, for about half a second. The habit: turn to still a moth, then slip past. The pranks: the turn that stills the moth also drops you or a pin onto it, two moths out of step so one turn is not enough, a moth that waits beside the zipper, a still moth you can only pass by turning again in the air.
+6. **The Weighted Patch** (`patch`). *The zipper opens only with the patch on its pad.* The patch falls the way gravity points and can be pushed. The habit: turn the room to send the patch home. The pranks: the turn that sends the patch also sends you, the patch is the only step over the needles and you must use it before you send it, the pad is on the ceiling, the patch lands in the pit with the button.
+7. **Blue Thread** (`water`). *The water slows every fall and lifts every jump.* Inside the pool falls are slow and a jump goes twice as high. The habit: use the pool to climb. The pranks: needles under the surface you sink onto slowly, a turn inside the pool that sends you up out of it, a jump that only works from the water, a pool that is overhead after a turn.
+8. **Sand Drift** (`dunes`). *The wind always blows to the right.* The wind pushes right however the room is turned, so turning makes it a pull, a push or a floor-wind. The habit: let the wind carry your jumps. The pranks: the wind carries you past the landing into the needles, the zipper is upwind, after a turn the wind is what holds you on the wall.
+9. **Green Canopy** (`canopy`). *The canopy lifts you up.* Inside a canopy draft the runner floats upward, stronger than gravity. The habit: ride the draft up to the ceiling buttons. The pranks: the draft carries you into ceiling needles, turning upside down inside a draft throws you at the ceiling twice as hard, a draft that holds you away from the zipper.
+10. **Night Quilt** (`night`). *The night quilt makes every jump long and slow.* Gravity is a quarter as strong, so jumps are high and falls take time. The habit: big floaty jumps. The pranks: the long jump overshoots into needles, the slow fall gives the pins time to land first, a turn in mid-air is the only way to stop.
+11. **Rainline** (`rain`). *The rain gusts come and go.* The rain pushes sideways, strongly then weakly, on a steady beat. The habit: wait for the gust to ease, then go. The pranks: the room that needs the strong gust, a gust that turns into gravity after a turn, a patch you must cross between gusts.
+12. **Frost** (`frost`). *On frost you cannot stop.* The runner is slow to start and slow to stop. The habit: start running early, let go early. The pranks: needles where you would stop, a turn as the only brake, a slide off the edge of a sewn island, a zipper that flees across the ice.
+
+Every chapter after Plain Linen keeps the earlier parts in play (needles, pop-up needles, the running zipper, pins, unpinned patches, flowers), so its rooms get harder by having more pieces, never more rules. A chapter's first room teaches its idea in a room at least as demanding as the chapter before it ended.
 
 A chapter is built, proved by its routes, then played on a phone before the next one starts.
+
+## Building a chapter
+
+A chapter is one script, `scripts/chapters/<id>.gd`, with `NAME`, `LINE` (its title card's mood line, never an instruction), `ROUTES` and `build(index)`, which returns room `index` from 0 to 4 built on `StitchfallLevels.screen_base()`. `scripts/chapters/pins.gd` is a good model. Every room states its `name`, `par`, `accent`, `backdrop` and its parts, and the parts are the keys `screen_base()` already has. The chapter joins the campaign when its id is added to `CHAPTER_IDS` in `scripts/level_data.gd`.
+
+The tools play a chapter before it joins, by its id and room number:
+
+```bash
+godot --headless --path . -s res://tools/route.gd -- seams/2 "0:+move_right,40:shift,55:shift" 600   # where the runner goes
+godot --headless --path . -s res://tools/prove.gd -- seams                                          # every check the tests make
+DISPLAY=:0 godot --path . --fixed-fps 60 res://tools/gallery.tscn -- seams_2 seams/2 "1:shot"       # a picture of the room
+```
+
+Numbers worth knowing, all at 60 physics frames a second:
+
+- The inside of a screen room runs from x 360 to 1560 and y 280 (ceiling) to 860 (floor). The runner stands at y 821 on the floor and 319 on the ceiling, starts at (430, 821), and the zipper sits at (1500, 781) on the floor or (1500, 359) on the ceiling.
+- The runner runs at 360 px/s and jumps about 112 px high, about 270 px across at a run. Letting go of jump early cuts the jump.
+- A turn rotates gravity a quarter turn: down, left, up, right, down. Two turns 15 frames apart put the runner on the ceiling. Left and right stay left and right on the screen.
+- Water: falls are capped at 400 px/s, a jump goes about 250 px, running is 240 px/s. Night quilt: gravity is 0.27 times as strong, a jump goes about 220 px, running is 300 px/s. Dunes: the wind adds 1100 px/s² to the right. Canopy: the draft adds 1850 px/s² upward. Rain: the push to the right is 900·sin(1.7t) + 360 px/s². Frost: on the ground the runner speeds up and slows down at 300 px/s² rather than 1850. Each force works only inside its `environment_zone`, and always in screen directions, whatever way gravity points.
 
 ## Rewards
 

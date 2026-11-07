@@ -15,6 +15,12 @@ const SHAKE_HIT: float = 14.0
 const SHAKE_PRANK: float = 8.0
 const SHAKE_LAND: float = 5.0
 const SHAKE_DECAY: float = 40.0
+# How long the phone buzzes, in milliseconds.
+const BUZZ_UNRAVEL: int = 70
+const BUZZ_CLEAR: int = 30
+const BUZZ_TAP: int = 15
+const BACK_ONE_PRESS_MS: int = 250
+const BILLING_SCRIPT: String = "res://scripts/play_billing.gd"
 const MUSIC_STREAM: AudioStreamOggVorbis = preload("res://assets/audio/music/stitched_home.ogg")
 const SEWING_CURSOR: Texture2D = preload("res://assets/art/sewing_cursor.png")
 
@@ -48,6 +54,7 @@ var last_shift: float = -1.0
 var touch_starts: Dictionary[int, Dictionary] = {}
 var mobile_crouched: bool = false
 var last_touch_msec: int = -1000
+var last_back_msec: int = -1000
 var last_start_msec: int = -1000
 var room: Node2D
 var world: StitchfallWorldView
@@ -140,6 +147,7 @@ func _ready() -> void:
 	hud.home_pressed.connect(_on_home)
 	hud.level_selected.connect(_on_level_selected)
 	hud.sound_toggled.connect(_on_sound_toggled)
+	_start_store()
 	var initial_room: int = progress.continue_room(StitchfallLevels.count())
 	if OS.has_feature("web"):
 		var requested_room: Variant = JavaScriptBridge.eval("new URLSearchParams(window.location.search).get('room')")
@@ -147,6 +155,19 @@ func _ready() -> void:
 			initial_room = clampi(str(requested_room).to_int(), 0, StitchfallLevels.count() - 1)
 	_load_level(initial_room)
 	hud.show_home()
+
+
+# The Android build sells the Wardrobe pack through Google Play's billing plugin. The browser build has
+# neither, so it loads none of it.
+func _start_store() -> void:
+	if not OS.has_feature("android") or not Engine.has_singleton("GodotGooglePlayBilling"):
+		return
+	var store: Node = (load(BILLING_SCRIPT) as GDScript).new() as Node
+	store.set("progress", progress)
+	add_child(store)
+	store.connect("said", hud._say)
+	store.connect("changed", hud.refresh_wardrobe)
+	StitchfallShop.backend = store
 
 
 func _exit_tree() -> void:
@@ -169,6 +190,35 @@ func _process(delta: float) -> void:
 func _shake(amount: float) -> void:
 	if progress.shake:
 		shake = maxf(shake, amount)
+
+
+# The Shake setting covers the phone's buzz too. Desktops ignore it.
+func _buzz(milliseconds: int) -> void:
+	if progress.shake:
+		Input.vibrate_handheld(milliseconds)
+
+
+# Android's back gesture steps back one screen, and leaves the game from Home. One press can reach Godot as
+# two requests about 50 ms apart (the kit games' GoBack), so requests closer than BACK_ONE_PRESS_MS are one.
+func _notification(what: int) -> void:
+	if what != NOTIFICATION_WM_GO_BACK_REQUEST or Time.get_ticks_msec() - last_back_msec < BACK_ONE_PRESS_MS:
+		return
+	last_back_msec = Time.get_ticks_msec()
+	if playing:
+		_on_pause()
+	elif hud.screen == "pause":
+		_on_begin()
+	elif hud.screen == "chapter":
+		hud.skip_chapter()
+	elif hud.screen in ["about", "credits", "stats"]:
+		hud.show_settings()
+	elif hud.screen == "home":
+		progress.save()
+		get_tree().quit()
+	elif hud.screen in ["clear", "finish"]:
+		_on_levels()
+	else:
+		_on_home()
 
 
 func _camera_target() -> Vector2:
@@ -526,6 +576,7 @@ func _on_hazard_body(body: Node2D) -> void:
 		_play_sound("unravel")
 		_duck_music(0.9)
 		_shake(SHAKE_HIT)
+		_buzz(BUZZ_UNRAVEL)
 		hud.flash()
 		hud.set_unravels(room_deaths)
 		trail.clear()
@@ -585,6 +636,7 @@ func _on_flower_body(body: Node2D, index: int) -> void:
 		banked[button] = banked[button] or collected[button]
 	if newly_banked:
 		_play_sound("bank")
+		_buzz(BUZZ_TAP)
 		hud.bank_buttons()
 		_update_hud()
 	if flower_lit[index]:
@@ -786,6 +838,7 @@ func _clear_room() -> void:
 	last_result = progress.record(level_index, room_time, room_deaths, par)
 	print("STITCHFALL_CLEAR ", level_index, " ", last_result["stars"])
 	_play_sound("zip")
+	_buzz(BUZZ_CLEAR)
 	_duck_music(2.4)
 	pilot.set_physics_process(false)
 	pilot.velocity = Vector2.ZERO

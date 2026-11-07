@@ -18,6 +18,8 @@ func _run() -> void:
 	StitchfallProgress.path = "user://test_progress.cfg"
 	_test_progress()
 	_test_wardrobe()
+	_test_android_build()
+	await _test_back_gesture()
 	await _test_moments()
 	_test_input_map_is_wired()
 	_test_orientation_is_an_int()
@@ -36,6 +38,57 @@ func _run() -> void:
 	await _test_stitchfall_playthrough()
 	print("\n==== TESTS: %d passed, %d failed ====" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
+
+func _test_android_build() -> void:
+	var version: PackedStringArray = StitchfallHud.version_name().split(".")
+	_check("the version shown is CHANGELOG.md's newest x.y.z", version.size() == 3 and Array(version).all(func(part: String) -> bool: return part.is_valid_int()))
+	var presets: ConfigFile = ConfigFile.new()
+	presets.load("res://export_presets.cfg")
+	var found: Dictionary = {}
+	for section: String in presets.get_sections():
+		if not section.ends_with(".options"):
+			found[str(presets.get_value(section, "name"))] = section
+	_check("there are Web, Android AAB and Android APK presets", found.has("Web") and found.has("Android AAB") and found.has("Android APK"))
+	var web: String = found.get("Web", "")
+	_check("the web build leaves the billing plugin out and carries the changelog", "addons/*" in str(presets.get_value(web, "exclude_filter")) and "scripts/play_billing.gd" in str(presets.get_value(web, "exclude_filter")) and "CHANGELOG.md" in str(presets.get_value(web, "include_filter")))
+	for name: String in ["Android AAB", "Android APK"]:
+		var options: String = "%s.options" % found.get(name, "")
+		_check("%s is com.shravangoswami.stitchfall, Gradle-built for API 36" % name, presets.get_value(options, "package/unique_name") == "com.shravangoswami.stitchfall" and presets.get_value(options, "gradle_build/use_gradle_build") == true and presets.get_value(options, "gradle_build/target_sdk") == "36")
+		_check("%s asks only to vibrate, and carries the changelog" % name, presets.get_value(options, "permissions/vibrate") == true and presets.get_value(options, "permissions/internet") == false and "CHANGELOG.md" in str(presets.get_value(found.get(name, ""), "include_filter")))
+	_check("the AAB preset builds an app bundle", presets.get_value("%s.options" % found.get("Android AAB", ""), "gradle_build/export_format") == 1)
+	_check("the billing plugin is on for the Android build", ProjectSettings.get_setting("editor_plugins/enabled", PackedStringArray()).has("res://addons/GodotGooglePlayBilling/plugin.cfg"))
+	_check("back does not quit the game by itself", not ProjectSettings.get_setting("application/config/quit_on_go_back", true))
+
+
+func _test_back_gesture() -> void:
+	var game: Node2D = load("res://scenes/game/game.tscn").instantiate() as Node2D
+	game.audio_enabled = false
+	root.add_child(game)
+	await process_frame
+	_check("no Google Play store starts outside Android", StitchfallShop.backend == null)
+	game._load_level(0)
+	game._on_begin()
+	game.last_back_msec = -1000
+	game._notification(Node.NOTIFICATION_WM_GO_BACK_REQUEST)
+	_check("back during play pauses", not game.playing and game.hud.screen == "pause")
+	game._notification(Node.NOTIFICATION_WM_GO_BACK_REQUEST)
+	_check("a second request inside one press is ignored", game.hud.screen == "pause")
+	game.last_back_msec = -1000
+	game._notification(Node.NOTIFICATION_WM_GO_BACK_REQUEST)
+	_check("back on pause resumes", game.playing)
+	game._on_home()
+	game.hud.show_wardrobe()
+	game.last_back_msec = -1000
+	game._notification(Node.NOTIFICATION_WM_GO_BACK_REQUEST)
+	_check("back from the wardrobe goes home", game.hud.screen == "home")
+	game.hud.show_settings()
+	game.hud.show_credits()
+	game.last_back_msec = -1000
+	game._notification(Node.NOTIFICATION_WM_GO_BACK_REQUEST)
+	_check("back from credits goes to settings", game.hud.screen == "settings")
+	game.queue_free()
+	await process_frame
+
 
 func _test_progress() -> void:
 	_check("a clean quick clear earns three stars", StitchfallProgress.stars_for(8.0, 0, 9.0) == 3)

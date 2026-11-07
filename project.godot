@@ -11,8 +11,8 @@ config_version=5
 [application]
 
 config/name="Stitchfall"
-config/version="0.1.0"
 run/main_scene="res://scenes/game/game.tscn"
+config/quit_on_go_back=false
 config/features=PackedStringArray("4.7", "GL Compatibility")
 boot_splash/show_image=false
 
@@ -25,6 +25,10 @@ window/size/window_height_override=720
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 window/handheld/orientation=4
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/GodotGooglePlayBilling/plugin.cfg")
 
 [input]
 

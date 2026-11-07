@@ -1,0 +1,481 @@
+name: Release Android
+
+# The version, Play's version code and the release notes all come from the newest section of CHANGELOG.md
+# (its rules are in the comment at its top), so a release needs no inputs: Actions, Release Android, Run.
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Build and check everything and keep the files as a workflow artifact, but make no tag, no GitHub release and no Play upload"
+        required: false
+        type: boolean
+        default: false
+      play_track:
+        description: "Also upload the AAB to this Google Play track (needs the PLAY_SERVICE_ACCOUNT_JSON secret). Production goes up as a draft"
+        required: false
+        type: choice
+        default: none
+        options: [none, internal, alpha, beta, production]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-android
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      GODOT_RELEASE: "4.7-stable"
+      GODOT_VERSION: "4.7.stable"
+      # What Godot 4.7's Gradle template compiles with (platform/android/java/app/config.gradle).
+      BUILD_TOOLS: "36.1.0"
+      BUNDLETOOL: "1.18.3"
+      GAME: ${{ github.event.repository.name }}
+      DRY_RUN: ${{ inputs.dry_run }}
+      PLAY_TRACK: ${{ inputs.play_track }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5
+
+      # The same rules as the kit's Changelog (kit/ui/changelog.gd), which the game's tests run, so a
+      # changelog this refuses has already failed locally.
+      - name: Read the version from CHANGELOG.md
+        run: |
+          set -euo pipefail
+          mkdir -p build/release/whatsnew
+          python3 - <<'EOF'
+          import os, re, sys
+
+          PLAY_LIMIT = 500
+          MAX_CODE = 2100000000
+          HEADING = re.compile(r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)( - [0-9]{4}-[0-9]{2}-[0-9]{2})?")
+
+          def fail(message):
+              print(f"::error file=CHANGELOG.md::{message}")
+              sys.exit(1)
+
+          if not os.path.isfile("CHANGELOG.md"):
+              fail("CHANGELOG.md is missing: the release is named and described by its newest ## x.y.z section")
+          text = re.sub(r"<!--.*?-->", "", open("CHANGELOG.md", encoding="utf-8").read(), flags=re.S)
+          lines = [line.rstrip() for line in text.split("\n")]
+          start = next((i for i, line in enumerate(lines) if line.startswith("## ")), None)
+          if start is None:
+              fail('no "## x.y.z" section')
+          heading = lines[start][3:].strip()
+          parts = HEADING.fullmatch(heading)
+          if parts is None or len(parts.group(1)) > 6:
+              fail(f'the newest heading "## {heading}" is not a plain x.y.z (a " - YYYY-MM-DD" after it is allowed)')
+          major, minor, patch = (int(parts.group(n)) for n in (1, 2, 3))
+          code = major * 10000 + minor * 100 + patch
+          if minor > 99 or patch > 99:
+              fail(f"{heading}: minor and patch run 0 to 99, since the version code is major * 10000 + minor * 100 + patch")
+          if not 1 <= code <= MAX_CODE:
+              fail(f"{heading} gives version code {code}, outside Play's 1 to {MAX_CODE}")
+          version = f"{major}.{minor}.{patch}"
+          notes = []
+          for line in lines[start + 1:]:
+              if line.startswith("## "):
+                  break
+              if line == "":
+                  continue
+              if not line.startswith("- ") or line[2:].strip() == "":
+                  fail(f'every line under "## {heading}" must be one "- " note, not "{line}"')
+              notes.append(line[2:].strip())
+          play = "\n".join("- " + note for note in notes)
+          if not notes:
+              fail(f'the {version} section has no "- " notes: they are the release notes and Play\'s "What\'s new"')
+          if len(play) > PLAY_LIMIT:
+              fail(f"the {version} notes are {len(play)} characters, over Play's {PLAY_LIMIT}")
+
+          def write(path, content):
+              with open(path, "w", encoding="utf-8") as f:
+                  f.write(content)
+
+          write("build/release/notes.md", play + "\n")
+          write("build/release/whatsnew/whatsnew-en-US", play)
+          write("build/release/play-release-notes.txt", f"<en-US>\n{play}\n</en-US>\n")
+          write("build/release/version.env", f"VERSION_NAME={version}\nVERSION_CODE={code}\nTAG=v{version}\n")
+          print(f"CHANGELOG.md: version {version}, version code {code}")
+          print("Play notes:")
+          print(open("build/release/play-release-notes.txt", encoding="utf-8").read(), end="")
+          EOF
+          cat build/release/version.env >> "$GITHUB_ENV"
+
+      # Before the long build, so a bad version fails fast. Earlier codes are read back from the release
+      # notes, which is where this workflow records them.
+      - name: Check the version
+        env:
+          HAS_UPLOAD_KEY: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+          HAS_PLAY_ACCOUNT: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' }}
+        run: |
+          set -euo pipefail
+          if [ -n "$(git ls-remote --tags origin "refs/tags/$TAG")" ]; then
+            if [ "$DRY_RUN" = true ]; then
+              echo "::warning::tag $TAG already exists, so a real release would stop here"
+            else
+              echo "::error::tag $TAG already exists: add a new section at the top of CHANGELOG.md (a rebuild bumps the patch number)"
+              exit 1
+            fi
+          fi
+          highest="$(gh api "repos/$GITHUB_REPOSITORY/releases" --paginate --jq '.[].body' \
+            | grep -oE 'Version code: [0-9]+' | grep -oE '[0-9]+' | sort -n | tail -1 || true)"
+          if [ -n "$highest" ] && (( VERSION_CODE <= highest )); then
+            echo "::error::version code $VERSION_CODE ($VERSION_NAME) is not above $highest, the highest code already released: raise the version in CHANGELOG.md"
+            exit 1
+          fi
+          if [ "$PLAY_TRACK" != none ]; then
+            if [ "$HAS_PLAY_ACCOUNT" != true ]; then
+              echo "::error::play_track is $PLAY_TRACK, but the repository has no PLAY_SERVICE_ACCOUNT_JSON secret"
+              exit 1
+            fi
+            if [ "$HAS_UPLOAD_KEY" != true ]; then
+              echo "::error::Play only takes builds signed with the upload key, and the repository has no ANDROID_KEYSTORE_* secrets"
+              exit 1
+            fi
+          fi
+          package="$(sed -n 's/^package\/unique_name="\(.*\)"$/\1/p' export_presets.cfg | sort -u)"
+          title="$(sed -n 's/^config\/name="\(.*\)"$/\1/p' project.godot)"
+          if [ -z "$package" ] || [ "$(echo "$package" | wc -l)" != 1 ] || [ -z "$title" ]; then
+            echo "expected one package/unique_name across the Android presets and a config/name, got '$package' '$title'" >&2
+            exit 1
+          fi
+          {
+            echo "PACKAGE=$package"
+            echo "TITLE=$title"
+          } >> "$GITHUB_ENV"
+          play="no Play upload"
+          if [ "$PLAY_TRACK" != none ]; then
+            play="uploading to the $PLAY_TRACK track on Google Play"
+          fi
+          if [ "$DRY_RUN" = true ]; then
+            echo "dry run: building $title ($package) $VERSION_NAME with version code $VERSION_CODE, no tag, release or upload"
+          else
+            echo "releasing $title ($package) $TAG with version code $VERSION_CODE, $play"
+          fi
+
+      # Without google-services.json the build would carry Firebase with nothing to report to.
+      - name: Check the Firebase config
+        run: |
+          set -euo pipefail
+          if ! grep -q '^firebase/enable_analytics=true$' export_presets.cfg; then
+            echo "no Firebase in this build"
+            exit 0
+          fi
+          if [ ! -f google-services.json ]; then
+            echo "::error::the Android presets build Firebase Analytics, but google-services.json is missing: download it for $PACKAGE from the Firebase console and commit it at the project root"
+            exit 1
+          fi
+          if ! jq -e --arg p "$PACKAGE" '[.client[].client_info.android_client_info.package_name] | index($p)' google-services.json > /dev/null; then
+            echo "::error::google-services.json has no Android app for $PACKAGE: add one in the Firebase console and download the file again"
+            exit 1
+          fi
+          echo "Firebase project $(jq -r .project_info.project_id google-services.json), app $PACKAGE"
+
+      - name: Install Godot and export templates
+        run: |
+          set -e
+          base="https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}"
+          wget -qO godot.zip "${base}/Godot_v${GODOT_RELEASE}_linux.x86_64.zip"
+          wget -qO templates.tpz "${base}/Godot_v${GODOT_RELEASE}_export_templates.tpz"
+          unzip -q godot.zip
+          bin="$PWD/Godot_v${GODOT_RELEASE}_linux.x86_64"
+          chmod +x "$bin"
+          echo "GODOT_BIN=$bin" >> "$GITHUB_ENV"
+          dest="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}"
+          mkdir -p "$dest"
+          unzip -q templates.tpz
+          mv templates/* "$dest/"
+          rm -f godot.zip templates.tpz
+          # The Gradle build compiles from this source template rather than repacking a prebuilt APK.
+          ls -l "$dest/android_source.zip"
+
+      # Two passes: the first builds .godot/ from a bare checkout and logs font errors because the theme
+      # loads the font before the scan has imported it. The second must be clean, and every tracked font's
+      # imported file must exist, so a font cannot silently drop out of the build.
+      - name: Import resources
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --import > /dev/null 2>&1 || true
+          "$GODOT_BIN" --headless --import 2>&1 | tee import.log
+          if grep -q "ERROR" import.log; then
+            echo "the second import pass logged errors" >&2
+            exit 1
+          fi
+          for meta in $(git ls-files '*.ttf.import' '*.otf.import'); do
+            ls -l "$(sed -n 's/^dest_files=\["res:\/\/\(.*\)"\]$/\1/p' "$meta")"
+          done
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: android-actions/setup-android@v4
+        with:
+          packages: "platform-tools platforms;android-36 build-tools;${{ env.BUILD_TOOLS }}"
+          log-accepted-android-sdk-licenses: false
+
+      - name: Locate the SDK tools and bundletool
+        run: |
+          set -euo pipefail
+          sdk="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          tools="$sdk/build-tools/$BUILD_TOOLS"
+          test -x "$tools/apksigner"
+          test -x "$tools/aapt2"
+          wget -qO "$RUNNER_TEMP/bundletool.jar" \
+            "https://github.com/google/bundletool/releases/download/${BUNDLETOOL}/bundletool-all-${BUNDLETOOL}.jar"
+          echo "ANDROID_SDK=$sdk" >> "$GITHUB_ENV"
+          echo "SDK_TOOLS=$tools" >> "$GITHUB_ENV"
+
+      # Godot reads the SDK, the JDK and the debug key from editor settings, not from the project. The file is
+      # generated first and then appended to, because its name carries the engine version.
+      - name: Point Godot at the SDK, the JDK and a debug key
+        run: |
+          set -euo pipefail
+          keytool -genkeypair -keyalg RSA -keysize 2048 -validity 10000 -alias androiddebugkey \
+            -keypass android -storepass android -keystore "$RUNNER_TEMP/debug.keystore" \
+            -dname "CN=Android Debug,O=Android,C=US" -noprompt
+          "$GODOT_BIN" --headless --editor --quit > /dev/null 2>&1 || true
+          settings="$(find "$HOME/.config/godot" -name 'editor_settings-*.tres' | head -1)"
+          test -n "$settings"
+          echo "using $settings"
+          cat >> "$settings" <<EOF
+          export/android/android_sdk_path = "${ANDROID_SDK}"
+          export/android/java_sdk_path = "${JAVA_HOME}"
+          export/android/debug_keystore = "${RUNNER_TEMP}/debug.keystore"
+          export/android/debug_keystore_user = "androiddebugkey"
+          export/android/debug_keystore_pass = "android"
+          EOF
+
+      # Godot takes the release key from GODOT_ANDROID_KEYSTORE_RELEASE_* so nothing secret is written into
+      # export_presets.cfg.
+      - name: Choose the signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_ALIAS: ${{ secrets.ANDROID_KEYSTORE_ALIAS }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          PINNED_SHA256: ${{ vars.UPLOAD_KEY_SHA256 }}
+        run: |
+          set -euo pipefail
+          if [ -n "$KEYSTORE_BASE64$KEYSTORE_ALIAS$KEYSTORE_PASSWORD" ]; then
+            if [ -z "$KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_ALIAS" ] || [ -z "$KEYSTORE_PASSWORD" ]; then
+              echo "set all three of ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_ALIAS and ANDROID_KEYSTORE_PASSWORD, or none" >&2
+              exit 1
+            fi
+            key="$RUNNER_TEMP/upload.jks"
+            echo "$KEYSTORE_BASE64" | base64 -d > "$key"
+            alias="$KEYSTORE_ALIAS"
+            pass="$KEYSTORE_PASSWORD"
+            upload=true
+          else
+            key="$RUNNER_TEMP/debug.keystore"
+            alias=androiddebugkey
+            pass=android
+            upload=false
+          fi
+          sha="$(keytool -list -v -keystore "$key" -storepass "$pass" -alias "$alias" | sed -n 's/^[[:space:]]*SHA256: //p')"
+          test -n "$sha"
+          # Play rejects any upload not signed with the key it first saw, so a pinned key must match exactly.
+          if [ "$upload" = true ]; then
+            if [ -n "$PINNED_SHA256" ] && [ "$sha" != "$PINNED_SHA256" ]; then
+              echo "::error::the upload key in this repository's secrets is $sha, but UPLOAD_KEY_SHA256 pins $PINNED_SHA256, the key Play knows. Put that game's <game>-release.jks from release-keys/ (or its backup) back into the ANDROID_KEYSTORE_* secrets"
+              exit 1
+            fi
+            if [ -z "$PINNED_SHA256" ]; then
+              echo "::warning::UPLOAD_KEY_SHA256 is not set, so nothing checks that this is the key Play knows. Set it to the key's certificate SHA-256 with gh variable set UPLOAD_KEY_SHA256"
+            fi
+          fi
+          {
+            echo "GODOT_ANDROID_KEYSTORE_RELEASE_PATH=$key"
+            echo "GODOT_ANDROID_KEYSTORE_RELEASE_USER=$alias"
+            echo "GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD=$pass"
+            echo "UPLOAD_KEY=$upload"
+            echo "KEY_SHA256=$sha"
+          } >> "$GITHUB_ENV"
+          echo "upload key: $upload, certificate SHA-256 $sha"
+
+      - name: Stamp the version into the Android presets
+        run: |
+          set -euo pipefail
+          sed -i -e "s/^version\/code=.*/version\/code=${VERSION_CODE}/" \
+                 -e "s/^version\/name=.*/version\/name=\"${VERSION_NAME}\"/" export_presets.cfg
+          test "$(grep -c "^version/code=${VERSION_CODE}$" export_presets.cfg)" = 2
+          test "$(grep -c "^version/name=\"${VERSION_NAME}\"$" export_presets.cfg)" = 2
+
+      # --install-android-build-template unpacks android_source.zip into android/build (gitignored) before the
+      # first export. The second export finds it in place.
+      - name: Export the AAB and the APK
+        run: |
+          set -euo pipefail
+          mkdir -p build/android
+          out="build/android/${GAME}-${VERSION_NAME}"
+          "$GODOT_BIN" --headless --install-android-build-template --export-release "Android AAB" "$out.aab"
+          "$GODOT_BIN" --headless --export-release "Android APK" "$out.apk"
+          ls -l "$out.aab" "$out.apk"
+          echo "AAB=$out.aab" >> "$GITHUB_ENV"
+          echo "APK=$out.apk" >> "$GITHUB_ENV"
+
+      - name: Verify the APK
+        run: |
+          set -euo pipefail
+          "$SDK_TOOLS/apksigner" verify --verbose --print-certs "$APK" | tee apksigner.log
+          digest="$(echo "$KEY_SHA256" | tr -d ':' | tr 'A-F' 'a-f')"
+          grep -q "certificate SHA-256 digest: $digest" apksigner.log
+          badging="$("$SDK_TOOLS/aapt2" dump badging "$APK")"
+          grep -E "^(package|sdkVersion|targetSdkVersion|native-code|application-label):" <<< "$badging"
+          grep -q "^package: name='$PACKAGE' versionCode='$VERSION_CODE' versionName='$VERSION_NAME'" <<< "$badging"
+          grep -q "^targetSdkVersion:'36'" <<< "$badging"
+          grep -q "^native-code: .*'arm64-v8a'" <<< "$badging"
+          grep "^uses-permission:" <<< "$badging" || true
+          # A kit game's levels are a data file the presets must carry. A game whose rooms are code has none.
+          if [ -f levels/levels.json ]; then
+            unzip -l "$APK" | grep "levels/levels.json"
+          fi
+          # The game reads its version from the changelog at runtime.
+          unzip -l "$APK" | grep "assets/CHANGELOG.md"
+          # Google's services plugin turned google-services.json into the resources Firebase starts from.
+          if grep -q '^firebase/enable_analytics=true$' export_presets.cfg; then
+            "$SDK_TOOLS/aapt2" dump resources "$APK" | grep "string/google_app_id"
+          fi
+          if [ -d addons/admob ] && unzip -l "$APK" | grep -E "addons/admob/(gdscript/sample|assets|internal/mock)/"; then
+            echo "the APK carries parts of the AdMob plugin its export filter should leave out" >&2
+            exit 1
+          fi
+
+      - name: Verify the AAB
+        run: |
+          set -euo pipefail
+          # A self-signed upload key and AGP's bundle layout always draw jarsigner warnings, so only a failure prints them.
+          jarsigner -verify "$AAB" > jarsigner.log 2>&1 || true
+          if ! grep "jar verified" jarsigner.log; then
+            cat jarsigner.log
+            exit 1
+          fi
+          keytool -printcert -jarfile "$AAB" | grep "SHA256: $KEY_SHA256"
+          manifest() { java -jar "$RUNNER_TEMP/bundletool.jar" dump manifest --bundle "$AAB" --xpath "$1"; }
+          echo "package $(manifest /manifest/@package), versionCode $(manifest /manifest/@android:versionCode)," \
+               "versionName $(manifest /manifest/@android:versionName)," \
+               "targetSdkVersion $(manifest /manifest/uses-sdk/@android:targetSdkVersion)," \
+               "minSdkVersion $(manifest /manifest/uses-sdk/@android:minSdkVersion)"
+          permissions="$(manifest /manifest/uses-permission/@android:name | xargs)"
+          echo "permissions: ${permissions:-none}"
+          test "$(manifest /manifest/@package)" = "$PACKAGE"
+          test "$(manifest /manifest/@android:versionCode)" = "$VERSION_CODE"
+          test "$(manifest /manifest/@android:versionName)" = "$VERSION_NAME"
+          test "$(manifest /manifest/uses-sdk/@android:targetSdkVersion)" = 36
+          echo "MIN_SDK=$(manifest /manifest/uses-sdk/@android:minSdkVersion)" >> "$GITHUB_ENV"
+          has_permission() { [[ " $permissions " == *" $1 "* ]] || { echo "missing permission $1" >&2; return 1; }; }
+          if [ -d addons/admob ]; then
+            app_id="$(manifest "/manifest/application/meta-data[@android:name='com.google.android.gms.ads.APPLICATION_ID']/@android:value")"
+            echo "AdMob APPLICATION_ID: ${app_id:-missing}"
+            [[ "$app_id" =~ ^ca-app-pub-[0-9]{16}~[0-9]{10}$ ]]
+            has_permission android.permission.INTERNET
+            has_permission com.google.android.gms.permission.AD_ID
+          fi
+          if [ -d addons/GodotGooglePlayBilling ]; then
+            has_permission com.android.vending.BILLING
+          fi
+          # Firebase starts with collection off and never reads the advertising id or the device id. The kit's
+          # Analytics turns collection on only where UMP says no consent is needed.
+          if grep -q '^firebase/enable_analytics=true$' export_presets.cfg; then
+            for key in firebase_analytics_collection_enabled google_analytics_default_allow_ad_storage \
+                google_analytics_adid_collection_enabled google_analytics_ssaid_collection_enabled; do
+              value="$(manifest "/manifest/application/meta-data[@android:name='$key']/@android:value")"
+              echo "$key: ${value:-missing}"
+              test "$value" = false
+            done
+            for unused in android.permission.ACCESS_ADSERVICES_ATTRIBUTION android.permission.ACCESS_ADSERVICES_AD_ID; do
+              if [[ " $permissions " == *" $unused "* ]]; then
+                echo "$unused should have been removed by addons/firebase_build" >&2
+                exit 1
+              fi
+            done
+          fi
+          unzip -l "$AAB" | grep "lib/.*/libgodot_android.so"
+          if [ -f levels/levels.json ]; then
+            unzip -l "$AAB" | grep "levels/levels.json"
+          fi
+          unzip -l "$AAB" | grep "assets/CHANGELOG.md"
+
+      # The "Version code: N" line is what the version check reads back on later runs.
+      - name: Write the release notes
+        run: |
+          set -euo pipefail
+          if [ "$UPLOAD_KEY" = true ]; then
+            signing="Signed with the upload key from the repository secrets, so the AAB can go to Google Play."
+          else
+            signing="**Signed with a throwaway key: sideload only, not uploadable to Play.** Each such build has a new key, so uninstall an earlier one before installing this. Set the ANDROID_KEYSTORE_* secrets from the game's release key to sign with it."
+          fi
+          case "$PLAY_TRACK" in
+            internal) play="sent to internal testing" ;;
+            alpha) play="sent to closed testing (the alpha track)" ;;
+            beta) play="sent to open testing (the beta track)" ;;
+            production) play="a draft on production: review it and send it for review in Play Console" ;;
+            *) play="not uploaded, the AAB is attached for Play Console" ;;
+          esac
+          if [ "$DRY_RUN" = true ]; then
+            play="not uploaded (dry run)"
+          fi
+          {
+            cat build/release/notes.md
+            echo
+            echo "### Build"
+            echo
+            echo "- Package: \`$PACKAGE\`"
+            echo "- Version code: $VERSION_CODE"
+            echo "- Target SDK 36, min SDK $MIN_SDK, arm64-v8a and armeabi-v7a"
+            echo "- Signer SHA-256: \`$KEY_SHA256\`"
+            echo "- $signing"
+            echo "- Google Play: $play"
+            echo "- Commit: $GITHUB_SHA"
+            echo
+            echo "\`$(basename "$AAB")\` is the bundle for Google Play. \`$(basename "$APK")\` installs straight on a phone."
+            echo
+            echo "### Google Play \"What's new\""
+            echo
+            echo "Paste this into the release notes box in Play Console. It is also attached as \`play-release-notes.txt\`."
+            echo
+            echo '```'
+            cat build/release/play-release-notes.txt
+            echo '```'
+          } > build/release/body.md
+          cat build/release/body.md
+
+      # A real release keeps its files on the GitHub release, which costs no Actions storage. Only a dry run
+      # needs a copy to download, kept three days: a full storage quota then never blocks a release.
+      - uses: actions/upload-artifact@v6
+        if: ${{ inputs.dry_run }}
+        with:
+          name: ${{ github.event.repository.name }}-${{ env.VERSION_NAME }}-android
+          path: |
+            build/android/*.aab
+            build/android/*.apk
+            build/release/play-release-notes.txt
+          if-no-files-found: error
+          retention-days: 3
+
+      # Before the GitHub release, so a failed upload leaves no tag and the same version can run again. The
+      # API cannot create an app, so each app's first AAB goes up by hand in Play Console.
+      - name: Upload to Google Play
+        if: ${{ !inputs.dry_run && inputs.play_track != 'none' }}
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: ${{ env.PACKAGE }}
+          releaseFiles: ${{ env.AAB }}
+          releaseName: ${{ env.VERSION_CODE }} (${{ env.VERSION_NAME }})
+          tracks: ${{ inputs.play_track }}
+          status: ${{ inputs.play_track == 'production' && 'draft' || 'completed' }}
+          whatsNewDirectory: build/release/whatsnew
+
+      - name: Publish the GitHub release
+        if: ${{ !inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          gh release create "$TAG" "$AAB" "$APK" build/release/play-release-notes.txt --target "$GITHUB_SHA" \
+            --title "$TITLE $VERSION_NAME" --notes-file build/release/body.md --latest
+          gh release view "$TAG" --json url,isPrerelease,assets --jq '.url, "prerelease: \(.isPrerelease)", (.assets[] | "\(.name) \(.size) bytes")'

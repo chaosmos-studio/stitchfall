@@ -468,7 +468,7 @@ func _build_about() -> void:
 	studio.text = "Made by Chaosmos, a small studio making clever little games, one at a time."
 	studio.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	var version: Label = _label(about_page, Vector2(320, 600), Vector2(820, 46), 28, ACCENT, true)
-	version.text = "Version %s" % str(ProjectSettings.get_setting("application/config/version", "0.1.0"))
+	version.text = "Version %s" % version_name()
 	var links: Array = [["WEBSITE", "link", StitchfallShop.WEBSITE], ["SUPPORT", "help", StitchfallShop.SUPPORT], ["PRIVACY", "seam", StitchfallShop.PRIVACY], ["GAMES", "play", StitchfallShop.MORE_GAMES]]
 	# The browser build can point to GitHub Sponsors. The Android build never may, by Play's Payments policy.
 	if not StitchfallShop.on_play:
@@ -906,6 +906,26 @@ func _choose_piece(slot: int) -> void:
 func _say(text: String) -> void:
 	if not text.is_empty():
 		wardrobe_note.text = text
+
+
+# Google Play's answers (prices, a purchase, a refund) redraw the wardrobe if it is open, keeping its note.
+func refresh_wardrobe() -> void:
+	if screen != "wardrobe":
+		return
+	var note: String = wardrobe_note.text
+	_show_kind(wardrobe_kind)
+	wardrobe_note.text = note
+
+
+# The version is the newest section of CHANGELOG.md, the file that also names every Android release.
+static func version_name() -> String:
+	var file: FileAccess = FileAccess.open("res://CHANGELOG.md", FileAccess.READ)
+	if file == null:
+		return "?"
+	for line: String in file.get_as_text().split("\n"):
+		if line.begins_with("## "):
+			return line.substr(3).strip_edges().split(" ")[0]
+	return "?"
 
 
 func _biome_palette(biome: int) -> Array[Color]:
