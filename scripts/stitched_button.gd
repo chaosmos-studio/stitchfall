@@ -28,6 +28,11 @@ var locked: bool = false
 # A caption's font size, or 0 to size it from the button.
 var caption_size: int = 0
 var guide_card: bool = false
+# A pack in the Shop: a tall felt patch with its icon, name, what it holds, and its price or that it is owned.
+var shop_card: bool = false
+var lines: PackedStringArray = PackedStringArray()
+var price_tag: String = ""
+var owned: bool = false
 
 
 func _ready() -> void:
@@ -56,6 +61,9 @@ func _draw() -> void:
 		return
 	if guide_card:
 		_draw_guide_card(hovered)
+		return
+	if shop_card:
+		_draw_shop_card(hovered)
 		return
 	var lift: float = -3.0 if hovered else 0.0
 	var tint: Color = cloth.lightened(0.13) if hovered else cloth
@@ -120,6 +128,18 @@ func _draw_guide_card(hovered: bool) -> void:
 	_draw_icon(Vector2(94, 90), 44.0, ink)
 	draw_string(MENU_FONT, Vector2(195, 82), caption, HORIZONTAL_ALIGNMENT_LEFT, size.x - 210.0, 50, ink)
 	draw_string(BODY_FONT, Vector2(195, 140), subcaption, HORIZONTAL_ALIGNMENT_LEFT, size.x - 210.0, 32, ink)
+
+
+func _draw_shop_card(hovered: bool) -> void:
+	var lift: float = -4.0 if hovered and not owned else 0.0
+	var tint: Color = cloth.lightened(0.1) if hovered and not owned else cloth
+	draw_texture_rect(ICON_PATCH, Rect2(Vector2(6, lift), Vector2(size.x - 12.0, size.y - 8.0)), false, tint)
+	_draw_icon(Vector2(size.x * 0.5, 104.0 + lift), 44.0, ink)
+	draw_string(MENU_FONT, Vector2(0, 214.0 + lift), caption, HORIZONTAL_ALIGNMENT_CENTER, size.x, caption_size if caption_size > 0 else 40, ink)
+	for index: int in range(lines.size()):
+		draw_string(BODY_FONT, Vector2(20, 262.0 + float(index) * 38.0 + lift), lines[index], HORIZONTAL_ALIGNMENT_CENTER, size.x - 40.0, 26, ink)
+	var status: String = "YOURS" if owned else price_tag
+	draw_string(FONT, Vector2(0, size.y - 46.0 + lift), status, HORIZONTAL_ALIGNMENT_CENTER, size.x, 40, Color("5f8b5a") if owned else Color("a85648"))
 
 
 func _draw_plate(lift: float, tint: Color) -> void:

@@ -8,6 +8,10 @@
 
 config_version=5
 
+[admob]
+
+general/android/app_id="ca-app-pub-3135321730568420~7142610841"
+
 [application]
 
 config/name="Stitchfall"
@@ -28,7 +32,7 @@ window/handheld/orientation=4
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/GodotGooglePlayBilling/plugin.cfg")
+enabled=PackedStringArray("res://addons/GodotGooglePlayBilling/plugin.cfg", "res://addons/admob/plugin.cfg", "res://addons/godotx_firebase/plugin.cfg", "res://addons/firebase_build/plugin.cfg", "res://addons/play_core/plugin.cfg", "res://addons/shrink_build/plugin.cfg", "res://addons/play_games/plugin.cfg")
 
 [input]
 

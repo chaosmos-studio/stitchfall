@@ -44,6 +44,20 @@ Frost preserves horizontal momentum.
 `scripts/world_view.gd` draws the textile world.
 `scripts/hud.gd`, `scripts/stitched_button.gd`, `scripts/button_meter.gd`, and `scripts/stitch_border.gd` draw the interface.
 
+## Monetization
+
+The Android build carries everything the kit games ship, rebuilt in Stitchfall's own stitched look rather than taken from the kit.
+The browser build has none of it: no ads, no shop, no analytics, every Wardrobe piece free and every skip free.
+
+- Ids: `scripts/monetize.gd`. AdMob on, with the studio's house ads filling in whenever AdMob has nothing, and Google's test units in every debug build.
+- Pacing: `scripts/ad_pacing.gd`, the kit's numbers. A banner from 3 rooms sewn, on the Levels, Wardrobe, Settings, About, Credits and Stats pages only. Those pages shrink so every button keeps 40 dp above it. An ad between rooms only from Next on the clear card, from 12 rooms sewn, once every 4 clears, 4 minutes after any full-screen ad and 3 after launch, and never when Next leads to a chapter's title card.
+- Skip this room: offered on the pause page once the runner has unravelled 5 times in the room and the next room is still shut. A video, or a quick game of the studio's in its place, pays for it. It is free for a Supporter and in the browser. The skipped room keeps no stars.
+- Products: `supporter` (no banner or ads between rooms, free skips), `all_levels` (every room open), `wardrobe`, `complete` (all three) and six tips, sold on the Shop page (`hud.gd`, from Home and the Wardrobe) through `scripts/android/play_billing.gd`. The table is in `PUBLISHING.md`.
+- Consent and analytics: Google's UMP through the AdMob plugin, Privacy choices in Settings when UMP asks for it, and Firebase Analytics counting only where no consent is needed (`scripts/analytics.gd`): room starts, clears with stars, time and unravels, unravels, skips, purchases and ads shown.
+- Play's review card at 10 and 25 rooms sewn, each as Next leaves a chapter's last room, and in-app updates offered on Home or Levels (`scripts/play_core.gd`).
+- Google Play Games as the kit games have it, off until `play_games.json` exists: a quiet sign-in, the Stars, Rooms sewn and Plain Linen speedrun boards, twelve achievements, Game Stats and a cloud save (`scripts/play_games.gd`, `scripts/android/play_games.gd`, `scripts/cloud_save.gd`, `play_games/catalog.json`), with Leaderboards and Achievements on the Stats page. The console setup is in `PUBLISHING.md`.
+- `scripts/ads.gd` places it all, `scripts/house_ads.gd`, `house_banner.gd`, `house_card.gd` and `house_games.gd` are the house ads, and `scripts/android/` holds what only the Android build may load.
+
 ## Next milestones
 
 ## Campaign and presentation checklist

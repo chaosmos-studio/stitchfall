@@ -20,7 +20,7 @@ const BUZZ_UNRAVEL: int = 70
 const BUZZ_CLEAR: int = 30
 const BUZZ_TAP: int = 15
 const BACK_ONE_PRESS_MS: int = 250
-const BILLING_SCRIPT: String = "res://scripts/play_billing.gd"
+const BILLING_SCRIPT: String = "res://scripts/android/play_billing.gd"
 const MUSIC_STREAM: AudioStreamOggVorbis = preload("res://assets/audio/music/stitched_home.ogg")
 const SEWING_CURSOR: Texture2D = preload("res://assets/art/sewing_cursor.png")
 
@@ -56,6 +56,13 @@ var mobile_crouched: bool = false
 var last_touch_msec: int = -1000
 var last_back_msec: int = -1000
 var last_start_msec: int = -1000
+# Whether this room's run has begun since it loaded, so a resume is not counted as a start.
+var room_begun: bool = false
+# The room Play picked up at launch, so a cloud save arriving a moment later can move it on.
+var launch_room: int = -1
+# Set while Next or a skip is on its way to the next room, past an ad or Play's review card, so a second press
+# does nothing.
+var advancing: bool = false
 var room: Node2D
 var world: StitchfallWorldView
 var pilot: StitchfallCourier
@@ -130,6 +137,7 @@ func _ready() -> void:
 	if DisplayServer.get_name() != "headless":
 		music.play()
 	progress.load_saved()
+	StitchfallAds.progress = progress
 	audio_enabled = audio_enabled and progress.sound
 	music.stream_paused = not progress.music
 	hud = HUD_SCRIPT.new() as StitchfallHud
@@ -147,18 +155,25 @@ func _ready() -> void:
 	hud.home_pressed.connect(_on_home)
 	hud.level_selected.connect(_on_level_selected)
 	hud.sound_toggled.connect(_on_sound_toggled)
+	hud.skip_pressed.connect(_on_skip)
 	_start_store()
+	StitchfallAds.start()
+	StitchfallAnalytics.start()
+	StitchfallPlayCore.start(_offer_update)
+	StitchfallPlayGames.start(progress, _on_cloud_restore)
 	var initial_room: int = progress.continue_room(StitchfallLevels.count())
 	if OS.has_feature("web"):
 		var requested_room: Variant = JavaScriptBridge.eval("new URLSearchParams(window.location.search).get('room')")
 		if requested_room != null:
 			initial_room = clampi(str(requested_room).to_int(), 0, StitchfallLevels.count() - 1)
 	_load_level(initial_room)
+	launch_room = initial_room
 	hud.show_home()
 
 
-# The Android build sells the Wardrobe pack through Google Play's billing plugin. The browser build has
-# neither, so it loads none of it.
+# The Android build sells its packs and takes tips through Google Play's billing plugin. The browser build has
+# neither, so it loads none of it. Ads, Analytics, Play's review card and updates, and Play Games start after it,
+# and each does nothing off Android.
 func _start_store() -> void:
 	if not OS.has_feature("android") or not Engine.has_singleton("GodotGooglePlayBilling"):
 		return
@@ -166,8 +181,16 @@ func _start_store() -> void:
 	store.set("progress", progress)
 	add_child(store)
 	store.connect("said", hud._say)
-	store.connect("changed", hud.refresh_wardrobe)
+	store.connect("changed", hud.refresh_store)
 	StitchfallShop.backend = store
+
+
+# A downloaded update is offered on a quiet page only: Home or Levels, never mid-room.
+func _offer_update() -> bool:
+	if hud.screen not in ["home", "levels"]:
+		return false
+	hud.show_update()
+	return true
 
 
 func _exit_tree() -> void:
@@ -204,6 +227,9 @@ func _notification(what: int) -> void:
 	if what != NOTIFICATION_WM_GO_BACK_REQUEST or Time.get_ticks_msec() - last_back_msec < BACK_ONE_PRESS_MS:
 		return
 	last_back_msec = Time.get_ticks_msec()
+	# The quick game standing in for a video closes first, and an ad on its way holds everything else.
+	if StitchfallAds.back() or StitchfallAds.is_busy() or advancing:
+		return
 	if playing:
 		_on_pause()
 	elif hud.screen == "pause":
@@ -212,6 +238,10 @@ func _notification(what: int) -> void:
 		hud.skip_chapter()
 	elif hud.screen in ["about", "credits", "stats"]:
 		hud.show_settings()
+	elif hud.screen == "shop":
+		hud.leave_shop()
+	elif hud.screen == "update":
+		hud.leave_update()
 	elif hud.screen == "home":
 		progress.save()
 		get_tree().quit()
@@ -236,6 +266,8 @@ func _camera_target() -> Vector2:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if StitchfallAds.is_busy() or advancing:
+		return
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.physical_keycode == KEY_M:
 			hud._toggle_sound()
@@ -272,6 +304,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			hud.show_home()
 		elif hud.screen in ["about", "credits", "stats"]:
 			hud.show_settings()
+		elif hud.screen == "shop":
+			hud.leave_shop()
+		elif hud.screen == "update":
+			hud.leave_update()
 	elif playing and event.is_action_pressed("shift_gravity"):
 		_shift(1)
 	elif playing and event.is_action_pressed("retry"):
@@ -374,6 +410,7 @@ func _load_level(index: int) -> void:
 	last_shift = -1.0
 	room_time = 0.0
 	room_deaths = 0
+	room_begun = false
 	cleared = false
 	collected.clear()
 	banked.clear()
@@ -579,6 +616,7 @@ func _on_hazard_body(body: Node2D) -> void:
 		_buzz(BUZZ_UNRAVEL)
 		hud.flash()
 		hud.set_unravels(room_deaths)
+		StitchfallAnalytics.unravelled(level_index, room_deaths)
 		trail.clear()
 		unravel = UNRAVEL_SCRIPT.new() as StitchfallUnravel
 		room.add_child(unravel)
@@ -630,11 +668,13 @@ func _on_flower_body(body: Node2D, index: int) -> void:
 	respawn_gravity = flower["gravity"]
 	for pin: StitchfallPin in pins:
 		pin.start = pin.position
-	var newly_banked: bool = false
+	var newly_banked: int = 0
 	for button: int in range(collected.size()):
-		newly_banked = newly_banked or (collected[button] and not banked[button])
+		if collected[button] and not banked[button]:
+			newly_banked += 1
 		banked[button] = banked[button] or collected[button]
-	if newly_banked:
+	progress.banked += newly_banked
+	if newly_banked > 0:
 		_play_sound("bank")
 		_buzz(BUZZ_TAP)
 		hud.bank_buttons()
@@ -815,6 +855,9 @@ func _shift(step: int) -> void:
 # Starts or stops everything in the room that moves on its own.
 func _set_running(running: bool) -> void:
 	playing = running
+	if running and not room_begun:
+		room_begun = true
+		StitchfallAnalytics.room_started(level_index)
 	if is_instance_valid(pilot):
 		pilot.control_enabled = running
 	for sentry: StitchfallWatcher in sentries:
@@ -836,6 +879,9 @@ func _clear_room() -> void:
 	progress.play_time += room_time
 	var par: float = StitchfallLevels.par(level)
 	last_result = progress.record(level_index, room_time, room_deaths, par)
+	StitchfallAnalytics.room_cleared(level_index, int(last_result["stars"]), room_deaths)
+	StitchfallPlayGames.room_sewn(level_index, int(last_result["stars"]), room_deaths, room_time)
+	StitchfallAds.room_cleared()
 	print("STITCHFALL_CLEAR ", level_index, " ", last_result["stars"])
 	_play_sound("zip")
 	_buzz(BUZZ_CLEAR)
@@ -880,12 +926,29 @@ func _sew_shut(index: int, par: float) -> void:
 	hud.show_clear(card)
 
 
+# Next on the clear card is the one place an ad between rooms may come, and only when the next room is not a
+# chapter's first, whose title card no ad may stand beside. As Next leaves a chapter's last room past a
+# milestone, Play's review card comes instead.
 func _on_next() -> void:
+	if advancing:
+		return
 	if level_index + 1 >= StitchfallLevels.count():
 		finished = true
 		print("STITCHFALL_WIN")
 		hud.show_finish(_format_time(run_time), shifts, deaths)
 		return
+	var chapter_next: bool = (level_index + 1) % StitchfallLevels.CHAPTER_ROOMS == 0
+	advancing = true
+	var milestone: int = StitchfallPlayCore.review_due(progress) if chapter_next else 0
+	if milestone > 0:
+		StitchfallPlayCore.ask(progress, milestone, _advance)
+	else:
+		StitchfallAds.maybe_interstitial(_advance, chapter_next)
+
+
+# Opens the room after this one, on its chapter's title card when it starts a chapter.
+func _advance() -> void:
+	advancing = false
 	_load_level(level_index + 1)
 	if level_index % StitchfallLevels.CHAPTER_ROOMS == 0:
 		var chapter: int = level_index / StitchfallLevels.CHAPTER_ROOMS
@@ -915,7 +978,48 @@ func _on_pause() -> void:
 	pilot.set_touch_crouch(false)
 	_set_running(false)
 	progress.save()
-	hud.show_pause()
+	StitchfallPlayGames.progressed()
+	hud.show_pause(_skip_line())
+
+
+# The pause page's offer to skip this room, saying what it costs, or "" while none is offered.
+func _skip_line() -> String:
+	var has_next: bool = level_index + 1 < StitchfallLevels.count()
+	var next_open: bool = has_next and StitchfallShop.room_open(progress, level_index + 1)
+	if not StitchfallAdPacing.skip_offered(room_deaths, has_next, next_open):
+		return ""
+	if _skip_cost() == StitchfallAdPacing.Skip.FREE:
+		return "Stuck? You can skip this room."
+	return "Stuck? %s to skip this room." % StitchfallAds.watch()
+
+
+func _skip_cost() -> StitchfallAdPacing.Skip:
+	return StitchfallAdPacing.skip_cost(StitchfallAds.supporter(), StitchfallAds.rewards())
+
+
+# Skipping is the opt-in. A video, or the quick game standing in for one, plays first unless the skip is free,
+# and with nothing to play the room stays as it is, Resume and Retry beside it.
+func _on_skip() -> void:
+	if advancing or hud.screen != "pause" or _skip_line().is_empty():
+		return
+	if _skip_cost() == StitchfallAdPacing.Skip.FREE:
+		_skip_room("free")
+		return
+	advancing = true
+	StitchfallAds.rewarded(func() -> void: _skip_room("video"), func() -> void:
+		advancing = false
+		hud._say("Nothing to play right now. Try again in a moment."))
+
+
+# A skipped room keeps no stars, opens the next one and counts no clear, so it brings no ad between rooms.
+func _skip_room(cost: String) -> void:
+	advancing = false
+	StitchfallAnalytics.skipped(level_index, room_deaths, cost)
+	progress.play_time += room_time
+	progress.skip(level_index)
+	StitchfallPlayGames.progressed()
+	print("STITCHFALL_SKIP ", level_index)
+	_advance()
 
 
 func _on_home() -> void:
@@ -924,6 +1028,7 @@ func _on_home() -> void:
 		pilot.set_touch_crouch(false)
 	_set_running(false)
 	progress.save()
+	StitchfallPlayGames.progressed()
 	touch_starts.clear()
 	mobile_crouched = false
 	hud.show_home()
@@ -942,6 +1047,7 @@ func _on_sound_toggled(enabled: bool) -> void:
 	audio_enabled = enabled
 	progress.sound = enabled
 	progress.save()
+	StitchfallAds.match_sound()
 	if not enabled:
 		for voice: AudioStreamPlayer in voices:
 			voice.stop()
@@ -956,8 +1062,22 @@ func _on_music_toggled(enabled: bool) -> void:
 
 func _on_progress_reset() -> void:
 	progress.reset()
+	StitchfallPlayGames.progress_reset()
 	_apply_wardrobe()
 	_load_level(0)
+
+
+# Play Games has folded the player's progress from their Google account into this phone's, a moment after launch
+# while Home is usually up. The page on show redraws from it, and Play picks up past the rooms it brought, unless
+# a room has already been played this session.
+func _on_cloud_restore() -> void:
+	if hud.screen == "home" and not room_begun and level_index == launch_room:
+		launch_room = progress.continue_room(StitchfallLevels.count())
+		_load_level(launch_room)
+	if hud.screen == "stats":
+		hud.show_stats()
+	else:
+		hud.refresh_store()
 
 
 # Dresses the room in what the wardrobe has on: the runner, its trail, the buttons and the fabric.

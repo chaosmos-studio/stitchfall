@@ -53,3 +53,16 @@ The flower also saves where every pin is, so coming back to it puts the room as 
 
 The current movement constants and their actual behavior live in `scripts/player.gd` and `scripts/cargo.gd`.
 Tune them by playing through every room, especially after consecutive shifts.
+
+## Two phones, one progress
+
+With Play Games on, the progress file is kept in the player's Google account too, and a phone that signs in joins
+that copy with its own (`scripts/cloud_save.gd`).
+Every value is joined by a rule that only keeps the better of two: the most stars, the least time, a room skipped
+on either phone, the larger count of unravels.
+Rules like max, min and "either" give the same answer in any order, `join(a, b) == join(b, a)`, and joining a copy
+with itself changes nothing, `join(a, a) == a`.
+So it never matters which phone saved first or how often a copy is read back: three phones in any order end at the
+best of each room, and nothing played on any of them is lost.
+The one thing a join cannot do is forget, which is why Reset writes the cloud copy over instead of joining it.
+The speedrun board adds up the five best times of Plain Linen, each of which can only fall, so the sum only falls too.

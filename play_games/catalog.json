@@ -1,0 +1,33 @@
+{
+	"leaderboards": [
+		{"key": "stars", "name": "Stars", "order": "LARGER_IS_BETTER", "format": "NUMERIC", "min": 1, "max": 10000},
+		{"key": "rooms", "name": "Rooms sewn", "order": "LARGER_IS_BETTER", "format": "NUMERIC", "min": 1, "max": 10000, "suffix": ["room", "rooms"]},
+		{"key": "linen", "name": "Plain Linen speedrun", "chapter": "linen", "order": "SMALLER_IS_BETTER", "format": "TIME_DURATION", "min": 1000, "max": 3600000}
+	],
+	"achievements": [
+		{"key": "first_room", "name": "First stitch", "text": "Sew your first room.", "points": 5, "sewn": 1},
+		{"key": "rooms_10", "name": "Getting the knack", "text": "Sew 10 rooms.", "points": 20, "sewn": 10},
+		{"key": "rooms_25", "name": "Good with a needle", "text": "Sew 25 rooms.", "points": 40, "sewn": 25},
+		{"key": "rooms_50", "name": "Master tailor", "text": "Sew 50 rooms.", "points": 100, "sewn": 50},
+		{"key": "chapter_1", "name": "Whole cloth", "text": "Sew every room of a chapter.", "points": 20, "chapters": 1},
+		{"key": "chapters_5", "name": "Patchwork quilt", "text": "Sew every room of five chapters.", "points": 75, "chapters": 5},
+		{"key": "three_10", "name": "Neat work", "text": "Earn all three stars in 10 rooms.", "points": 60, "three": 10},
+		{"key": "seamless", "name": "Seamless", "text": "Sew each room of a chapter without unravelling.", "points": 60, "seamless": 1},
+		{"key": "quick_1", "name": "Quick fingers", "text": "Sew a room inside its par time.", "points": 20, "quick": 1},
+		{"key": "banked_25", "name": "Safe keeping", "text": "Bank 25 buttons at flowers.", "points": 35, "banked": 25},
+		{"key": "turns_500", "name": "Head over heels", "text": "Turn the room 500 times.", "points": 40, "turns": 500},
+		{"key": "unravels_100", "name": "Hanging by a thread", "text": "Unravel 100 times. The rooms enjoyed every one.", "points": 25, "unravels": 100}
+	],
+	"events": {
+		"roomCompleted": {"room": "INT64", "stars": "INT64", "unravels": "INT64", "time": "DURATION"},
+		"progressUpdate": {"currentProgress": "INT64"}
+	},
+	"stats": [
+		{"key": "rooms_sewn", "event": "roomCompleted", "property": "room", "aggregation": "COUNT", "name": "Rooms sewn", "text": "Every room you sew, replays included.", "competitive": [0, 600]},
+		{"key": "stars_collected", "event": "roomCompleted", "property": "stars", "aggregation": "SUM", "name": "Stars collected", "text": "Stars from every room you sew, replays included."},
+		{"key": "three_star_rooms", "event": "roomCompleted", "property": "stars", "aggregation": "COUNT", "filter": ["stars", "=", 3], "name": "Three-star rooms", "text": "Rooms sewn with all three stars, replays included."},
+		{"key": "unravels", "event": "roomCompleted", "property": "unravels", "aggregation": "SUM", "name": "Times unravelled", "text": "Every unravel on the way to sewing a room."},
+		{"key": "time_in_rooms", "event": "roomCompleted", "property": "time", "aggregation": "SUM", "format": "COMPONENT_TEXT", "unit": "MINUTES", "name": "Time in the rooms", "text": "Time spent on the rooms you sewed."}
+	],
+	"progression": {"key": "different_rooms", "property": "currentProgress", "name": "Different rooms sewn", "text": "Rooms you have sewn at least once."}
+}

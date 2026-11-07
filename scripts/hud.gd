@@ -13,6 +13,7 @@ signal music_toggled(enabled: bool)
 signal wardrobe_changed
 signal progress_reset
 signal chapter_done
+signal skip_pressed
 
 const INK: Color = Color("493a37")
 const PAPER: Color = Color("f7edda")
@@ -37,6 +38,8 @@ const HOME_REVEAL_SHADER: Shader = preload("res://shaders/home_reveal.gdshader")
 const GESTURE_GUIDE: Script = preload("res://scripts/gesture_guide.gd")
 const STAR_SOUND: AudioStream = preload("res://assets/audio/sfx/star.wav")
 const STAR_MISS_SOUND: AudioStream = preload("res://assets/audio/sfx/star_miss.wav")
+# The linen kept between a menu page's cloth and the banner below it, in dp.
+const CLOTH_GAP_DP: float = 12.0
 
 var root: Control
 var meter: ButtonMeter
@@ -82,6 +85,8 @@ var settings_tags: Dictionary[String, StitchedButton] = {}
 var reset_armed: bool = false
 var stats_page: Control
 var stats_lines: Label
+var stats_boards: StitchedButton
+var stats_achievements: StitchedButton
 var credits_page: Control
 var wardrobe_page: Control
 var wardrobe_kind: String = "runner"
@@ -92,8 +97,19 @@ var wardrobe_name: Label
 var wardrobe_line: Label
 var wardrobe_note: Label
 var wardrobe_buy: StitchedButton
-var wardrobe_restore: StitchedButton
-var wardrobe_tip: StitchedButton
+var wardrobe_shop: StitchedButton
+var shop_page: Control
+var shop_line: Label
+var shop_cards: Dictionary[String, StitchedButton] = {}
+var shop_tips: Array[StitchedButton] = []
+var shop_note: Label
+# The page Back leads to from the Shop and from the update offer.
+var shop_return: String = "home"
+var update_page: Control
+var update_return: String = "home"
+var skip_button: StitchedButton
+# How far down a menu page may reach while the banner is on screen, from StitchfallAds.
+var banner_limit: float = INF
 var unravel_count: int = 0
 var help_page: Control
 var about_page: Control
@@ -161,6 +177,7 @@ func _ready() -> void:
 	tap_sound.volume_db = -6.0
 	add_child(tap_sound)
 	_build_pages()
+	StitchfallAds.listen(_on_banner_limit)
 	get_viewport().size_changed.connect(_layout)
 	call_deferred("_layout")
 
@@ -175,12 +192,46 @@ func _layout() -> void:
 	unravel_tag.scale = Vector2.ONE * mobile_scale
 	unravel_tag.position.x = meter.position.x + meter.size.x * mobile_scale + 14.0
 	hero.position.x = root.size.x * 0.735
-	level_page.position.x = (root.size.x - 1920.0) * 0.5
-	help_page.position.x = (root.size.x - 1920.0) * 0.5
-	about_page.position.x = (root.size.x - 1920.0) * 0.5
-	settings_page.position.x = (root.size.x - 1920.0) * 0.5
-	for page: Control in [pause_page, clear_page, chapter_page, stats_page, credits_page, wardrobe_page]:
-		page.position.x = (root.size.x - 1920.0) * 0.5
+	for page: Control in [level_page, help_page, about_page, settings_page, pause_page, clear_page, chapter_page, stats_page, credits_page, wardrobe_page, shop_page, update_page]:
+		var fit: float = page_fit(page)
+		page.scale = Vector2.ONE * fit
+		page.position.x = (root.size.x - 1920.0 * fit) * 0.5
+		_trim_cloth(page, fit)
+
+
+func _banner_page(page: Control) -> bool:
+	return [level_page, wardrobe_page, settings_page, about_page, credits_page, stats_page].has(page)
+
+
+# A menu page that carries the banner shrinks from its top until everything on it ends BUTTON_GAP_DP above the
+# banner, so no button sits near the ad. Every other page, and every page without a banner, keeps its size.
+func page_fit(page: Control) -> float:
+	if not _banner_page(page):
+		return 1.0
+	var bottom: float = 0.0
+	for child: Node in page.get_children():
+		var part: Control = child as Control
+		if part != null and part.visible and not part.has_meta(&"cloth"):
+			bottom = maxf(bottom, part.position.y + part.size.y)
+	return clampf(banner_limit / bottom, 0.5, 1.0) if bottom > 0.0 else 1.0
+
+
+# The cloth behind a page ends CLOTH_GAP_DP above the banner rather than running under it, so the ad never sits
+# on the page.
+func _trim_cloth(page: Control, fit: float) -> void:
+	var end: float = INF
+	if _banner_page(page) and StitchfallAds.banner_wanted():
+		end = (StitchfallAds.banner_rect().position.y - CLOTH_GAP_DP * StitchfallAds.per_dp()) / fit
+	for child: Node in page.get_children():
+		if child.has_meta(&"cloth"):
+			var cloth: Control = child as Control
+			var rest: Rect2 = cloth.get_meta(&"cloth")
+			cloth.size.y = minf(rest.size.y, end - rest.position.y)
+
+
+func _on_banner_limit(limit: float) -> void:
+	banner_limit = limit
+	_layout()
 
 
 func _style(color: Color, border: Color, width: int) -> StyleBoxFlat:
@@ -220,6 +271,7 @@ func _cloth_page(parent: Control, rect: Rect2) -> void:
 	cloth.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	cloth.position = rect.position
 	cloth.size = rect.size
+	cloth.set_meta(&"cloth", rect)
 	parent.add_child(cloth)
 
 
@@ -286,6 +338,8 @@ func _build_pages() -> void:
 	_build_stats()
 	_build_credits()
 	_build_wardrobe()
+	_build_shop()
+	_build_update()
 	show_home()
 
 
@@ -312,25 +366,26 @@ func _build_home() -> void:
 	var title: Label = _label(home_page, Vector2(128, 172), Vector2(870, 158), 105, INK, true)
 	title.add_theme_font_override("font", FONT_DISPLAY)
 	title.text = "STITCHFALL"
-	var line: Label = _label(home_page, Vector2(138, 316), Vector2(840, 84), 39, INK)
+	var line: Label = _label(home_page, Vector2(138, 306), Vector2(840, 84), 36, INK)
 	line.text = "Find the buttons. Turn the pull.\nOpen the seam."
-	var menu_items: Array[PackedStringArray] = [
-		PackedStringArray(["PLAY", "play"]),
-		PackedStringArray(["LEVELS", "levels"]),
-		PackedStringArray(["WARDROBE", "wardrobe"]),
-		PackedStringArray(["GUIDE", "help"]),
-		PackedStringArray(["SETTINGS", "settings"]),
+	var menu_items: Array[Array] = [
+		["PLAY", "play", Color("e0a278"), _begin_from_home],
+		["LEVELS", "levels", Color("dbe5d1"), show_levels],
+		["WARDROBE", "wardrobe", Color("efd3b8"), show_wardrobe],
+		["GUIDE", "help", Color("e8d8bd"), show_help],
+		["SETTINGS", "settings", Color("e4d0b1"), show_settings],
 	]
+	# Google Play's build sells packs and takes tips. The browser build has no shop.
+	if StitchfallShop.on_play:
+		menu_items.insert(3, ["SHOP", "bag", Color("f0c9a8"), show_shop])
+	# Six rows (with the shop) sit a little closer, so the last stays inside the pocket.
+	var row_step: float = 84.0 if menu_items.size() > 5 else 88.0
 	for index: int in range(menu_items.size()):
-		var item: PackedStringArray = menu_items[index]
-		var button: StitchedButton = _tag(home_page, Rect2(146, 420 + index * 88, 560, 82), item[0], item[1], [Color("e0a278"), Color("dbe5d1"), Color("efd3b8"), Color("e8d8bd"), Color("e4d0b1")][index])
+		var item: Array = menu_items[index]
+		var button: StitchedButton = _tag(home_page, Rect2(146, 428 + index * row_step, 560, row_step - 6.0), item[0], item[1], item[2])
 		button.home_link = true
-		match index:
-			0: button.pressed.connect(_begin_from_home)
-			1: button.pressed.connect(show_levels)
-			2: button.pressed.connect(show_wardrobe)
-			3: button.pressed.connect(show_help)
-			4: button.pressed.connect(show_settings)
+		var open: Callable = item[3]
+		button.pressed.connect(func() -> void: open.call())
 	hero = AnimatedSprite2D.new()
 	hero.sprite_frames = _dance_frames()
 	hero.scale = Vector2.ONE * 0.92
@@ -408,7 +463,7 @@ func _set_level_page(value: int) -> void:
 		button.cloth = palette[0]
 		button.thread = palette[1]
 		button.stars = progress.stars(index) if progress != null else 0
-		button.locked = progress != null and not progress.is_open(index)
+		button.locked = progress != null and not StitchfallShop.room_open(progress, index)
 		button.disabled = button.locked
 		button.tooltip_text = ""
 		earned += maxi(button.stars, 0)
@@ -470,16 +525,22 @@ func _build_about() -> void:
 	var version: Label = _label(about_page, Vector2(320, 600), Vector2(820, 46), 28, ACCENT, true)
 	version.text = "Version %s" % version_name()
 	var links: Array = [["WEBSITE", "link", StitchfallShop.WEBSITE], ["SUPPORT", "help", StitchfallShop.SUPPORT], ["PRIVACY", "seam", StitchfallShop.PRIVACY], ["GAMES", "play", StitchfallShop.MORE_GAMES]]
-	# The browser build can point to GitHub Sponsors. The Android build never may, by Play's Payments policy.
+	# The browser build can point to GitHub Sponsors. The Android build never may, by Play's Payments policy, and
+	# has Rate there instead, which opens the Play page: no button may call Play's own review card.
 	if not StitchfallShop.on_play:
 		links.append(["SPONSOR", "gift", StitchfallShop.SPONSOR])
+	else:
+		links.append(["RATE", "star", StitchfallShop.STORE])
 	for index: int in range(links.size()):
 		var link: Array = links[index]
 		var tag: StitchedButton = _tag(about_page, Rect2(300 + index * 172, 665, 162, 195), link[0], link[1], [Color("dbe5d1"), Color("e8d8bd"), Color("e4d0b1"), Color("efd3b8"), Color("e0a278")][index])
 		tag.pause_action = true
 		tag.caption_size = 26
 		var url: String = link[2]
-		tag.pressed.connect(func() -> void: OS.shell_open(url))
+		if url == StitchfallShop.STORE:
+			tag.pressed.connect(func() -> void: StitchfallPlayCore.rate(progress))
+		else:
+			tag.pressed.connect(func() -> void: OS.shell_open(url))
 	var portrait: TextureRect = TextureRect.new()
 	portrait.texture = DANCE_POSES[0]
 	portrait.position = Vector2(1180, 260)
@@ -516,9 +577,18 @@ func _build_settings() -> void:
 		settings_tags[entry[0]] = tag
 	sound_buttons.append(settings_tags["sound"])
 	settings_tags["fullscreen"].visible = not OS.has_feature("android")
+	# Google's consent service says when a player must be able to change their ad consent, and then this takes
+	# the place a phone has no Fullscreen for.
+	var privacy: StitchedButton = _tag(settings_page, Rect2(420 + 3 * 275, 250, 255, 270), "PRIVACY", "lock", Color("e4d0b1"))
+	privacy.pause_action = true
+	privacy.pressed.connect(func() -> void: StitchfallAds.open_privacy_options())
+	privacy.visible = false
+	settings_tags["privacy"] = privacy
 	var note: Label = _label(settings_page, Vector2(480, 845), Vector2(960, 50), 28, ACCENT)
 	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	note.text = "M changes sound. F goes fullscreen."
+	# A phone has no keys to name, and this way its banner needs less room.
+	note.visible = not OS.has_feature("android")
 
 
 # Shows each switch's state in its icon, and puts the reset back to asking once.
@@ -531,6 +601,7 @@ func _refresh_settings() -> void:
 	settings_tags["sound"].caption = "SOUND" if audio_enabled else "NO SOUND"
 	settings_tags["music"].caption = "MUSIC" if progress.music else "NO MUSIC"
 	settings_tags["shake"].caption = "SHAKE" if progress.shake else "NO SHAKE"
+	settings_tags["privacy"].visible = StitchfallAds.privacy_options_required()
 	reset_armed = false
 	settings_tags["reset"].caption = "RESET"
 	for tag: StitchedButton in settings_tags.values():
@@ -596,6 +667,12 @@ func _build_pause() -> void:
 	pause_home_button = _tag(pause_page, Rect2(1120, 500, 230, 255), "HOME", "home", Color("e8d8bd"))
 	pause_home_button.pause_action = true
 	pause_home_button.pressed.connect(func() -> void: home_pressed.emit())
+	# Offered only after the runner keeps coming apart in one room. Resume and Retry stay beside it, so passing it
+	# by costs nothing.
+	skip_button = _tag(pause_page, Rect2(705, 742, 510, 84), "SKIP THIS ROOM", "next", Color("efd3b8"))
+	skip_button.caption_size = 34
+	skip_button.pressed.connect(func() -> void: skip_pressed.emit())
+	skip_button.visible = false
 
 
 # The card that closes a room: its stars pop in one by one, then the time against par and a line about how
@@ -759,6 +836,18 @@ func _build_stats() -> void:
 	stats_lines = _label(stats_page, Vector2(500, 270), Vector2(920, 620), 38, INK)
 	stats_lines.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 	stats_lines.add_theme_constant_override("line_spacing", 22)
+	# Google Play Games' own pages, beside the stitches they count, in the Android build once Stitchfall has its Play
+	# Games project. Each signs the player in first when they are not yet. Both end above the lines' foot, so the
+	# page shrinks no further for the banner.
+	stats_boards = _tag(stats_page, Rect2(1150, 285, 290, 280), "LEADERBOARDS", "stats", Color("efd3b8"))
+	stats_boards.pause_action = true
+	# Twelve letters in the usual hand would run past the patch's width and lose their last.
+	stats_boards.caption_size = 28
+	stats_boards.pressed.connect(func() -> void: StitchfallPlayGames.show_boards())
+	stats_achievements = _tag(stats_page, Rect2(1150, 585, 290, 280), "ACHIEVEMENTS", "star", Color("dbe5d1"))
+	stats_achievements.pause_action = true
+	stats_achievements.caption_size = 28
+	stats_achievements.pressed.connect(func() -> void: StitchfallPlayGames.show_achievements())
 
 
 func show_stats() -> void:
@@ -778,7 +867,13 @@ func show_stats() -> void:
 		"Time in the rooms:  %d h %02d m" % [minutes / 60, minutes % 60],
 		"Wardrobe open:  %d of %d" % [open_pieces, all_pieces],
 	]
+	if not progress.skipped.is_empty():
+		rows.insert(1, "Rooms skipped:  %d" % progress.skipped.size())
 	stats_lines.text = "\n".join(rows)
+	var games: bool = StitchfallPlayGames.ready()
+	stats_boards.visible = games
+	stats_achievements.visible = games
+	stats_lines.size.x = 620.0 if games else 920.0
 	_show_screen("stats")
 
 
@@ -803,6 +898,10 @@ func _build_credits() -> void:
 		"",
 		"Thank you to everyone who plays, and to GitHub Game Off.",
 	])
+	if StitchfallShop.on_play and not StitchfallPlayGames.app_id().is_empty():
+		body.text += "\n\n" + "In the Android app: the Godot AdMob Plugin by Poing Studios, Godot Google Play Billing by the Godot Engine contributors, Godotx Firebase by Paulo Coutinho and GodotPlayGameServices by Jacob Ibáñez Sánchez, each under the MIT license, and Google's Mobile Ads SDK, User Messaging Platform, Play Billing Library, Play In-App Review and Updates, Play Games Services and Analytics for Firebase, under Google's terms."
+	elif StitchfallShop.on_play:
+		body.text += "\n\n" + "In the Android app: the Godot AdMob Plugin by Poing Studios, Godot Google Play Billing by the Godot Engine contributors and Godotx Firebase by Paulo Coutinho, each under the MIT license, and Google's Mobile Ads SDK, User Messaging Platform, Play Billing Library, Play In-App Review and Updates and Analytics for Firebase, under Google's terms."
 
 
 # The wardrobe: a dancing preview on the left, a tab per kind of piece, and the pieces as tiles.
@@ -842,13 +941,121 @@ func _build_wardrobe() -> void:
 	wardrobe_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	wardrobe_buy = _tag(wardrobe_page, Rect2(1300, 836, 270, 78), "WARDROBE PACK", "", Color("e0a278"))
 	wardrobe_buy.caption_size = 28
-	wardrobe_buy.pressed.connect(func() -> void: _say(StitchfallShop.buy(StitchfallShop.WARDROBE_ID)))
-	wardrobe_restore = _tag(wardrobe_page, Rect2(1580, 832, 90, 86), "", "restart", Color("e5d5bc"))
-	wardrobe_restore.tooltip_text = "Restore purchases"
-	wardrobe_restore.pressed.connect(func() -> void: _say(StitchfallShop.restore()))
-	wardrobe_tip = _tag(wardrobe_page, Rect2(1680, 832, 90, 86), "", "gift", Color("efd3b8"))
-	wardrobe_tip.tooltip_text = "Leave a tip"
-	wardrobe_tip.pressed.connect(func() -> void: _say(StitchfallShop.buy(StitchfallShop.TIP_ID)))
+	wardrobe_buy.pressed.connect(func() -> void: _say(StitchfallShop.buy(StitchfallMonetize.WARDROBE_ID)))
+	wardrobe_shop = _tag(wardrobe_page, Rect2(1600, 832, 90, 86), "", "bag", Color("efd3b8"))
+	wardrobe_shop.tooltip_text = "Shop"
+	wardrobe_shop.pressed.connect(func() -> void: show_shop("wardrobe"))
+
+
+# The Shop, Google Play's build only: the packs as felt cards with Play's prices, the tip jar and Restore.
+func _build_shop() -> void:
+	shop_page = _page()
+	_cloth_page(shop_page, Rect2(65, 50, 1790, 970))
+	var heading: Label = _label(shop_page, Vector2(170, 95), Vector2(700, 105), 77, INK, true)
+	heading.add_theme_font_override("font", FONT_DISPLAY)
+	heading.text = "SHOP"
+	_tag(shop_page, Rect2(1700, 100, 100, 101), "", "back", Color("e5d5bc")).pressed.connect(leave_shop)
+	shop_line = _label(shop_page, Vector2(176, 196), Vector2(1480, 52), 31, ACCENT)
+	var cloths: Array[Color] = [Color("e0a278"), Color("efd3b8"), Color("dbe5d1"), Color("e8d8bd")]
+	var ids: PackedStringArray = StitchfallShop.one_time_ids()
+	for index: int in range(ids.size()):
+		var id: String = ids[index]
+		var card: StitchedButton = _tag(shop_page, Rect2(0, 258, 400, 470), StitchfallShop.card_title(id), StitchfallShop.glyph(id), cloths[index])
+		card.shop_card = true
+		card.lines = StitchfallShop.rows(id)
+		card.tooltip_text = ""
+		card.pressed.connect(_buy_pack.bind(id))
+		shop_cards[id] = card
+	var jar: Label = _label(shop_page, Vector2(176, 742), Vector2(1250, 50), 30, INK, true)
+	jar.text = "Tip jar. Say thanks as often as you like. A tip opens nothing new."
+	for index: int in range(StitchfallMonetize.TIP_IDS.size()):
+		var tip_id: String = StitchfallMonetize.TIP_IDS[index]
+		var tip: StitchedButton = _tag(shop_page, Rect2(170 + index * 212, 800, 200, 82), "TIP", "", Color("e8d8bd"))
+		tip.pressed.connect(func() -> void: _say(StitchfallShop.buy(tip_id)))
+		shop_tips.append(tip)
+	var again: StitchedButton = _tag(shop_page, Rect2(1460, 800, 290, 82), "RESTORE", "restart", Color("dbe5d1"))
+	again.caption_size = 30
+	again.pressed.connect(func() -> void: _say(StitchfallShop.restore()))
+	shop_note = _label(shop_page, Vector2(176, 900), Vector2(1560, 56), 28, ACCENT)
+
+
+func show_shop(from: String = "home") -> void:
+	shop_return = from
+	_fill_shop()
+	shop_note.text = "Thank you for your %s." % ("tip" if progress.tips == 1 else "%d tips" % progress.tips) if progress.tips > 0 else ""
+	_show_screen("shop")
+	StitchfallAnalytics.event(&"shop_open", {"from": from})
+
+
+func leave_shop() -> void:
+	if shop_return == "wardrobe":
+		show_wardrobe()
+	else:
+		show_home()
+
+
+# The Complete pack shows only while none of it is owned, or once it is, and the cards centre on the cloth.
+func _fill_shop() -> void:
+	shop_line.text = "You are a Supporter. Thank you for helping me make the next game." if StitchfallShop.ads_off(progress) else "Every room opens by playing. These help me make the next game."
+	var shown: Array[StitchedButton] = []
+	for id: String in shop_cards:
+		var card: StitchedButton = shop_cards[id]
+		card.visible = id != StitchfallMonetize.COMPLETE_ID or StitchfallShop.offers_complete(progress) or StitchfallShop.owns(progress, id)
+		card.owned = StitchfallShop.has(progress, id)
+		card.price_tag = StitchfallShop.price(id)
+		card.queue_redraw()
+		if card.visible:
+			shown.append(card)
+	var left: float = (1920.0 - shown.size() * 400.0 - (shown.size() - 1) * 22.0) * 0.5
+	for index: int in range(shown.size()):
+		shown[index].position.x = left + index * 422.0
+	for index: int in range(shop_tips.size()):
+		var price: String = StitchfallShop.price(StitchfallMonetize.TIP_IDS[index])
+		shop_tips[index].caption = "TIP" if price.is_empty() else price
+		shop_tips[index].caption_size = 30 if price.length() <= 9 else 22
+		shop_tips[index].queue_redraw()
+
+
+func _buy_pack(id: String) -> void:
+	if StitchfallShop.has(progress, id):
+		_say("%s is yours. Thank you!" % StitchfallShop.title(id))
+		return
+	_say(StitchfallShop.buy(id))
+
+
+# Offered once a session when Google Play has downloaded an update, on Home or the Levels page.
+func _build_update() -> void:
+	update_page = _page()
+	_cloth_page(update_page, Rect2(500, 165, 920, 700))
+	var heading: Label = _label(update_page, Vector2(560, 235), Vector2(800, 110), 60, INK, true)
+	heading.add_theme_font_override("font", FONT_DISPLAY)
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	heading.text = "AN UPDATE IS READY"
+	var body: Label = _label(update_page, Vector2(600, 350), Vector2(720, 110), 32, INK)
+	body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	body.text = "Restart Stitchfall to finish updating. Your rooms and stars stay as they are."
+	var restart: StitchedButton = _tag(update_page, Rect2(680, 500, 270, 290), "RESTART", "restart", Color("e0a278"))
+	restart.pause_action = true
+	restart.pressed.connect(func() -> void:
+		StitchfallPlayCore.restart_into_update()
+		leave_update())
+	var later: StitchedButton = _tag(update_page, Rect2(990, 520, 230, 255), "LATER", "back", Color("e8d8bd"))
+	later.pause_action = true
+	later.pressed.connect(leave_update)
+
+
+func show_update() -> void:
+	update_return = screen
+	_show_screen("update")
+	StitchfallAnalytics.event(&"update_offer")
+
+
+func leave_update() -> void:
+	if update_return == "levels":
+		show_levels()
+	else:
+		show_home()
 
 
 func show_wardrobe() -> void:
@@ -870,9 +1077,8 @@ func _show_kind(kind: String) -> void:
 			tile.show_item(item, StitchfallShop.is_open(item, progress), progress.wear[kind] == item["id"])
 	var on_play: bool = StitchfallShop.on_play
 	wardrobe_buy.visible = on_play and not StitchfallShop.has_pack(progress)
-	wardrobe_restore.visible = on_play
-	wardrobe_tip.visible = on_play
-	var price: String = StitchfallShop.price(StitchfallShop.WARDROBE_ID)
+	wardrobe_shop.visible = on_play
+	var price: String = StitchfallShop.price(StitchfallMonetize.WARDROBE_ID)
 	wardrobe_buy.caption = "WARDROBE PACK" if price.is_empty() else "WARDROBE  %s" % price
 	wardrobe_buy.queue_redraw()
 	_say("You have %d stars. Every piece is free here in the browser." % progress.total_stars() if not on_play else "You have %d stars. Stars open trails, unravels and buttons." % progress.total_stars())
@@ -903,18 +1109,29 @@ func _choose_piece(slot: int) -> void:
 		_say("Wearing %s." % item["name"])
 
 
+# A line from the page or from Google Play, on the page it belongs to.
 func _say(text: String) -> void:
-	if not text.is_empty():
+	if text.is_empty():
+		return
+	if screen == "shop":
+		shop_note.text = text
+	elif screen == "pause":
+		pause_body.text = text
+	else:
 		wardrobe_note.text = text
 
 
-# Google Play's answers (prices, a purchase, a refund) redraw the wardrobe if it is open, keeping its note.
-func refresh_wardrobe() -> void:
-	if screen != "wardrobe":
-		return
-	var note: String = wardrobe_note.text
-	_show_kind(wardrobe_kind)
-	wardrobe_note.text = note
+# Google Play's answers (prices, a purchase, a refund) redraw the page that shows them, keeping its note.
+func refresh_store() -> void:
+	match screen:
+		"wardrobe":
+			var note: String = wardrobe_note.text
+			_show_kind(wardrobe_kind)
+			wardrobe_note.text = note
+		"shop":
+			_fill_shop()
+		"levels":
+			_set_level_page(level_page_index)
 
 
 # The version is the newest section of CHANGELOG.md, the file that also names every Android release.
@@ -967,11 +1184,16 @@ func _toggle_sound() -> void:
 func _show_screen(name: String) -> void:
 	screen = name
 	panel.visible = true
-	panel.color = Color("3c342f", 0.52) if name in ["pause", "finish", "clear", "chapter"] else Color("f5ead5", 0.89)
+	panel.color = Color("3c342f", 0.52) if name in ["pause", "finish", "clear", "chapter", "update"] else Color("f5ead5", 0.89)
 	clear_page.visible = name == "clear"
 	if name != "clear":
 		clear_hero.stop()
-	fabric.visible = name in ["levels", "help", "about", "settings", "stats", "credits", "wardrobe"]
+	fabric.visible = name in ["levels", "help", "about", "settings", "stats", "credits", "wardrobe", "shop"]
+	shop_page.visible = name == "shop"
+	update_page.visible = name == "update"
+	StitchfallAds.want_banner(name in StitchfallAds.BANNER_SCREENS)
+	if name in ["home", "levels", "wardrobe", "shop", "help", "settings", "about", "credits", "stats"]:
+		StitchfallAnalytics.screen(name)
 	home_page.visible = name == "home"
 	level_page.visible = name == "levels"
 	help_page.visible = name == "help"
@@ -1031,10 +1253,11 @@ func show_settings() -> void:
 	_show_screen("settings")
 
 
-func show_pause() -> void:
+# `skip_line` offers to skip the room, saying what it costs, or is empty when no skip is offered.
+func show_pause(skip_line: String = "") -> void:
 	pause_heading.text = "PAUSED"
 	pause_heading.add_theme_font_size_override("font_size", 74)
-	pause_body.text = ""
+	_offer_skip(skip_line)
 	resume_button.caption = "RESUME"
 	resume_button.position.x = 850
 	resume_button.queue_redraw()
@@ -1044,9 +1267,23 @@ func show_pause() -> void:
 	resume_button.grab_focus()
 
 
+# With a skip on offer, the three actions rise to make room for it under them.
+func _offer_skip(skip_line: String) -> void:
+	var offered: bool = not skip_line.is_empty()
+	var rise: float = 60.0 if offered else 0.0
+	pause_body.text = skip_line
+	pause_body.position.y = 338.0 if offered else 355.0
+	pause_body.size.y = 70.0 if offered else 95.0
+	restart_button.position.y = 500.0 - rise
+	resume_button.position.y = 472.0 - rise
+	pause_home_button.position.y = 500.0 - rise
+	skip_button.visible = offered
+
+
 func show_finish(time_text: String, shift_count: int, hit_count: int) -> void:
 	pause_heading.text = "THE SEAM HOLDS"
 	pause_heading.add_theme_font_size_override("font_size", 51)
+	_offer_skip("")
 	pause_body.text = "Time %s     Shifts %d     Hits %d" % [time_text, shift_count, hit_count]
 	resume_button.caption = "PLAY AGAIN"
 	resume_button.position.x = 700
@@ -1060,6 +1297,7 @@ func show_finish(time_text: String, shift_count: int, hit_count: int) -> void:
 func hide_panel() -> void:
 	screen = "game"
 	panel.visible = false
+	StitchfallAds.want_banner(false)
 	meter.visible = true
 	pause_button.visible = true
 	room_label.visible = true
