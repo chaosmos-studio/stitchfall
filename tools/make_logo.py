@@ -6,9 +6,8 @@
 The art in assets/branding/source/ was painted for the logo, on transparent backgrounds: a felt label the runner
 leaps from, and a round sew-on patch. The name goes on in Darn Display, the game's title font. It writes:
 
-- .github/logo.png, the label with the name, transparent, for the press kit and the site's share cards (Godot
-  never imports .github/);
-- .github/banner.png, the same logo on the game's linen landscape, the README's top image;
+- .github/logo.png, the label with the name, transparent, for the README, the press kit and the site's share
+  cards (Godot never imports .github/);
 - assets/art/logo_label.png, the label and name without the runner, for Home, the web loader and the store art,
   where the runner already stands beside it;
 - assets/branding/badge.png, the patch with the name on its upper arc, for avatars and the press kit;
@@ -43,10 +42,6 @@ PATCH_NAME_SIZE = 74
 PATCH_TRACKING = 1.04
 README_WIDTH = 1120
 BADGE_WIDTH = 720
-# The banner, 2:1 like GitHub's social preview: the logo's width on it, and the height of its middle as a share.
-BANNER = (1280, 640)
-BANNER_LOGO_WIDTH = 780
-BANNER_LOGO_MIDDLE = 0.40
 
 
 def pressed(glyphs: Image.Image, blur: float = 3, offset: tuple = (3, 6)) -> Image.Image:
@@ -109,20 +104,6 @@ def badge() -> Image.Image:
     return art.crop(art.getbbox())
 
 
-def banner(wordmark: Image.Image) -> Image.Image:
-    land = Image.open(ROOT / "assets/art/linen_landscape.png").convert("RGB")
-    tall = round(land.width * BANNER[1] / BANNER[0])
-    top = (land.height - tall) // 2
-    out = land.crop((0, top, land.width, top + tall)).resize(BANNER, Image.LANCZOS).convert("RGBA")
-    logo = fit(wordmark, BANNER_LOGO_WIDTH)
-    at = ((BANNER[0] - logo.width) // 2, int(BANNER[1] * BANNER_LOGO_MIDDLE - logo.height / 2))
-    shade = Image.new("RGBA", logo.size, EMBOSS + (0,))
-    shade.putalpha(logo.split()[3].filter(ImageFilter.GaussianBlur(10)).point(lambda v: int(v * 0.35)))
-    out.alpha_composite(shade, (at[0] + 8, at[1] + 12))
-    out.alpha_composite(logo, at)
-    return out.convert("RGB")
-
-
 def fit(im: Image.Image, width: int) -> Image.Image:
     return im.resize((width, round(im.height * width / im.width)), Image.LANCZOS)
 
@@ -144,15 +125,13 @@ def sheet(images: list) -> Image.Image:
 def main() -> None:
     wordmark = label()
     fit(wordmark, README_WIDTH).save(ROOT / ".github/logo.png", optimize=True)
-    banner(wordmark).save(ROOT / ".github/banner.png", optimize=True)
     plain = label(runner=False)
     fit(plain, PLAIN_WIDTH).save(ROOT / "assets/art/logo_label.png", optimize=True)
     patch = badge()
     fit(patch, BADGE_WIDTH).save(ROOT / "assets/branding/badge.png", optimize=True)
     (ROOT / "build/logo").mkdir(parents=True, exist_ok=True)
     sheet([wordmark, plain, patch]).save(ROOT / "build/logo/sheet.png")
-    for path in (".github/logo.png", ".github/banner.png", "assets/art/logo_label.png", "assets/branding/badge.png",
-                 "build/logo/sheet.png"):
+    for path in (".github/logo.png", "assets/art/logo_label.png", "assets/branding/badge.png", "build/logo/sheet.png"):
         print(ROOT / path)
 
 

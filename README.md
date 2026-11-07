@@ -1,5 +1,5 @@
 <p align="center">
-  <img src=".github/banner.png" alt="Stitchfall: the name sewn into a felt label, the runner leaping off its end, over stitched linen hills" width="100%">
+  <img src=".github/logo.png" alt="Stitchfall: the name sewn into a felt label, the runner leaping off its end" width="560">
 </p>
 
 <p align="center">
