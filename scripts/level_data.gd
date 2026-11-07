@@ -9,16 +9,16 @@ const FRAME: Array[Rect2] = [
 ]
 
 
-# The chapters that open the campaign, built the way LEVELS.md describes: small rooms, seen whole, one prank
-# each. Each chapter is one room played five times. The older wide rooms follow them, five to a page, until
-# each is rebuilt.
-const CHAPTERS: Array[String] = ["Plain Linen", "Loose Pins", "Unpinned"]
+# The campaign's chapters in order, built the way LEVELS.md describes: small rooms, seen whole, one prank
+# each, five rooms a chapter. Each is a script in scripts/chapters/ with its name, its line, its rooms and the
+# routes that prove them. The older wide rooms follow them, five to a page, until each is rebuilt.
+const CHAPTER_IDS: PackedStringArray = ["linen", "pins", "unpinned"]
 const CHAPTER_ROOMS: int = 5
-const SCREEN_ROOMS: int = 15
 const CLASSIC_ROOMS: int = 50
 const CLASSIC_NAME: String = "Old Seams"
-# Each screen room's par in seconds: the time of its proved route in tests/run_tests.gd times 1.5, rounded up.
-const SCREEN_PARS: Array[float] = [5.0, 7.0, 8.0, 8.0, 10.0, 5.0, 8.0, 8.0, 12.0, 8.0, 5.0, 5.0, 5.0, 13.0, 10.0]
+# The chapters in play. Tools add a chapter still being built, so it can be played and proved before it
+# joins the campaign.
+static var chapter_ids: PackedStringArray = CHAPTER_IDS
 
 # A screen room is seen whole at a fixed zoom, so every trap is on screen from the first frame.
 const SCREEN: Rect2 = Rect2(330, 250, 1260, 640)
@@ -37,45 +37,48 @@ const ZIP_FLOOR: Vector2 = Vector2(1500, 781)
 const ZIP_CEILING: Vector2 = Vector2(1500, 359)
 
 
+static func screen_rooms() -> int:
+	return chapter_ids.size() * CHAPTER_ROOMS
+
+
 static func count() -> int:
-	return SCREEN_ROOMS + CLASSIC_ROOMS
+	return screen_rooms() + CLASSIC_ROOMS
 
 
 static func chapter_count() -> int:
 	return ceili(float(count()) / float(CHAPTER_ROOMS))
 
 
+static func chapter_script(id: String) -> GDScript:
+	return load("res://scripts/chapters/%s.gd" % id) as GDScript
+
+
+# The room a chapter's room number lands on, adding the chapter to play if it is still being built.
+static func room_of(id: String, number: int) -> int:
+	if not chapter_ids.has(id):
+		chapter_ids.append(id)
+	return chapter_ids.find(id) * CHAPTER_ROOMS + number
+
+
 static func chapter_name(chapter: int) -> String:
-	if chapter < CHAPTERS.size():
-		return CHAPTERS[chapter]
-	return "%s %d" % [CLASSIC_NAME, chapter - CHAPTERS.size() + 1]
+	if chapter < chapter_ids.size():
+		return chapter_script(chapter_ids[chapter]).NAME
+	return "%s %d" % [CLASSIC_NAME, chapter - chapter_ids.size() + 1]
 
 
 # The line under a chapter's name on its title card: a mood, never an instruction.
 static func chapter_line(chapter: int) -> String:
-	match chapter:
-		0:
-			return "The same room, never the same twice."
-		1:
-			return "Whatever you turn, falls with you."
-		2:
-			return "Not everything sewn is sewn."
+	if chapter < chapter_ids.size():
+		return chapter_script(chapter_ids[chapter]).LINE
 	return "The first rooms ever stitched."
 
 
 static func get_level(index: int) -> Dictionary:
 	var room: Dictionary
-	match index / CHAPTER_ROOMS if index < SCREEN_ROOMS else -1:
-		0:
-			room = _linen(index)
-		1:
-			room = _pins(index - CHAPTER_ROOMS)
-		2:
-			room = _unpinned(index - CHAPTER_ROOMS * 2)
-		_:
-			room = _classic(index - SCREEN_ROOMS)
-	if index < SCREEN_ROOMS:
-		room["par"] = SCREEN_PARS[index]
+	if index < screen_rooms():
+		room = chapter_script(chapter_ids[index / CHAPTER_ROOMS]).build(index % CHAPTER_ROOMS)
+	else:
+		room = _classic(index - screen_rooms())
 	# The older rooms name one floor checkpoint. Every room now reads a list of flowers.
 	if room["flowers"].is_empty() and room["checkpoint"] != Vector2.ZERO:
 		room["flowers"] = [{"pos": room["checkpoint"], "gravity": Vector2.DOWN}]
@@ -108,7 +111,7 @@ static func ceiling_needles(from_x: float, to_x: float) -> Dictionary:
 	return {"rect": Rect2(from_x, CEILING_Y, to_x - from_x, 28.0), "dir": Vector2.DOWN}
 
 
-static func _screen_base() -> Dictionary:
+static func screen_base() -> Dictionary:
 	var base: Dictionary = _classic(-1)
 	base.merge({
 		"screen": true,
@@ -120,187 +123,6 @@ static func _screen_base() -> Dictionary:
 		"hint": "",
 	}, true)
 	return base
-
-
-# Chapter one, Plain Linen: one room, five pranks. Each room's buttons sit on the route its prank asks for, so
-# where the buttons are is the clue. The jump strip in the middle never changes.
-static func _linen(index: int) -> Dictionary:
-	var room: Dictionary = _screen_base()
-	var strip: Dictionary = floor_needles(900, 1020)
-	match index:
-		0:
-			room.merge({
-				"name": "A Gentle Start",
-				"accent": Color("18c9df"),
-				"spikes": [strip],
-				"shards": [Vector2(680, STAND_FLOOR), Vector2(960, 745)],
-			}, true)
-		1:
-			# The landing pops up its needles as you jump, so the only way over is the ceiling.
-			room.merge({
-				"name": "Same Room",
-				"accent": Color("f46b42"),
-				"spikes": [strip],
-				"popups": [{"rect": Rect2(1020, FLOOR_Y - 28.0, 300, 28.0), "dir": Vector2.UP, "trigger": Rect2(760, 640, 260, 220), "delay": 0.12}],
-				"shards": [Vector2(680, STAND_FLOOR), Vector2(960, STAND_CEILING + 6.0)],
-			}, true)
-		2:
-			# The zipper is sewn on a track up the right wall, and runs up it once it opens.
-			room.merge({
-				"name": "Almost There",
-				"accent": Color("e9ab34"),
-				"spikes": [strip],
-				"exit_flee": [ZIP_CEILING],
-				"flee_radius": 230.0,
-				"shards": [Vector2(680, STAND_FLOOR), Vector2(960, 745)],
-			}, true)
-		3:
-			# Both the floor and the ceiling are needled across the middle. Falling sideways is the way over.
-			room.merge({
-				"name": "Nothing New",
-				"accent": Color("8e7ae8"),
-				"spikes": [strip, floor_needles(1020, 1320), ceiling_needles(700, 1320)],
-				"shards": [Vector2(680, STAND_FLOOR), Vector2(960, 510)],
-			}, true)
-		4:
-			room.merge({
-				"name": "One More Time",
-				"accent": Color("b45d4c"),
-				"spikes": [strip, ceiling_needles(700, 1320)],
-				"popups": [{"rect": Rect2(1020, FLOOR_Y - 28.0, 300, 28.0), "dir": Vector2.UP, "trigger": Rect2(760, 640, 260, 220), "delay": 0.12}],
-				"exit": ZIP_CEILING,
-				"exit_flee": [ZIP_FLOOR],
-				"flee_radius": 200.0,
-				"shards": [Vector2(680, STAND_FLOOR), Vector2(960, 510), Vector2(1521, 640)],
-			}, true)
-	return room
-
-
-# Where a pincushion rests on the floor or the ceiling, its centre one body radius off the surface.
-const PIN_FLOOR: float = FLOOR_Y - 30.0
-const PIN_CEILING: float = CEILING_Y + 30.0
-# Patches and steps over the needle pit sit low enough to jump onto from the floor.
-const PATCH_Y: float = 780.0
-
-
-# Chapter two, Loose Pins: pincushions fall every time you turn, exactly as fast as you do.
-static func _pins(index: int) -> Dictionary:
-	var room: Dictionary = _screen_base()
-	room.merge({"backdrop": 1}, true)
-	match index:
-		0:
-			room.merge({
-				"name": "Mind the Pins",
-				"accent": Color("d0563f"),
-				"pins": [Vector2(1000, PIN_FLOOR)],
-				"shards": [Vector2(680, STAND_FLOOR), Vector2(1000, 690)],
-			}, true)
-		1:
-			room.merge({
-				"name": "Heads Up",
-				"accent": Color("e07a3a"),
-				"pins": [Vector2(1000, PIN_FLOOR)],
-				"shards": [Vector2(680, STAND_FLOOR), Vector2(1250, STAND_CEILING + 6.0)],
-			}, true)
-		2:
-			room.merge({
-				"name": "Clean Sweep",
-				"accent": Color("c9a23a"),
-				"pins": [Vector2(1530, PIN_FLOOR)],
-				"exit": ZIP_CEILING,
-				"shards": [Vector2(400, 560), Vector2(1000, STAND_CEILING + 6.0)],
-			}, true)
-		3:
-			room.merge({
-				"name": "Company",
-				"accent": Color("7a8ee8"),
-				"pins": [Vector2(900, PIN_FLOOR), Vector2(1300, PIN_FLOOR)],
-				"exit": Vector2(960, ZIP_FLOOR.y),
-				"flowers": [{"pos": Vector2(780, STAND_CEILING - 10.0), "gravity": Vector2.UP}],
-				"shards": [Vector2(400, 560), Vector2(1000, STAND_CEILING + 6.0), Vector2(1521, 650)],
-			}, true)
-		4:
-			room.merge({
-				# Two pins wait on shelves over a needled floor, and any turn drops them. The way down ends in a
-				# race: into the zipper before they land on it.
-				"name": "Pin Drop",
-				"accent": Color("b2524a"),
-				"walls": screen_frame() + [Rect2(760, 600, 120, 24), Rect2(1060, 600, 120, 24)],
-				"spikes": [floor_needles(700, 1320)],
-				"exit": Vector2(1390, ZIP_FLOOR.y),
-				"pins": [Vector2(820, 570), Vector2(1120, 570)],
-				"flowers": [{"pos": Vector2(560, STAND_CEILING - 10.0), "gravity": Vector2.UP}],
-				"shards": [Vector2(620, STAND_FLOOR), Vector2(970, STAND_CEILING + 6.0)],
-			}, true)
-	return room
-
-
-# Chapter three, Unpinned: patches that look sewn down are only pinned, and drop a moment after you stand on them.
-static func _unpinned(index: int) -> Dictionary:
-	var room: Dictionary = _screen_base()
-	room.merge({"backdrop": 2}, true)
-	var pit: Dictionary = floor_needles(640, 1260)
-	match index:
-		0:
-			room.merge({
-				"name": "Tacked On",
-				"accent": Color("5f9b74"),
-				"spikes": [pit],
-				"fray_ledges": [{"rect": Rect2(780, PATCH_Y, 320, 28), "delay": 0.9}],
-				"shards": [Vector2(560, STAND_FLOOR), Vector2(940, 700)],
-			}, true)
-		1:
-			# A row of short patches, each holding only a moment: at a run each one lasts until the next takes
-			# your weight, and stopping anywhere drops you in.
-			room.merge({
-				"name": "Keep Moving",
-				"accent": Color("4f8f8a"),
-				"spikes": [pit],
-				"fray_ledges": [
-					{"rect": Rect2(700, PATCH_Y, 140, 28), "delay": 0.45},
-					{"rect": Rect2(840, PATCH_Y, 140, 28), "delay": 0.45},
-					{"rect": Rect2(980, PATCH_Y, 140, 28), "delay": 0.45},
-					{"rect": Rect2(1120, PATCH_Y, 140, 28), "delay": 0.45},
-				],
-				"shards": [Vector2(560, STAND_FLOOR), Vector2(1005, 640)],
-			}, true)
-		2:
-			# Two steps are sewn on. The last only looks it, and goes the moment it is touched.
-			room.merge({
-				"name": "Last Step",
-				"accent": Color("8aa04a"),
-				"spikes": [pit],
-				"walls": screen_frame() + [Rect2(700, PATCH_Y, 140, 28), Rect2(910, PATCH_Y, 140, 28)],
-				"fray_ledges": [{"rect": Rect2(1120, PATCH_Y, 140, 28), "delay": 0.05}],
-				"shards": [Vector2(560, STAND_FLOOR), Vector2(980, 700)],
-			}, true)
-		3:
-			# The only bridge drops once it is crossed, and the zipper is back where you started.
-			room.merge({
-				"name": "No Way Back",
-				"accent": Color("6a7fb0"),
-				"spikes": [pit],
-				"start": Vector2(470, STAND_FLOOR),
-				"exit": Vector2(420, ZIP_FLOOR.y),
-				"fray_ledges": [{"rect": Rect2(780, PATCH_Y, 320, 28), "delay": 0.9}],
-				"shards": [Vector2(1430, STAND_FLOOR)],
-			}, true)
-		4:
-			# A flower on a sewn island in the middle, a button above it between two needle strips, and a far
-			# patch that drops the moment it is touched.
-			room.merge({
-				"name": "Hold On",
-				"accent": Color("a8604a"),
-				"spikes": [pit, ceiling_needles(680, 860), ceiling_needles(1100, 1320)],
-				"walls": screen_frame() + [Rect2(900, 740, 160, 28)],
-				"fray_ledges": [
-					{"rect": Rect2(720, PATCH_Y, 140, 28), "delay": 0.35},
-					{"rect": Rect2(1100, PATCH_Y, 160, 28), "delay": 0.05},
-				],
-				"flowers": [{"pos": Vector2(950, 686), "gravity": Vector2.DOWN}],
-				"shards": [Vector2(560, STAND_FLOOR), Vector2(940, STAND_CEILING + 6.0)],
-			}, true)
-	return room
 
 
 static func wide_frame(width: float) -> Array[Rect2]:

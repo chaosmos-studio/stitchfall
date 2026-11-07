@@ -3,6 +3,7 @@ extends Node
 # Plays a room by a short script and saves one frame, for the website, the blog and the press kit.
 # Run with --fixed-fps 60 so every frame steps the game by the same time:
 #   DISPLAY=:0 godot --path . --fixed-fps 60 res://tools/gallery.tscn -- <name> <room> "<frame>:<step>,..."
+# The room is an index or a chapter room like "seams/2".
 # Steps: a route's steps (shift, +action, -action), levels to open the level select, hud=<method>[/<arg>] to
 # open a page, wear=<kind>/<piece> to dress the runner, and shot to save the frame.
 # The PNG lands in user://gallery/<name>.png.
@@ -11,7 +12,7 @@ func _ready() -> void:
 	StitchfallProgress.path = "user://gallery_progress.cfg"
 	var args: PackedStringArray = OS.get_cmdline_user_args()
 	var out_name: String = args[0]
-	var room: int = int(args[1])
+	var room: int = StitchfallRoute.room_arg(args[1])
 	var steps: Dictionary[int, PackedStringArray] = {}
 	var last: int = 0
 	for entry: String in args[2].split(","):

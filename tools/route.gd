@@ -2,7 +2,8 @@ extends SceneTree
 
 # Replays a route in one room and prints where the runner goes, for designing rooms against the real physics:
 #   godot --headless --path . -s res://tools/route.gd -- <room> "<frame>:<step>,..." [frames]
-# Prints the runner every 15 frames, every button, pop-up, flee and hit, and whether the room was finished.
+# The room is an index or a chapter room like "seams/2". Prints the runner every 15 frames, every button,
+# pop-up, flee and hit, and whether the room was finished.
 
 func _initialize() -> void:
 	_run()
@@ -11,7 +12,7 @@ func _initialize() -> void:
 func _run() -> void:
 	StitchfallProgress.path = "user://route_progress.cfg"
 	var args: PackedStringArray = OS.get_cmdline_user_args()
-	var room: int = int(args[0])
+	var room: int = StitchfallRoute.room_arg(args[0])
 	var steps: Dictionary[int, PackedStringArray] = StitchfallRoute.parse(args[1] if args.size() > 1 else "")
 	var frames: int = int(args[2]) if args.size() > 2 else StitchfallRoute.last_frame(steps) + 240
 	var game: Node2D = load("res://scenes/game/game.tscn").instantiate() as Node2D
