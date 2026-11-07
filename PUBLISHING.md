@@ -28,6 +28,9 @@ runner come apart. The browser build has none of it.
 | Upload key | `studio/release-keys/stitchfall-release.jks`, alias `stitchfall` (password in `stitchfall-key.properties`) |
 | Upload key SHA-1 | `A2:FA:E1:F5:48:EF:20:4C:6B:D2:47:8D:B2:0A:53:7E:99:62:CA:F0` |
 | Upload key SHA-256 | `92:07:54:DE:C6:AF:42:42:95:90:E7:C7:C3:EF:F2:55:04:FF:8B:B8:0A:F7:8A:9D:CD:A3:CF:6B:D0:70:B9:B9` |
+| App signing key SHA-1 | `05:E6:CF:3F:36:C7:FA:01:FC:38:96:30:02:F1:22:FE:EB:1A:01:A1` (Play's key, in use) |
+| App signing key SHA-256 | `99:6C:9E:23:21:FD:C1:51:9F:84:9C:66:98:10:40:17:ED:8D:59:12:20:23:F3:D6:52:94:1D:EE:A4:B3:AA:5D` |
+| Other Play signing SHA-1s | `46:CB:4E:76:A2:B2:57:91:46:54:CE:06:92:F1:91:30:08:9F:B8:D9` and `1E:27:B3:78:C2:68:F8:2C:6E:0B:AF:0F:B2:E5:04:D4:1E:B4:12:5E`, the two more that App signing's Copy all certificate fingerprints lists (one is the "Quantum-ready" previous key) |
 | What makes it unique (2.9) | You turn gravity a quarter turn at a time, and every small cloth room plays a trick that the turn gets you out of. |
 
 ## Builds and releases
@@ -59,25 +62,30 @@ runner come apart. The browser build has none of it.
   trader status ("You're all caught up", 7 November 2026)
 - [x] AdMob app and its three units (above)
 - [x] AdMob, Privacy & messaging: Stitchfall on both consent messages, with its privacy URL (1.3)
-- [ ] Firebase API keys (1.8): Stitchfall's upload SHA-1 is on both Android keys (7 November). Its app signing SHA-1
-  goes on both too, once the first AAB is up. Builds use the Oct 10 key (`0dd826c1`), the first in
-  `google-services.json`, and the Oct 25 key (`1882a81e`) now accepts the same 17 app entries
+- [x] Firebase API keys (1.8): Stitchfall's upload SHA-1 (7 November) and its three Play signing SHA-1s (8 November)
+  are on both Android keys, 20 app entries each. Builds use the Oct 10 key (`0dd826c1`), the first in
+  `google-services.json`
 - [x] The privacy page at chaosmos.studio/stitchfall/privacy/ covers ads, AdMob, consent and Analytics (live 7 November)
 - [x] Closed testing track: Google Group `chaosmos@googlegroups.com`, feedback URL, all countries
 - [x] Store listing words and graphics (2.2), saved. AI asset declaration: "Don't label assets", the owner's choice.
   The painted icon replaced the portrait one in the listing and on Play Games' properties (8 November)
-- [ ] First AAB dragged into Closed testing by hand (2.8), then sent for review
+- [x] First AAB (1.0.0, code 10000, from the v1.0.0 GitHub release) in Closed testing (2.8), and 17 changes sent
+  for review with the listing (8 November). The browser tool cannot send a file over 10 MB, so the release page's
+  `.aab` input was given the file from a server on `127.0.0.1` (play-console-browser's First AAB)
 - [x] `ci-uploader` given this app in Users and permissions (3.4), 7 permissions with "Release apps to testing
-  tracks", so later releases upload from the workflow (7 November). After the first AAB, set the repository variable
-  `AUTO_PLAY_TRACK` to `alpha`
-- [ ] Products (2.6): the ten below. The old single `tip` is gone, so do not create it
+  tracks", so later releases upload from the workflow (7 November). The repository variable `AUTO_PLAY_TRACK` is
+  `alpha` (8 November)
+- [x] Products (2.6): the ten below, active in 174 regions, made with `play_product.py` and the `ci-uploader` key
+  (the `studio-ops` key has no access to this app), each copying Pyxis's prices for the same product (8 November)
 - [ ] AdMob linked to the listing once it is public (3.1)
 - [ ] Test purchase (2.7)
 - [ ] Play Games: Cloud project `chaosmos-stitchfall` and Play Games project `1647106634` made, properties saved,
-  achievements, events, stats and the three leaderboards in as drafts, `build/play_games/play_games.json` written
-  (not committed). The OAuth consent screen is made (External, the game page, privacy and terms, the authorized
-  domain `chaosmos.studio`), published by the owner on 8 November. Left: the credentials once the app signing key
-  exists, then committing `play_games.json` and publishing with that release
+  achievements, events, stats and the three leaderboards in as drafts. The OAuth consent screen is made (External,
+  the game page, privacy and terms, the authorized domain `chaosmos.studio`), published by the owner on 8 November.
+  Four Android OAuth clients and Play Games credentials, one per signing certificate above (the app signing key's
+  is the one for new installs), and `play_games.json` committed (8 November). Left: the release that carries it
+  (1.0.1, once Play has approved 1.0.0, so its review does not restart), then Review and publish the Play Games
+  project and change the listing's last bullet as the release goes out
 - [ ] 12 testers opted in for 14 days (write the date): ____
 - [ ] Applied for production (2.9)
 - [ ] Live on Play (2.10)
@@ -169,7 +177,7 @@ lists them (Home and the Wardrobe lead to it), and the browser build sells nothi
 | `supporter` | `Supporter pack` | US$2.99 | Turns off the banner and the ads between rooms in Stitchfall for good, and makes skipping a room free. One purchase, yours to keep, and it helps me make the next game. |
 | `all_levels` | `Every room` | US$1.99 | Opens every room at once, so you can play them in any order. Stars are still earned by sewing each room. One purchase, yours to keep. |
 | `wardrobe` | `Wardrobe pack` | US$2.99 | Every runner and fabric in the Wardrobe: Patch, Bobbin, Tam, Moth, Fennel and Indigo, and six room fabrics. One purchase, yours to keep. |
-| `complete` | `Complete pack` | US$5.99 | The Supporter pack, Every room and the Wardrobe pack in one, for less than buying them apart: no banner or ads between rooms, free skips, every room open, every runner and fabric. |
+| `complete` | `Complete pack` | US$6.99 | The Supporter pack, Every room and the Wardrobe pack in one, for less than buying them apart: no banner or ads between rooms, free skips, every room open, every runner and fabric. |
 | `tip_1` | `Small tip` | US$0.99 | A thank-you to the maker of this game. It opens nothing, but it helps make the next game and more rooms. Tip as often as you like. |
 | `tip_2` | `Tip` | US$1.99 | A thank-you to the maker of this game. It opens nothing, but it helps make the next game and more rooms. Tip as often as you like. |
 | `tip_5` | `Big tip` | US$4.99 | A thank-you to the maker of this game. It opens nothing, but it helps make the next game and more rooms. Tip as often as you like. |
@@ -178,8 +186,8 @@ lists them (Home and the Wardrobe lead to it), and the browser build sells nothi
 | `tip_50` | `Huge thank you` | US$49.99 | A thank-you to the maker of this game. It opens nothing, but it helps make the next game and more rooms. Tip as often as you like. |
 
 The Complete pack is less than its parts bought apart (US$7.97). Every description fits Play's 200 characters.
-Until a product is active its card in the Shop shows no price. For the Supporter pack, check the India price Play
-suggests: around INR 199 is your call.
+Every price is Pyxis's for the same product in each region (the Wardrobe pack takes the Supporter pack's), so the
+studio's games cost the same: INR 280 for the Supporter and Wardrobe packs, 190 for Every room, 650 for Complete.
 
 To test, after 2.7, in the game installed from Play:
 

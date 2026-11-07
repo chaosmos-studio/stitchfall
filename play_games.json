@@ -1,0 +1,22 @@
+{
+	"app": "1647106634",
+	"leaderboards": {
+		"stars": "CggIyrSzkQYQAhAU",
+		"rooms": "CggIyrSzkQYQAhAV",
+		"linen": "CggIyrSzkQYQAhAW"
+	},
+	"achievements": {
+		"first_room": "CggIyrSzkQYQAhAC",
+		"rooms_10": "CggIyrSzkQYQAhAF",
+		"rooms_25": "CggIyrSzkQYQAhAE",
+		"rooms_50": "CggIyrSzkQYQAhAD",
+		"chapter_1": "CggIyrSzkQYQAhAB",
+		"chapters_5": "CggIyrSzkQYQAhAJ",
+		"three_10": "CggIyrSzkQYQAhAL",
+		"seamless": "CggIyrSzkQYQAhAH",
+		"quick_1": "CggIyrSzkQYQAhAG",
+		"banked_15": "CggIyrSzkQYQAhAK",
+		"turns_500": "CggIyrSzkQYQAhAI",
+		"unravels_100": "CggIyrSzkQYQAhAA"
+	}
+}
