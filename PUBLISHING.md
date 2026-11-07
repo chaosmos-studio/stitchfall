@@ -30,6 +30,23 @@ runner come apart. The browser build has none of it.
 | Upload key SHA-256 | `92:07:54:DE:C6:AF:42:42:95:90:E7:C7:C3:EF:F2:55:04:FF:8B:B8:0A:F7:8A:9D:CD:A3:CF:6B:D0:70:B9:B9` |
 | What makes it unique (2.9) | You turn gravity a quarter turn at a time, and every small cloth room plays a trick that the turn gets you out of. |
 
+## Builds and releases
+
+- **CI** (`.github/workflows/ci.yml`), on every push and pull request: the tests (run with `--fixed-fps 60`, about
+  a minute) and the browser build with its phone check (`tools/check_web.cjs`) side by side. A push to `main` that
+  passes both publishes the browser build to this repository's `gh-pages`, which the studio site copies into
+  `chaosmos.studio/stitchfall/play/` on its deploys. With the `SITE_DEPLOY_KEY` secret it also goes straight
+  there.
+- **Android** (`.github/workflows/release-android.yml`): a new version at the top of `CHANGELOG.md` pushed to
+  `main` releases by itself. The run tests, builds and signs the AAB and APK, makes the `v<version>` tag and the
+  GitHub release, and uploads to the Play track named by the repository variable `AUTO_PLAY_TRACK`. That variable
+  stays `none` until the first AAB is in Play Console and `ci-uploader` has the app, then becomes `alpha` (closed
+  testing). Actions > Release Android > Run does the same by hand, with a dry run and a track to choose.
+- The repository is public. Every action is pinned to a commit and Dependabot proposes updates monthly.
+  `google-services.json` holds only Stitchfall's app and the Firebase key the build uses, which only works from
+  the studio's signed apps. The web pack is checked to carry none of it. `SECURITY.md` says how to report a
+  problem.
+
 ## Progress
 
 - [x] Create the app (2.1)
