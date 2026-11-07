@@ -14,7 +14,7 @@ runner come apart. The browser build has none of it.
 | | |
 | --- | --- |
 | Package | `com.shravangoswami.stitchfall` |
-| App name | Stitchfall: Gravity Platformer |
+| App name | Stitchfall: Turn Gravity (until 8 November 2026 "Stitchfall: Gravity Platformer", still the AdMob app's name until AdMob is linked to the listing) |
 | Play Console | https://play.google.com/console/u/0/developers/7125427200489329211/app/4976430851362506674/app-dashboard |
 | Privacy policy | https://chaosmos.studio/stitchfall/privacy/ |
 | Terms | https://chaosmos.studio/stitchfall/terms/ |
@@ -64,7 +64,8 @@ runner come apart. The browser build has none of it.
   `google-services.json`, and the Oct 25 key (`1882a81e`) now accepts the same 17 app entries
 - [x] The privacy page at chaosmos.studio/stitchfall/privacy/ covers ads, AdMob, consent and Analytics (live 7 November)
 - [x] Closed testing track: Google Group `chaosmos@googlegroups.com`, feedback URL, all countries
-- [x] Store listing words and graphics (2.2), saved. AI asset declaration: "Don't label assets", the owner's choice
+- [x] Store listing words and graphics (2.2), saved. AI asset declaration: "Don't label assets", the owner's choice.
+  The painted icon replaced the portrait one in the listing and on Play Games' properties (8 November)
 - [ ] First AAB dragged into Closed testing by hand (2.8), then sent for review
 - [x] `ci-uploader` given this app in Users and permissions (3.4), 7 permissions with "Release apps to testing
   tracks", so later releases upload from the workflow (7 November). After the first AAB, set the repository variable
@@ -75,8 +76,8 @@ runner come apart. The browser build has none of it.
 - [ ] Play Games: Cloud project `chaosmos-stitchfall` and Play Games project `1647106634` made, properties saved,
   achievements, events, stats and the three leaderboards in as drafts, `build/play_games/play_games.json` written
   (not committed). The OAuth consent screen is made (External, the game page, privacy and terms, the authorized
-  domain `chaosmos.studio`), still in Testing: Audience > Publish app is the owner's click. Left after that: the
-  credentials once the app signing key exists, then committing `play_games.json` and publishing with that release
+  domain `chaosmos.studio`), published by the owner on 8 November. Left: the credentials once the app signing key
+  exists, then committing `play_games.json` and publishing with that release
 - [ ] 12 testers opted in for 14 days (write the date): ____
 - [ ] Applied for production (2.9)
 - [ ] Live on Play (2.10)
@@ -122,7 +123,7 @@ Expected result: ESRB Everyone, PEGI 3 or 7, with an "In-app purchases" notice.
 
 | Field | Text |
 | --- | --- |
-| App name (30) | Stitchfall: Gravity Platformer |
+| App name (30) | Stitchfall: Turn Gravity |
 | Short description (80) | Turn the whole room over and sew your way past every trick. |
 
 Full description:
