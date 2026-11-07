@@ -172,4 +172,4 @@ A runner appears once its art is in `assets/art/runners/<id>/` (`run.png`, `acti
 ## Art
 
 The needle strips (`needle_strip_raised.png`, `needle_strip_flat.png`) and the zipper track (`zipper_track.png`) are drawn by `scripts/world_view.gd`, tiled along any surface and turned to face it.
-The pincushion (`scripts/pincushion.gd`) and the unpinned patch (`scripts/fray_ledge.gd`) draw their art. The turning seam waits for chapter 4.
+The pincushion (`scripts/pincushion.gd`) and the unpinned patch (`scripts/fray_ledge.gd`) draw their art.
