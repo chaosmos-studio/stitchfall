@@ -54,7 +54,10 @@ func _on_details(response: Dictionary) -> void:
 		var id: String = String(details.get("product_id", ""))
 		var offer: Variant = details.get("one_time_purchase_offer_details")
 		if StitchfallShop.all_ids().has(id) and offer is Dictionary:
-			StitchfallShop.prices[id] = String((offer as Dictionary).get("formatted_price", ""))
+			var terms: Dictionary = offer
+			StitchfallShop.prices[id] = String(terms.get("formatted_price", ""))
+			StitchfallShop.micros[id] = int(terms.get("price_amount_micros", 0))
+			StitchfallShop.currencies[id] = String(terms.get("price_currency_code", ""))
 			_listed[id] = true
 	changed.emit()
 

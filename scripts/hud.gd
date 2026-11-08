@@ -117,6 +117,20 @@ var shop_tips: Array[StitchedButton] = []
 var shop_note: Label
 # The page Back leads to from the Shop and from the update offer.
 var shop_return: String = "home"
+# The page before a purchase: which product, and the page it was opened from.
+var offer_page: Control
+var offer_id: String = ""
+var offer_return: String = "shop"
+var offer_patch: StitchedButton
+var offer_badge: Panel
+var offer_badge_label: Label
+var offer_heading: Label
+var offer_pitch: Label
+var offer_rows: Array[Label] = []
+var offer_dots: Array[ColorRect] = []
+var offer_buy: StitchedButton
+var offer_shop: StitchedButton
+var offer_note: Label
 var update_page: Control
 var update_return: String = "home"
 var skip_button: StitchedButton
@@ -221,7 +235,7 @@ func _layout() -> void:
 	unravel_tag.scale = Vector2.ONE * mobile_scale
 	unravel_tag.position.x = meter.position.x + meter.size.x * mobile_scale + 14.0
 	hero.position.x = root.size.x * 0.735
-	for page: Control in [level_page, help_page, about_page, settings_page, pause_page, clear_page, chapter_page, stats_page, credits_page, wardrobe_page, shop_page, update_page]:
+	for page: Control in [level_page, help_page, about_page, settings_page, pause_page, clear_page, chapter_page, stats_page, credits_page, wardrobe_page, shop_page, offer_page, update_page]:
 		var fit: float = page_fit(page)
 		page.scale = Vector2.ONE * fit
 		page.position.x = (root.size.x - 1920.0 * fit) * 0.5
@@ -367,6 +381,7 @@ func _build_pages() -> void:
 	_build_credits()
 	_build_wardrobe()
 	_build_shop()
+	_build_offer()
 	_build_update()
 	show_home()
 
@@ -474,7 +489,7 @@ func _build_levels() -> void:
 	level_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	level_unlock = _tag(level_page, Rect2(1250, 704, 520, 86), "EVERY ROOM", "levels", Color("dbe5d1"))
 	level_unlock.caption_size = 30
-	level_unlock.pressed.connect(func() -> void: _say(StitchfallShop.buy(StitchfallMonetize.LEVELS_ID)))
+	level_unlock.pressed.connect(func() -> void: show_offer(StitchfallMonetize.LEVELS_ID, "levels"))
 	level_note.visible = false
 	level_unlock.visible = false
 	_set_level_page(0)
@@ -996,7 +1011,7 @@ func _build_wardrobe() -> void:
 	wardrobe_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	wardrobe_buy = _tag(wardrobe_page, Rect2(1300, 836, 270, 78), "WARDROBE PACK", "", Color("e0a278"))
 	wardrobe_buy.caption_size = 28
-	wardrobe_buy.pressed.connect(func() -> void: _say(StitchfallShop.buy(StitchfallMonetize.WARDROBE_ID)))
+	wardrobe_buy.pressed.connect(func() -> void: show_offer(StitchfallMonetize.WARDROBE_ID, "wardrobe"))
 	wardrobe_shop = _tag(wardrobe_page, Rect2(1600, 832, 90, 86), "", "bag", Color("efd3b8"))
 	wardrobe_shop.tooltip_text = "Shop"
 	wardrobe_shop.pressed.connect(func() -> void: show_shop("wardrobe"))
@@ -1019,14 +1034,14 @@ func _build_shop() -> void:
 		card.shop_card = true
 		card.lines = StitchfallShop.rows(id)
 		card.tooltip_text = ""
-		card.pressed.connect(_buy_pack.bind(id))
+		card.pressed.connect(show_offer.bind(id, "shop"))
 		shop_cards[id] = card
 	var jar: Label = _label(shop_page, Vector2(176, 742), Vector2(1250, 50), 30, INK, true)
 	jar.text = "Tip jar. Say thanks as often as you like. A tip opens nothing new."
 	for index: int in range(StitchfallMonetize.TIP_IDS.size()):
 		var tip_id: String = StitchfallMonetize.TIP_IDS[index]
 		var tip: StitchedButton = _tag(shop_page, Rect2(170 + index * 212, 800, 200, 82), "TIP", "", Color("e8d8bd"))
-		tip.pressed.connect(func() -> void: _say(StitchfallShop.buy(tip_id)))
+		tip.pressed.connect(func() -> void: show_offer(tip_id, "shop"))
 		shop_tips.append(tip)
 	var again: StitchedButton = _tag(shop_page, Rect2(1460, 800, 290, 82), "RESTORE", "restart", Color("dbe5d1"))
 	again.caption_size = 30
@@ -1076,11 +1091,87 @@ func _fill_shop() -> void:
 		shop_tips[index].queue_redraw()
 
 
-func _buy_pack(id: String) -> void:
-	if StitchfallShop.has(progress, id):
-		_say("%s is yours. Thank you!" % StitchfallShop.title(id))
-		return
-	_say(StitchfallShop.buy(id))
+# The page before every purchase, as the kit games have it: what the product is for and holds, its price, the
+# Complete pack's saving, and a note that Google Play's own sheet comes next. Nothing reaches Google Play without it.
+func _build_offer() -> void:
+	offer_page = _page()
+	_cloth_page(offer_page, Rect2(65, 50, 1790, 970))
+	_tag(offer_page, Rect2(1700, 100, 100, 101), "", "back", Color("e5d5bc")).pressed.connect(leave_offer)
+	offer_patch = _tag(offer_page, Rect2(220, 270, 400, 400), "", "", Color("efd3b8"))
+	offer_patch.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	offer_patch.focus_mode = Control.FOCUS_NONE
+	offer_badge = _panel(offer_page, Rect2(420, 236, 240, 84), ACCENT)
+	offer_badge.pivot_offset = offer_badge.size * 0.5
+	offer_badge.rotation = -0.12
+	offer_badge_label = _label(offer_badge, Vector2.ZERO, offer_badge.size, 36, PAPER, true)
+	offer_badge_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	offer_heading = _label(offer_page, Vector2(720, 130), Vector2(960, 110), 77, INK, true)
+	offer_heading.add_theme_font_override("font", FONT_DISPLAY)
+	offer_pitch = _label(offer_page, Vector2(726, 240), Vector2(960, 96), 31, ACCENT)
+	offer_pitch.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	for index: int in range(4):
+		var dot: ColorRect = ColorRect.new()
+		dot.color = ACCENT
+		dot.size = Vector2(16, 16)
+		dot.pivot_offset = dot.size * 0.5
+		dot.rotation = PI * 0.25
+		dot.position = Vector2(740, 382 + index * 70)
+		dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		offer_page.add_child(dot)
+		offer_dots.append(dot)
+		offer_rows.append(_label(offer_page, Vector2(778, 362 + index * 70), Vector2(920, 56), 34, INK))
+	offer_buy = _tag(offer_page, Rect2(720, 690, 600, 112), "BUY", "", Color("e0a278"))
+	offer_buy.caption_size = 44
+	offer_buy.pressed.connect(func() -> void: _say(StitchfallShop.buy(offer_id)))
+	offer_shop = _tag(offer_page, Rect2(1350, 690, 330, 112), "THE SHOP", "bag", Color("efd3b8"))
+	offer_shop.caption_size = 34
+	offer_shop.pressed.connect(func() -> void: show_shop(offer_return))
+	offer_note = _label(offer_page, Vector2(726, 836), Vector2(960, 96), 28, ACCENT)
+	offer_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+
+
+func show_offer(id: String, from: String) -> void:
+	offer_id = id
+	offer_return = from
+	_fill_offer()
+	offer_note.text = "%s is yours. Thank you!" % StitchfallShop.title(id) if StitchfallShop.has(progress, id) else StitchfallShop.PAYMENT_NOTE
+	_show_screen("offer")
+	StitchfallAnalytics.event(&"shop_offer", {"item": id, "from": from})
+
+
+func _fill_offer() -> void:
+	var owned: bool = StitchfallShop.has(progress, offer_id)
+	offer_heading.text = StitchfallShop.title(offer_id).to_upper()
+	offer_pitch.text = StitchfallShop.pitch(offer_id)
+	offer_patch.glyph = StitchfallShop.glyph(offer_id)
+	offer_patch.cloth = shop_cards[offer_id].cloth if shop_cards.has(offer_id) else Color("e8d8bd")
+	offer_patch.queue_redraw()
+	var rows: PackedStringArray = StitchfallShop.details(offer_id)
+	for index: int in range(offer_rows.size()):
+		offer_rows[index].text = rows[index] if index < rows.size() else ""
+		offer_dots[index].visible = index < rows.size()
+	var saving: int = StitchfallShop.saving() if offer_id == StitchfallMonetize.COMPLETE_ID else 0
+	offer_badge.visible = saving > 0 and not owned
+	offer_badge_label.text = "SAVE %d%%" % saving
+	offer_buy.visible = not owned
+	offer_buy.caption = StitchfallShop.buy_caption(offer_id)
+	offer_buy.queue_redraw()
+	offer_shop.visible = offer_return != "shop"
+
+
+func leave_offer() -> void:
+	match offer_return:
+		"shop":
+			_fill_shop()
+			_show_screen("shop")
+		"wardrobe":
+			show_wardrobe()
+		"levels":
+			_hide_shut_room()
+			_set_level_page(level_page_index)
+			_show_screen("levels")
+		_:
+			show_home()
 
 
 # Offered once a session when Google Play has downloaded an update, on Home or the Levels page.
@@ -1176,6 +1267,8 @@ func _say(text: String) -> void:
 	match screen:
 		"shop":
 			shop_note.text = text
+		"offer":
+			offer_note.text = text
 		"pause":
 			pause_body.text = text
 		"wardrobe":
@@ -1209,6 +1302,10 @@ func refresh_store() -> void:
 			wardrobe_note.text = note
 		"shop":
 			_fill_shop()
+		"offer":
+			var said: String = offer_note.text
+			_fill_offer()
+			offer_note.text = said
 		"levels":
 			_set_level_page(level_page_index)
 			level_unlock.visible = level_unlock.visible and not StitchfallShop.has(progress, StitchfallMonetize.LEVELS_ID)
@@ -1296,8 +1393,9 @@ func _show_screen(name: String) -> void:
 	clear_page.visible = name == "clear"
 	if name != "clear":
 		clear_hero.stop()
-	fabric.visible = name in ["levels", "help", "about", "settings", "stats", "credits", "wardrobe", "shop"]
+	fabric.visible = name in ["levels", "help", "about", "settings", "stats", "credits", "wardrobe", "shop", "offer"]
 	shop_page.visible = name == "shop"
+	offer_page.visible = name == "offer"
 	update_page.visible = name == "update"
 	StitchfallAds.want_banner(name in StitchfallAds.BANNER_SCREENS)
 	if name in ["home", "levels", "wardrobe", "shop", "help", "settings", "about", "credits", "stats"]:

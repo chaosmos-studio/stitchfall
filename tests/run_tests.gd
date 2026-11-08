@@ -220,6 +220,23 @@ func _test_products() -> void:
 		if StitchfallShop.title(id) == "Tip" or StitchfallShop.thanks(id).contains(";"):
 			wordy.append(id)
 	_check("every pack has a title, and its card's lines fit (%s)" % ", ".join(wordy), wordy.is_empty())
+	StitchfallShop.micros = {"complete": 6990000, "supporter": 2990000, "all_levels": 1990000, "wardrobe": 2990000}
+	StitchfallShop.currencies = {"complete": "USD", "supporter": "USD", "all_levels": "USD", "wardrobe": "USD"}
+	_check("the Complete pack's saving comes from Play's own prices, rounded down", StitchfallShop.saving() == 12)
+	StitchfallShop.micros = {"complete": 650000000, "supporter": 280000000, "all_levels": 190000000, "wardrobe": 280000000}
+	StitchfallShop.currencies = {"complete": "INR", "supporter": "INR", "all_levels": "INR", "wardrobe": "INR"}
+	_check("in any currency Play prices it in", StitchfallShop.saving() == 13)
+	StitchfallShop.currencies["wardrobe"] = "USD"
+	_check("and none is claimed across two currencies", StitchfallShop.saving() == 0)
+	StitchfallShop.currencies["wardrobe"] = "INR"
+	StitchfallShop.micros.erase("all_levels")
+	_check("or before Play has priced every part", StitchfallShop.saving() == 0)
+	StitchfallShop.micros = {"complete": 8000000, "supporter": 2000000, "all_levels": 2000000, "wardrobe": 2000000}
+	_check("or when the pack would not cost less", StitchfallShop.saving() == 0)
+	StitchfallShop.micros = {}
+	StitchfallShop.currencies = {}
+	_check("every product's page has a line and rows, and a tip's has its Play name", StitchfallShop.all_ids().size() == 10 and StitchfallShop.title("tip_50") == "Huge thank you" and StitchfallShop.details("tip_1").size() == 3 and not StitchfallShop.pitch("wardrobe").contains(";"))
+	_check("the button says what it does, with Play's price once there is one", StitchfallShop.buy_caption("supporter") == "SUPPORT" and StitchfallShop.buy_caption("tip_2") == "TIP" and StitchfallShop.buy_caption("all_levels") == "BUY")
 	StitchfallShop.on_play = false
 	_check("the browser opens no room early, since Every room is sold only on Google Play", not StitchfallShop.room_open(progress, 3))
 	StitchfallShop.on_play = was_on_play
@@ -1083,6 +1100,8 @@ func _test_banner_keeps_clear() -> void:
 	StitchfallShop.on_play = was_on_play
 	hud.show_shop()
 	_check("the Shop never carries the banner", not StitchfallAds.banner_wanted())
+	hud.show_offer(StitchfallMonetize.SUPPORTER_ID, "levels")
+	_check("nor does the page before a purchase", not StitchfallAds.banner_wanted())
 	game._load_level(0)
 	game._on_begin()
 	_check("play never carries the banner", not StitchfallAds.banner_wanted())
@@ -1117,7 +1136,41 @@ func _test_shop_page() -> void:
 	StitchfallShop.prices = {"supporter": "$2.99", "tip_50": "Rp 799.000,00"}
 	hud.show_wardrobe()
 	_check("Google Play's Wardrobe leads to the Shop", hud.wardrobe_shop.visible and hud.wardrobe_buy.visible)
+	hud.wardrobe_buy.pressed.emit()
+	_check("its Wardrobe pack tag opens the pack's page, with a way to the Shop", hud.screen == "offer" and hud.offer_id == "wardrobe" and hud.offer_buy.caption == "BUY" and hud.offer_shop.visible)
+	game.last_back_msec = -1000
+	game._notification(Node.NOTIFICATION_WM_GO_BACK_REQUEST)
+	_check("and back from it returns to the Wardrobe", hud.screen == "wardrobe")
+	# Every product's page fits its text on one line each: the name, the line under it, each row and the button.
+	var regular: Font = hud.offer_rows[0].get_theme_font("font")
+	var crowded: Array[String] = []
+	for id: String in StitchfallShop.all_ids():
+		StitchfallShop.prices[id] = "Rp 799.000,00"
+		hud.show_offer(id, "shop")
+		await process_frame
+		if StitchfallHud.FONT_DISPLAY.get_string_size(hud.offer_heading.text, HORIZONTAL_ALIGNMENT_LEFT, -1, 77).x > hud.offer_heading.size.x or hud.offer_pitch.get_line_count() > 1:
+			crowded.append(id)
+		for row: Label in hud.offer_rows:
+			if regular.get_string_size(row.text, HORIZONTAL_ALIGNMENT_LEFT, -1, 34).x > row.size.x:
+				crowded.append("%s: %s" % [id, row.text])
+		if StitchedButton.FONT.get_string_size(hud.offer_buy.caption, HORIZONTAL_ALIGNMENT_LEFT, -1, hud.offer_buy.caption_size).x > hud.offer_buy.size.x - 36.0:
+			crowded.append("%s's button" % id)
+	_check("every product's page fits its words, at the longest price Play gives (%s)" % ", ".join(crowded), crowded.is_empty())
+	StitchfallShop.prices = {"supporter": "$2.99", "tip_50": "Rp 799.000,00"}
+	StitchfallShop.micros = {"complete": 6990000, "supporter": 2990000, "all_levels": 1990000, "wardrobe": 2990000}
+	StitchfallShop.currencies = {"complete": "USD", "supporter": "USD", "all_levels": "USD", "wardrobe": "USD"}
 	hud.show_shop("wardrobe")
+	hud.shop_cards["complete"].pressed.emit()
+	_check("the Complete pack's page wears its saving", hud.screen == "offer" and hud.offer_badge.visible and hud.offer_badge_label.text == "SAVE 12%")
+	hud.show_offer(StitchfallMonetize.SUPPORTER_ID, "shop")
+	_check("and no other pack's does", not hud.offer_badge.visible)
+	StitchfallShop.micros = {}
+	StitchfallShop.currencies = {}
+	hud.leave_offer()
+	hud.shop_tips[5].pressed.emit()
+	_check("a tip has its page too, named as in Play", hud.screen == "offer" and hud.offer_heading.text == "HUGE THANK YOU" and hud.offer_buy.caption == "TIP  Rp 799.000,00")
+	hud.leave_offer()
+	_check("back from a page opened in the Shop is the Shop, still leading back where it came from", hud.screen == "shop" and hud.shop_return == "wardrobe")
 	var shown: Array[String] = []
 	for id: String in hud.shop_cards:
 		if hud.shop_cards[id].visible:
@@ -1130,10 +1183,21 @@ func _test_shop_page() -> void:
 		cards_end = maxf(cards_end, hud.shop_cards[id].position.x + hud.shop_cards[id].size.x)
 	_check("the cards fit on the cloth", hud.shop_cards["complete"].position.x >= 65.0 and cards_end <= 1855.0)
 	hud.shop_cards["supporter"].pressed.emit()
-	_check("buying without Google Play says so", hud.shop_note.text == StitchfallShop.UNREACHABLE)
+	_check("a pack's card opens its page, with Play's price on the button", hud.screen == "offer" and hud.offer_heading.text == "SUPPORTER PACK" and hud.offer_buy.visible and hud.offer_buy.caption == "SUPPORT  $2.99" and not hud.offer_shop.visible)
+	_check("and the page says Google Play's sheet comes next", hud.offer_note.text == StitchfallShop.PAYMENT_NOTE)
+	hud.offer_buy.pressed.emit()
+	_check("buying without Google Play says so on the page", hud.offer_note.text == StitchfallShop.UNREACHABLE)
+	hud._say(StitchfallShop.thanks(StitchfallMonetize.SUPPORTER_ID))
 	StitchfallShop.grant(game.progress, StitchfallMonetize.SUPPORTER_ID, true)
 	hud.refresh_store()
-	_check("once the Supporter pack is owned the Complete pack goes, and the pack says so", not hud.shop_cards["complete"].visible and hud.shop_cards["supporter"].owned and hud.shop_line.text.begins_with("You are a Supporter"))
+	_check("once Play grants it, the page keeps Play's thanks and drops the button", not hud.offer_buy.visible and hud.offer_note.text == StitchfallShop.thanks(StitchfallMonetize.SUPPORTER_ID))
+	game.last_back_msec = -1000
+	game._notification(Node.NOTIFICATION_WM_GO_BACK_REQUEST)
+	_check("once the Supporter pack is owned the Complete pack goes, and the pack says so", hud.screen == "shop" and not hud.shop_cards["complete"].visible and hud.shop_cards["supporter"].owned and hud.shop_line.text.begins_with("You are a Supporter"))
+	hud.shop_cards["supporter"].pressed.emit()
+	_check("an owned pack's page says it is yours", not hud.offer_buy.visible and hud.offer_note.text == "Supporter pack is yours. Thank you!")
+	hud.leave_offer()
+	game.last_back_msec = -1000
 	game._notification(Node.NOTIFICATION_WM_GO_BACK_REQUEST)
 	_check("back from the Shop goes where it came from", hud.screen == "wardrobe")
 	hud.show_shop()
@@ -1171,7 +1235,11 @@ func _test_shop_and_skip_entry_points() -> void:
 	hud._select_visible_level(2)
 	_check("Google Play's build offers Every room with its price", hud.level_unlock.visible and hud.level_unlock.caption == "EVERY ROOM  $1.99")
 	hud.level_unlock.pressed.emit()
-	_check("and asks Google Play, saying so on the page when it cannot", hud.level_note.text == StitchfallShop.UNREACHABLE)
+	_check("which opens its page first, with a way to the Shop", hud.screen == "offer" and hud.offer_id == "all_levels" and hud.offer_buy.caption == "BUY  $1.99" and hud.offer_shop.visible)
+	game.last_back_msec = -1000
+	game._notification(Node.NOTIFICATION_WM_GO_BACK_REQUEST)
+	_check("and back from it returns to the same rooms, the note put away", hud.screen == "levels" and hud.level_page_index == 0 and not hud.level_note.visible)
+	hud._select_visible_level(2)
 	hud._turn_level_page(1)
 	_check("turning the page puts the note away", not hud.level_note.visible and not hud.level_unlock.visible)
 	hud.show_settings()

@@ -193,10 +193,13 @@ studio's games cost the same: INR 280 for the Supporter and Wardrobe packs, 190 
 
 To test, after 2.7, in the game installed from Play:
 
-1. Shop > Supporter pack with the test card: the banner on Levels goes, Next brings no more ads between rooms,
-   and the pause page's skip is free.
-2. Shop > Every room: every locked tile on Levels opens.
-3. Wardrobe > Wardrobe pack: every runner and fabric opens.
+Every purchase opens its page first, and its button opens Google Play's sheet, which many phones show upright over
+the landscape game (Play's own window, which no app can turn). The game is landscape again when it closes.
+
+1. Shop > Supporter pack > Support with the test card: the banner on Levels goes, Next brings no more ads between
+   rooms, and the pause page's skip is free.
+2. Shop > Every room > Buy: every locked tile on Levels opens. A shut room's Every room tag opens the same page.
+3. Wardrobe > Wardrobe pack > Buy: every runner and fabric opens.
 4. Tip twice in a row: the Shop thanks you for both.
 5. Uninstall, reinstall, open: the packs come back by themselves. Restore in the Shop asks again.
 6. The Complete pack shows only while none of its packs is owned, so test it on a fresh test account or after a

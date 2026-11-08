@@ -227,6 +227,8 @@ func _notification(what: int) -> void:
 		hud.show_settings()
 	elif hud.screen == "shop":
 		hud.leave_shop()
+	elif hud.screen == "offer":
+		hud.leave_offer()
 	elif hud.screen == "update":
 		hud.leave_update()
 	elif hud.screen == "home":
@@ -284,6 +286,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			hud.show_settings()
 		elif hud.screen == "shop":
 			hud.leave_shop()
+		elif hud.screen == "offer":
+			hud.leave_offer()
 		elif hud.screen == "update":
 			hud.leave_update()
 	elif playing and event.is_action_pressed("shift_gravity"):
