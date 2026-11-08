@@ -27,7 +27,8 @@ const BUTTON_GAP_DP: float = 40.0
 const PREVIEW_HEIGHT_DP: float = 400.0
 # Above the hud, as AdMob's own view is above the game.
 const BANNER_LAYER: int = 4
-const BANNER_SCREENS: PackedStringArray = ["levels", "wardrobe", "settings", "about", "credits", "stats"]
+# The pages people browse. Settings (with Privacy and Reset) and About stay clear, as in the kit games.
+const BANNER_SCREENS: PackedStringArray = ["levels", "wardrobe", "credits", "stats"]
 
 # The game's progress, set at launch, which says how many rooms are sewn and whether the Supporter pack is owned.
 static var progress: StitchfallProgress

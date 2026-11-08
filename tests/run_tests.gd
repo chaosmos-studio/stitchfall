@@ -48,6 +48,7 @@ func _run() -> void:
 	await _test_next_brings_the_ad()
 	await _test_banner_keeps_clear()
 	await _test_shop_page()
+	await _test_shop_and_skip_entry_points()
 	_test_input_map_is_wired()
 	_test_orientation_is_an_int()
 	await _test_movement_feel()
@@ -1041,8 +1042,8 @@ func _test_banner_keeps_clear() -> void:
 	for room: int in range(3):
 		game.progress.best_stars[room] = 1
 	var hud: StitchfallHud = game.hud
-	var pages: Dictionary = {"levels": hud.level_page, "wardrobe": hud.wardrobe_page, "settings": hud.settings_page,
-		"about": hud.about_page, "credits": hud.credits_page, "stats": hud.stats_page}
+	var pages: Dictionary = {"levels": hud.level_page, "wardrobe": hud.wardrobe_page, "credits": hud.credits_page,
+		"stats": hud.stats_page}
 	for name: String in pages:
 		hud.call("show_%s" % name)
 		var page: Control = pages[name]
@@ -1062,9 +1063,24 @@ func _test_banner_keeps_clear() -> void:
 		_check("%s keeps every button and line %d px clear of the banner (lowest %d, banner top %d)" % [name, roundi(StitchfallAds.BUTTON_GAP_DP * StitchfallAds.per_dp()), roundi(lowest), roundi(banner.position.y)], lowest <= clear_line + 0.5)
 		_check("%s's cloth stops above the banner" % name, cloth_end <= banner.position.y)
 		_check("%s shrinks no further than it must" % name, hud.page_fit(page) >= 0.7)
-	for name: String in ["home", "help"]:
+	for name: String in ["home", "help", "settings", "about"]:
 		hud.call("show_%s" % name)
 		_check("%s never carries the banner" % name, not StitchfallAds.banner_wanted())
+	# A shut room's note and its Every room offer sit low on the Levels page, and still keep clear of the banner.
+	var was_on_play: bool = StitchfallShop.on_play
+	StitchfallShop.on_play = false
+	game.progress.best_stars.clear()
+	for room: int in range(3):
+		game.progress.best_stars[room] = 1
+	hud.show_levels()
+	hud._set_level_page(0)
+	StitchfallShop.on_play = true
+	hud._select_visible_level(4)
+	var banner_top: float = StitchfallAds.banner_rect().position.y
+	var note_end: float = maxf(hud.level_note.get_global_rect().end.y, hud.level_unlock.get_global_rect().end.y)
+	_check("a shut room's note and offer keep %d px clear of the banner (end %d, banner top %d)" % [roundi(StitchfallAds.BUTTON_GAP_DP * StitchfallAds.per_dp()), roundi(note_end), roundi(banner_top)],
+		hud.level_unlock.visible and note_end <= banner_top - StitchfallAds.BUTTON_GAP_DP * StitchfallAds.per_dp() + 0.5)
+	StitchfallShop.on_play = was_on_play
 	hud.show_shop()
 	_check("the Shop never carries the banner", not StitchfallAds.banner_wanted())
 	game._load_level(0)
@@ -1130,6 +1146,80 @@ func _test_shop_page() -> void:
 	game.progress.reset()
 	game.queue_free()
 	await process_frame
+
+
+# The ways to the Shop and to a skip, as the kit games have them: Settings' Shop, a shut room that says what opens it,
+# a hint by the pause button once a skip is on offer, the end of the campaign, and Google Play's answers on any page.
+# Google Play's build links no page that leads to another way to pay.
+func _test_shop_and_skip_entry_points() -> void:
+	var was_on_play: bool = StitchfallShop.on_play
+	StitchfallShop.on_play = false
+	var game: Node2D = _game()
+	await process_frame
+	game.progress.reset()
+	var hud: StitchfallHud = game.hud
+	hud.show_settings()
+	_check("the browser build's Settings has no Shop", not hud.settings_tags["shop"].visible)
+	hud.show_levels()
+	hud._set_level_page(0)
+	_check("a shut room can be tapped", not hud.level_buttons[1].disabled and hud.level_buttons[1].locked)
+	hud._select_visible_level(1)
+	_check("a shut room names the room that opens it", hud.screen == "levels" and hud.level_note.visible and hud.level_note.text.contains(StitchfallLevels.get_level(0)["name"]))
+	_check("and the browser build offers nothing to buy", not hud.level_unlock.visible)
+	StitchfallShop.on_play = true
+	StitchfallShop.prices = {"all_levels": "$1.99"}
+	hud._select_visible_level(2)
+	_check("Google Play's build offers Every room with its price", hud.level_unlock.visible and hud.level_unlock.caption == "EVERY ROOM  $1.99")
+	hud.level_unlock.pressed.emit()
+	_check("and asks Google Play, saying so on the page when it cannot", hud.level_note.text == StitchfallShop.UNREACHABLE)
+	hud._turn_level_page(1)
+	_check("turning the page puts the note away", not hud.level_note.visible and not hud.level_unlock.visible)
+	hud.show_settings()
+	_check("Google Play's Settings has the Shop", hud.settings_tags["shop"].visible)
+	hud.settings_tags["shop"].pressed.emit()
+	game.last_back_msec = -1000
+	game._notification(Node.NOTIFICATION_WM_GO_BACK_REQUEST)
+	_check("and back from it goes to Settings", hud.screen == "settings")
+	hud.show_home()
+	hud._say("Thanks for the tip!")
+	_check("a line from Google Play on Home shows as a toast", hud.toast.visible and hud.toast_label.text == "Thanks for the tip!")
+	game._load_level(0)
+	game._on_begin()
+	for hit: int in range(StitchfallAdPacing.SKIP_AFTER):
+		game.respawning = false
+		game._on_hazard_body(game.pilot)
+	_check("a skip on offer puts its hint by the pause button", hud.skip_hint.visible and game.room_deaths == StitchfallAdPacing.SKIP_AFTER)
+	_check("and the pause page offers the skip", not game._skip_line().is_empty())
+	game._on_pause()
+	_check("the hint goes while a page is open", not hud.skip_hint.visible)
+	game._on_begin()
+	_check("and comes back with the room", hud.skip_hint.visible)
+	game._load_level(1)
+	_check("a new room starts without it", not hud.skip_hint.visible)
+	hud.show_finish("1:00", 3, 2)
+	_check("the end of the campaign offers the Shop to a player without the Supporter pack", hud.finish_shop.visible)
+	StitchfallShop.grant(game.progress, StitchfallMonetize.SUPPORTER_ID, true)
+	hud.show_finish("1:00", 3, 2)
+	_check("but not to a Supporter", not hud.finish_shop.visible)
+	hud.show_pause("")
+	_check("and never on the pause page", not hud.finish_shop.visible)
+	# The unravels above sew the runner back after a moment, so the game stays until they have.
+	await create_timer(1.0).timeout
+	game.progress.reset()
+	game.queue_free()
+	await process_frame
+	# About is built once, for the build it is in.
+	var play_game: Node2D = _game()
+	await process_frame
+	var captions: PackedStringArray = PackedStringArray()
+	for button: Node in play_game.hud.about_page.find_children("*", "StitchedButton", true, false):
+		captions.append((button as StitchedButton).caption)
+	_check("Google Play's About links only pages without a way to pay: %s" % ", ".join(captions),
+		not captions.has("WEBSITE") and not captions.has("SPONSOR") and captions.has("SUPPORT") and captions.has("PRIVACY") and captions.has("RATE"))
+	play_game.queue_free()
+	await process_frame
+	StitchfallShop.prices = {}
+	StitchfallShop.on_play = was_on_play
 
 
 func _check(name: String, cond: bool) -> void:

@@ -41,6 +41,10 @@ const STAR_SOUND: AudioStream = preload("res://assets/audio/sfx/star.wav")
 const STAR_MISS_SOUND: AudioStream = preload("res://assets/audio/sfx/star_miss.wav")
 # The linen kept between a menu page's cloth and the banner below it, in dp.
 const CLOTH_GAP_DP: float = 12.0
+# How long a toast (a line from Google Play on a page with no line of its own) stays before it fades.
+const TOAST_SECONDS: float = 3.5
+# Once a skip is on offer, the pause button carries this tag so a stuck player knows where the way out is.
+const SKIP_HINT: String = "Stuck? Pause"
 
 var root: Control
 var meter: ButtonMeter
@@ -57,6 +61,8 @@ var level_previous: StitchedButton
 var level_next: StitchedButton
 var level_heading: Label
 var level_tally: Label
+var level_note: Label
+var level_unlock: StitchedButton
 var progress: StitchfallProgress
 var clear_page: Control
 var clear_name: Label
@@ -74,6 +80,12 @@ var clear_card: Control
 var clear_opened: Label
 var room_label: Label
 var unravel_tag: Panel
+var skip_hint: Panel
+var skip_hint_tween: Tween
+var skip_ready: bool = false
+var toast: Panel
+var toast_label: Label
+var toast_tween: Tween
 var unravel_label: Label
 var flash_rect: ColorRect
 var chapter_page: Control
@@ -108,6 +120,7 @@ var shop_return: String = "home"
 var update_page: Control
 var update_return: String = "home"
 var skip_button: StitchedButton
+var finish_shop: StitchedButton
 # How far down a menu page may reach while the banner is on screen, from StitchfallAds.
 var banner_limit: float = INF
 var unravel_count: int = 0
@@ -173,7 +186,22 @@ func _ready() -> void:
 	tap_sound.stream = preload("res://assets/audio/sfx/tap.wav")
 	tap_sound.volume_db = -6.0
 	add_child(tap_sound)
+	# Beside the pause button, only once a skip is on offer in this room. It is a hint, not a button: the pause
+	# button stays the one way in, so it is never tapped by accident mid-jump.
+	skip_hint = _panel(root, Rect2(0, 0, 252, 58), Color("f5e8d1", 0.94))
+	skip_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var hint_text: Label = _label(skip_hint, Vector2(8, 2), Vector2(236, 52), 30, ACCENT, true)
+	hint_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint_text.text = SKIP_HINT
+	skip_hint.visible = false
 	_build_pages()
+	# Over every page, so Google Play's answers are seen wherever they arrive.
+	toast = _panel(root, Rect2(0, 36, 1040, 96), Color("f5e8d1", 0.97))
+	toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	toast_label = _label(toast, Vector2(24, 6), Vector2(992, 84), 30, INK, true)
+	toast_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	toast_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	toast.visible = false
 	StitchfallAds.listen(_on_banner_limit)
 	get_viewport().size_changed.connect(_layout)
 	call_deferred("_layout")
@@ -184,6 +212,10 @@ func _layout() -> void:
 	meter.scale = Vector2.ONE * mobile_scale
 	pause_button.scale = Vector2.ONE * mobile_scale
 	pause_button.position.x = root.size.x - pause_button.size.x * mobile_scale - 28.0
+	skip_hint.scale = Vector2.ONE * mobile_scale
+	skip_hint.position.x = pause_button.position.x - (skip_hint.size.x + 14.0) * mobile_scale
+	skip_hint.position.y = pause_button.position.y + (pause_button.size.y - skip_hint.size.y) * 0.5 * mobile_scale
+	toast.position.x = (root.size.x - toast.size.x) * 0.5
 	hint_back.position.x = (root.size.x - hint_back.size.x) * 0.5
 	room_label.position.x = (root.size.x - room_label.size.x) * 0.5
 	unravel_tag.scale = Vector2.ONE * mobile_scale
@@ -197,7 +229,7 @@ func _layout() -> void:
 
 
 func _banner_page(page: Control) -> bool:
-	return [level_page, wardrobe_page, settings_page, about_page, credits_page, stats_page].has(page)
+	return [level_page, wardrobe_page, credits_page, stats_page].has(page)
 
 
 # A menu page that carries the banner shrinks from its top until everything on it ends BUTTON_GAP_DP above the
@@ -428,15 +460,23 @@ func _build_levels() -> void:
 	level_heading.add_theme_font_override("font", FONT_DISPLAY)
 	level_tally = _label(level_page, Vector2(261, 200), Vector2(1100, 60), 36, ACCENT)
 	level_previous = _tag(level_page, Rect2(1460, 102, 100, 101), "", "back", Color("e5d5bc"))
-	level_previous.pressed.connect(func() -> void: _set_level_page(level_page_index - 1))
+	level_previous.pressed.connect(func() -> void: _turn_level_page(-1))
 	level_next = _tag(level_page, Rect2(1580, 102, 100, 101), "", "next", Color("e5d5bc"))
-	level_next.pressed.connect(func() -> void: _set_level_page(level_page_index + 1))
+	level_next.pressed.connect(func() -> void: _turn_level_page(1))
 	_tag(level_page, Rect2(1700, 102, 100, 101), "", "home", Color("e5d5bc")).pressed.connect(show_home)
 	for slot: int in range(StitchfallLevels.CHAPTER_ROOMS):
 		var button: StitchedButton = _tag(level_page, Rect2(150 + slot * 330, 330, 310, 360), "", "seam", Color("f1e1c8"))
 		button.level_tile = true
 		button.pressed.connect(_select_visible_level.bind(slot))
 		level_buttons.append(button)
+	# A shut room says what opens it when tapped: sewing the room before it, or in Google Play's build, Every room.
+	level_note = _label(level_page, Vector2(150, 718), Vector2(1080, 60), 32, INK)
+	level_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	level_unlock = _tag(level_page, Rect2(1250, 704, 520, 86), "EVERY ROOM", "levels", Color("dbe5d1"))
+	level_unlock.caption_size = 30
+	level_unlock.pressed.connect(func() -> void: _say(StitchfallShop.buy(StitchfallMonetize.LEVELS_ID)))
+	level_note.visible = false
+	level_unlock.visible = false
 	_set_level_page(0)
 
 
@@ -463,7 +503,6 @@ func _set_level_page(value: int) -> void:
 		button.cloth = _biome_cloth(biome)
 		button.stars = progress.stars(index) if progress != null else 0
 		button.locked = progress != null and not StitchfallShop.room_open(progress, index)
-		button.disabled = button.locked
 		button.tooltip_text = ""
 		earned += maxi(button.stars, 0)
 		button.queue_redraw()
@@ -525,10 +564,13 @@ func _build_about() -> void:
 	studio.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	var version: Label = _label(about_page, Vector2(380, 600), Vector2(790, 46), 28, ACCENT, true)
 	version.text = "Version %s" % version_name()
-	var links: Array = [["WEBSITE", "link", StitchfallShop.WEBSITE], ["SUPPORT", "help", StitchfallShop.SUPPORT], ["PRIVACY", "seam", StitchfallShop.PRIVACY], ["GAMES", "play", StitchfallShop.MORE_GAMES]]
-	# The browser build can point to GitHub Sponsors. The Android build never may, by Play's Payments policy, and
-	# has Rate there instead, which opens the Play page: no button may call Play's own review card.
+	var links: Array = [["SUPPORT", "help", StitchfallShop.SUPPORT], ["PRIVACY", "seam", StitchfallShop.PRIVACY], ["GAMES", "play", StitchfallShop.MORE_GAMES]]
+	# The browser build links the game's page and GitHub Sponsors. Play's Payments policy keeps the Android build
+	# from leading anywhere one tap from another way to pay, and the game's page carries the studio's Sponsor link,
+	# so it links only pages without one, and Rate, which opens the Play page: no button may call Play's own review
+	# card.
 	if not StitchfallShop.on_play:
+		links.push_front(["WEBSITE", "link", StitchfallShop.WEBSITE])
 		links.append(["SPONSOR", "gift", StitchfallShop.SPONSOR])
 	else:
 		links.append(["RATE", "star", StitchfallShop.STORE])
@@ -560,6 +602,11 @@ func _build_settings() -> void:
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	heading.text = "SETTINGS"
 	_tag(settings_page, Rect2(1420, 125, 105, 105), "", "back", Color("e5d5bc")).pressed.connect(show_home)
+	# Google Play's build has its Shop here too, as the kit games do.
+	var bag: StitchedButton = _tag(settings_page, Rect2(1295, 125, 105, 105), "", "bag", Color("f0c9a8"))
+	bag.tooltip_text = "Shop"
+	bag.pressed.connect(func() -> void: show_shop("settings"))
+	settings_tags["shop"] = bag
 	var entries: Array = [
 		["sound", "SOUND", "sound", Color("e8d8bd"), _toggle_sound],
 		["music", "MUSIC", "music", Color("dbe5d1"), _toggle_music],
@@ -603,6 +650,7 @@ func _refresh_settings() -> void:
 	settings_tags["music"].caption = "MUSIC" if progress.music else "NO MUSIC"
 	settings_tags["shake"].caption = "SHAKE" if progress.shake else "NO SHAKE"
 	settings_tags["privacy"].visible = StitchfallAds.privacy_options_required()
+	settings_tags["shop"].visible = StitchfallShop.on_play
 	reset_armed = false
 	settings_tags["reset"].caption = "RESET"
 	for tag: StitchedButton in settings_tags.values():
@@ -674,6 +722,12 @@ func _build_pause() -> void:
 	skip_button.caption_size = 34
 	skip_button.pressed.connect(func() -> void: skip_pressed.emit())
 	skip_button.visible = false
+	# The end of the campaign is the one place the game offers the Shop unasked, in Google Play's build, to a
+	# player without the Supporter pack, as the kit games' ending does.
+	finish_shop = _tag(pause_page, Rect2(705, 742, 510, 84), "THE SHOP", "bag", Color("f0c9a8"))
+	finish_shop.caption_size = 34
+	finish_shop.pressed.connect(func() -> void: show_shop("finish"))
+	finish_shop.visible = false
 
 
 # The card that closes a room: its stars pop in one by one, then the time against par and a line about how
@@ -989,10 +1043,15 @@ func show_shop(from: String = "home") -> void:
 
 
 func leave_shop() -> void:
-	if shop_return == "wardrobe":
-		show_wardrobe()
-	else:
-		show_home()
+	match shop_return:
+		"wardrobe":
+			show_wardrobe()
+		"settings":
+			show_settings()
+		"levels":
+			show_levels()
+		_:
+			show_home()
 
 
 # The Complete pack shows only while none of it is owned, or once it is, and the cards centre on the cloth.
@@ -1110,16 +1169,35 @@ func _choose_piece(slot: int) -> void:
 		_say("Wearing %s." % item["name"])
 
 
-# A line from the page or from Google Play, on the page it belongs to.
+# A line from the page or from Google Play, on the page it belongs to, or on any other page, a toast that fades.
 func _say(text: String) -> void:
 	if text.is_empty():
 		return
-	if screen == "shop":
-		shop_note.text = text
-	elif screen == "pause":
-		pause_body.text = text
-	else:
-		wardrobe_note.text = text
+	match screen:
+		"shop":
+			shop_note.text = text
+		"pause":
+			pause_body.text = text
+		"wardrobe":
+			wardrobe_note.text = text
+		"levels":
+			level_note.text = text
+			level_note.visible = true
+			_layout()
+		_:
+			_toast(text)
+
+
+func _toast(text: String) -> void:
+	toast_label.text = text
+	toast.visible = true
+	toast.modulate.a = 1.0
+	if toast_tween != null:
+		toast_tween.kill()
+	toast_tween = create_tween()
+	toast_tween.tween_interval(TOAST_SECONDS)
+	toast_tween.tween_property(toast, "modulate:a", 0.0, 0.6)
+	toast_tween.tween_callback(func() -> void: toast.visible = false)
 
 
 # Google Play's answers (prices, a purchase, a refund) redraw the page that shows them, keeping its note.
@@ -1133,6 +1211,7 @@ func refresh_store() -> void:
 			_fill_shop()
 		"levels":
 			_set_level_page(level_page_index)
+			level_unlock.visible = level_unlock.visible and not StitchfallShop.has(progress, StitchfallMonetize.LEVELS_ID)
 
 
 # The version is the newest section of CHANGELOG.md, the file that also names every Android release.
@@ -1169,7 +1248,35 @@ func _biome_glyph(biome: int) -> String:
 
 
 func _select_visible_level(slot: int) -> void:
-	level_selected.emit(level_page_index * StitchfallLevels.CHAPTER_ROOMS + slot)
+	var index: int = level_page_index * StitchfallLevels.CHAPTER_ROOMS + slot
+	if level_buttons[slot].locked:
+		_show_shut_room(index)
+		return
+	level_selected.emit(index)
+
+
+func _turn_level_page(step: int) -> void:
+	_hide_shut_room()
+	_set_level_page(level_page_index + step)
+
+
+# Only a room after the first can be shut, and it opens once the room before it is sewn or skipped.
+func _show_shut_room(index: int) -> void:
+	var offer: bool = StitchfallShop.on_play and not StitchfallShop.has(progress, StitchfallMonetize.LEVELS_ID)
+	var before: String = StitchfallLevels.get_level(index - 1)["name"]
+	level_note.text = ("Sew %s first, or open every room at once." if offer else "Sew %s first to open this room.") % before
+	level_note.visible = true
+	var price: String = StitchfallShop.price(StitchfallMonetize.LEVELS_ID)
+	level_unlock.caption = "EVERY ROOM" if price.is_empty() else "EVERY ROOM  %s" % price
+	level_unlock.visible = offer
+	level_unlock.queue_redraw()
+	_layout()
+
+
+func _hide_shut_room() -> void:
+	level_note.visible = false
+	level_unlock.visible = false
+	_layout()
 
 
 func _toggle_sound() -> void:
@@ -1212,6 +1319,7 @@ func _show_screen(name: String) -> void:
 	hint_back.visible = false
 	room_label.visible = false
 	unravel_tag.visible = false
+	skip_hint.visible = false
 	if name == "home":
 		hero.play("dance")
 	else:
@@ -1235,6 +1343,7 @@ func _begin_from_home() -> void:
 
 
 func show_levels() -> void:
+	_hide_shut_room()
 	var resume: int = progress.continue_room(StitchfallLevels.count()) if progress != null else 0
 	_set_level_page(resume / StitchfallLevels.CHAPTER_ROOMS)
 	_show_screen("levels")
@@ -1273,8 +1382,10 @@ func _offer_skip(skip_line: String) -> void:
 	var offered: bool = not skip_line.is_empty()
 	var rise: float = 60.0 if offered else 0.0
 	pause_body.text = skip_line
-	pause_body.position.y = 338.0 if offered else 355.0
-	pause_body.size.y = 70.0 if offered else 95.0
+	pause_body.position.y = 330.0 if offered else 355.0
+	pause_body.size.y = 82.0 if offered else 95.0
+	pause_body.add_theme_font_size_override("font_size", 28 if offered else 32)
+	finish_shop.visible = false
 	restart_button.position.y = 500.0 - rise
 	resume_button.position.y = 472.0 - rise
 	pause_home_button.position.y = 500.0 - rise
@@ -1291,6 +1402,12 @@ func show_finish(time_text: String, shift_count: int, hit_count: int) -> void:
 	resume_button.queue_redraw()
 	restart_button.visible = false
 	pause_home_button.position.x = 1040
+	finish_shop.visible = StitchfallShop.on_play and progress != null and not StitchfallShop.ads_off(progress)
+	# With the Shop under them, the two actions rise as they do for a skip.
+	if finish_shop.visible:
+		pause_body.position.y = 330.0
+		resume_button.position.y = 412.0
+		pause_home_button.position.y = 440.0
 	_show_screen("finish")
 	resume_button.grab_focus()
 
@@ -1303,11 +1420,27 @@ func hide_panel() -> void:
 	pause_button.visible = true
 	room_label.visible = true
 	unravel_tag.visible = unravel_count > 0
+	skip_hint.visible = skip_ready
 	hero.stop()
 
 
 func set_room_label(chapter_title: String, number: int, room_name: String) -> void:
 	room_label.text = "%s  %d   %s" % [chapter_title, number, room_name]
+
+
+# Called as the room's unravels change: true once the pause page would offer a skip.
+func show_skip_hint(ready: bool) -> void:
+	var appears: bool = ready and not skip_ready
+	skip_ready = ready
+	skip_hint.visible = ready and screen == "game"
+	if skip_hint_tween != null:
+		skip_hint_tween.kill()
+	skip_hint.modulate.a = 1.0
+	if appears and screen == "game":
+		# Three slow pulses as it appears, then it stays still, so it never nags.
+		skip_hint_tween = create_tween().set_loops(3)
+		skip_hint_tween.tween_property(skip_hint, "modulate:a", 0.35, 0.45)
+		skip_hint_tween.tween_property(skip_hint, "modulate:a", 1.0, 0.45)
 
 
 func set_unravels(count: int) -> void:

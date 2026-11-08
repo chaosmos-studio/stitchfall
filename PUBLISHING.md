@@ -208,13 +208,14 @@ The app and its three units are made (ids in the table at the top). Each debug b
 whatever `monetize.gd` says. Until AdMob approves the account, and whenever it has no ad to give, the house ads
 stand in: a banner for another Chaosmos game, and a quick game in place of the skip video.
 
-- The banner: Levels, Wardrobe, Settings, About, Credits and Stats only, once 3 rooms are sewn, a 320 dp strip
+- The banner: Levels, Wardrobe, Credits and Stats only (never Settings or About), once 3 rooms are sewn, a 320 dp strip
   centred at the foot of the screen, 48 dp clear of the screen's edge. The page above it shrinks so every button
   keeps 40 dp clear of it.
 - Between rooms: only from Next on the clear card, from 12 rooms sewn, once every 4 clears, 4 minutes after any
   full-screen ad and 3 after launch, never when Next leads to a chapter's title card, never during play.
-- The skip video: offered on the pause page after 5 unravels in a room, for a room whose next room is still shut.
-  Declining never blocks play, and with nothing to play the room just stays.
+- The skip video: offered on the pause page after 5 unravels in a room, for a room whose next room is still shut,
+  with a "Stuck? Pause" tag by the pause button from then on. Declining never blocks play, and with nothing to play
+  the room just stays.
 - Register your phone as a test device (1.5) before installing a release build, and never tap a real ad.
 
 ## Play Games

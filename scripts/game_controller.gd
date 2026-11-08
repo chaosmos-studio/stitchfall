@@ -490,6 +490,7 @@ func _load_level(index: int) -> void:
 	hud.set_room_intro(level["name"])
 	hud.set_room_label(StitchfallLevels.chapter_name(index / StitchfallLevels.CHAPTER_ROOMS), index % StitchfallLevels.CHAPTER_ROOMS + 1, level["name"])
 	hud.set_unravels(0)
+	hud.show_skip_hint(false)
 	_update_hud()
 	print("STITCHFALL_ROOM ", index)
 
@@ -557,6 +558,7 @@ func _on_hazard_body(body: Node2D) -> void:
 		_buzz(BUZZ_UNRAVEL)
 		hud.flash()
 		hud.set_unravels(room_deaths)
+		hud.show_skip_hint(not _skip_line().is_empty())
 		StitchfallAnalytics.unravelled(level_index, room_deaths)
 		trail.clear()
 		unravel = UNRAVEL_SCRIPT.new() as StitchfallUnravel
@@ -878,7 +880,7 @@ func _skip_line() -> String:
 		return ""
 	if _skip_cost() == StitchfallAdPacing.Skip.FREE:
 		return "Stuck? You can skip this room."
-	return "Stuck? %s to skip this room." % StitchfallAds.watch()
+	return "Stuck? %s to skip this room. Skips are free with the Supporter pack." % StitchfallAds.watch()
 
 
 func _skip_cost() -> StitchfallAdPacing.Skip:
