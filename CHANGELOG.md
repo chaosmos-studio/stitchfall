@@ -7,6 +7,13 @@ one line, at most 500 characters in all. The release workflow turns it into the 
 bumps the patch.
 -->
 
+## 1.0.2
+
+- Every pack in the Shop has its own page before you buy, with what it holds, its price and what the Complete pack saves.
+- Tap a shut room to see which room opens it.
+- Stuck in a room? A tag by the pause button shows where to skip it.
+- The banner no longer shows on Settings or About, and Settings has a Shop button.
+
 ## 1.0.1
 
 - Sign in with Google Play Games for twelve achievements, three leaderboards and progress that follows you to a new phone.
