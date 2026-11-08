@@ -87,7 +87,8 @@ runner come apart. The browser build has none of it.
   on 8 November, and 1.0.1, which carries Play Games, went up from the workflow and into review the same day.
   Achievements, leaderboards (formats, orders, limits, tamper protection), events and stats were read back as
   "Ready to publish". 1.0.1 was approved and the Play Games project published with the owner's go, and the listing's
-  last bullet now names Play Games, sent for review (8 November)
+  last bullet now names Play Games, sent for review (8 November). 1.0.2 (a page before every purchase, the
+  banner off Settings and About) went up to Closed testing from the workflow the same day
 - [ ] 12 testers opted in for 14 days (write the date): ____
 - [ ] Applied for production (2.9)
 - [ ] Live on Play (2.10)
