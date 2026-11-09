@@ -14,6 +14,10 @@ signal wardrobe_changed
 signal progress_reset
 signal chapter_done
 signal skip_pressed
+# The HUD's corner of the screen changed, so the room is fitted again.
+signal play_frame_changed
+# The guide's Practice: the first room again, with its lessons.
+signal practice_pressed
 
 const INK: Color = Color("493a37")
 const PAPER: Color = Color("f7edda")
@@ -45,6 +49,36 @@ const CLOTH_GAP_DP: float = 12.0
 const TOAST_SECONDS: float = 3.5
 # Once a skip is on offer, the pause button carries this tag so a stuck player knows where the way out is.
 const SKIP_HINT: String = "Stuck? Pause"
+# The pause button's side, in view pixels: a thumb's width on a phone, smaller under a mouse.
+const CHIP_TOUCH: float = 120.0
+const CHIP_MOUSE: float = 100.0
+# The gap between the HUD and the screen's edge, and between the HUD and the room.
+const HUD_EDGE: float = 14.0
+const HUD_GAP: float = 8.0
+# How much larger the meter and its tags are drawn on a touch screen.
+const TOUCH_SCALE: float = 1.2
+# Home's pocket, in design pixels: the logo, the Play patch, and the row of tiles under it. The whole menu stays
+# inside the part of the painted pocket a 16:9 and a 20:9 screen both show, and ends a banner's clearance above
+# where the banner stands.
+const HOME_LOGO: Rect2 = Rect2(20, 110, 600, 0)
+const HOME_PLAY: Rect2 = Rect2(0, 270, 640, 186)
+const HOME_TILES_Y: float = 482.0
+const HOME_TILE_HEIGHT: float = 192.0
+const HOME_TILE_GAP: float = 18.0
+# The Levels page's five room patches, from this x, one every step, and how far a sideways swipe must travel to
+# turn the page.
+const LEVEL_TILES_X: float = 222.0
+const LEVEL_TILES_Y: float = 296.0
+const LEVEL_TILE_HEIGHT: float = 360.0
+const LEVEL_TILE_STEP: float = 302.0
+const LEVEL_SWIPE: float = 110.0
+# Settings' two columns of rows.
+const SETTINGS_X: Array[float] = [350.0, 990.0]
+const SETTINGS_Y: float = 262.0
+const SETTINGS_STEP: float = 142.0
+const SETTINGS_ROW: Vector2 = Vector2(580, 128)
+# The painted pocket in the home painting's own pixels, which the menu centres in however the painting is cropped.
+const HOME_POCKET: Rect2 = Rect2(20, 80, 780, 760)
 
 var root: Control
 var meter: ButtonMeter
@@ -54,12 +88,20 @@ var hint_title: Label
 var panel: ColorRect
 var fabric: TextureRect
 var home_page: Control
+var home_menu: Control
+var home_play: StitchedButton
+var home_settings: StitchedButton
 var level_page: Control
 var level_buttons: Array[StitchedButton] = []
 var level_page_index: int = 0
 var level_previous: StitchedButton
 var level_next: StitchedButton
 var level_heading: Label
+var level_kicker: Label
+var level_line: Label
+var level_rooms: Control
+var level_dots: StitchfallPageDots
+var level_swipe_from: Vector2 = Vector2.INF
 var level_tally: Label
 var level_note: Label
 var level_unlock: StitchedButton
@@ -81,7 +123,10 @@ var clear_opened: Label
 var room_label: Label
 var unravel_tag: Panel
 var skip_hint: Panel
+var skip_hint_label: Label
 var skip_hint_tween: Tween
+var coach: StitchfallCoach
+var coach_holder: Control
 var skip_ready: bool = false
 var toast: Panel
 var toast_label: Label
@@ -157,6 +202,16 @@ var screen: String = "home"
 var guide_seen: bool = false
 var audio_enabled: bool = true
 var borders: Array[StitchBorder] = []
+# What the HUD keeps clear around the room (left, top, right, bottom, in view pixels), and whether it sits in two
+# side rails (a wide phone, where the room is limited by its height) or a strip along the top.
+var play_reserve: Vector4 = Vector4(HUD_GAP, 140.0, HUD_GAP, HUD_GAP)
+var play_rails: bool = false
+# The capture tool sets this to draw the HUD as a phone shows it.
+static var touch_preview: bool = false
+
+
+static func touch() -> bool:
+	return touch_preview or DisplayServer.is_touchscreen_available()
 
 
 func _ready() -> void:
@@ -204,10 +259,16 @@ func _ready() -> void:
 	# button stays the one way in, so it is never tapped by accident mid-jump.
 	skip_hint = _panel(root, Rect2(0, 0, 252, 58), Color("f5e8d1", 0.94))
 	skip_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var hint_text: Label = _label(skip_hint, Vector2(8, 2), Vector2(236, 52), 30, ACCENT, true)
-	hint_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hint_text.text = SKIP_HINT
+	skip_hint_label = _label(skip_hint, Vector2(8, 2), Vector2(236, 52), 30, ACCENT, true)
+	skip_hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	skip_hint_label.text = SKIP_HINT
 	skip_hint.visible = false
+	# The first room's coach, over the room and under every page, which hides it while open.
+	coach_holder = Control.new()
+	coach_holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(coach_holder)
+	coach = StitchfallCoach.new()
+	coach_holder.add_child(coach)
 	_build_pages()
 	# Over every page, so Google Play's answers are seen wherever they arrive.
 	toast = _panel(root, Rect2(0, 36, 1040, 96), Color("f5e8d1", 0.97))
@@ -222,19 +283,19 @@ func _ready() -> void:
 
 
 func _layout() -> void:
-	var mobile_scale: float = 1.2 if DisplayServer.is_touchscreen_available() else 1.0
-	meter.scale = Vector2.ONE * mobile_scale
-	pause_button.scale = Vector2.ONE * mobile_scale
-	pause_button.position.x = root.size.x - pause_button.size.x * mobile_scale - 28.0
-	skip_hint.scale = Vector2.ONE * mobile_scale
-	skip_hint.position.x = pause_button.position.x - (skip_hint.size.x + 14.0) * mobile_scale
-	skip_hint.position.y = pause_button.position.y + (pause_button.size.y - skip_hint.size.y) * 0.5 * mobile_scale
+	_layout_play()
 	toast.position.x = (root.size.x - toast.size.x) * 0.5
-	hint_back.position.x = (root.size.x - hint_back.size.x) * 0.5
-	room_label.position.x = (root.size.x - room_label.size.x) * 0.5
-	unravel_tag.scale = Vector2.ONE * mobile_scale
-	unravel_tag.position.x = meter.position.x + meter.size.x * mobile_scale + 14.0
 	hero.position.x = root.size.x * 0.735
+	var safe: Vector4 = _safe_insets()
+	home_settings.position = Vector2(root.size.x - safe.z - HUD_EDGE - home_settings.size.x, safe.y + HUD_EDGE)
+	# The menu centres in the painted pocket as the painting covers the screen (wider screens crop its top and foot),
+	# and shrinks toward its top, as a page does, until it ends a banner's clearance above the banner.
+	var art: Vector2 = HOME_SCENE.get_size()
+	var cover: float = maxf(root.size.x / art.x, root.size.y / art.y)
+	var pocket_x: float = (root.size.x - art.x * cover) * 0.5 + HOME_POCKET.get_center().x * cover
+	var menu_fit: float = clampf(banner_limit / (HOME_TILES_Y + HOME_TILE_HEIGHT), 0.6, 1.0)
+	home_menu.scale = Vector2.ONE * menu_fit
+	home_menu.position = Vector2(maxf(safe.x + 40.0, pocket_x - HOME_PLAY.size.x * 0.5 * menu_fit), 0.0)
 	for page: Control in [level_page, help_page, about_page, settings_page, pause_page, clear_page, chapter_page, stats_page, credits_page, wardrobe_page, shop_page, offer_page, update_page]:
 		var fit: float = page_fit(page)
 		page.scale = Vector2.ONE * fit
@@ -242,8 +303,80 @@ func _layout() -> void:
 		_trim_cloth(page, fit)
 
 
+# The HUD around a room. On a wide phone the room is limited by the screen's height, so the meter and the pause
+# button stand in rails at its sides and the room fills the height. Otherwise they sit in a strip along the top.
+# Whichever lets the room be drawn larger wins, and the room is fitted again.
+func _layout_play() -> void:
+	var chip: float = CHIP_TOUCH if touch() else CHIP_MOUSE
+	var grow: float = TOUCH_SCALE if touch() else 1.0
+	var safe: Vector4 = _safe_insets()
+	var view: Vector2 = root.size
+	var rail: float = HUD_EDGE + chip + HUD_GAP
+	var rails: Vector4 = Vector4(safe.x + rail, safe.y + HUD_GAP, safe.z + rail, safe.w + HUD_GAP)
+	var band: Vector4 = Vector4(safe.x + HUD_GAP, safe.y + HUD_EDGE + chip + HUD_GAP * 0.5, safe.z + HUD_GAP, safe.w + HUD_GAP)
+	var before: Vector4 = play_reserve
+	play_rails = StitchfallLevels.fit_zoom(view, rails) > StitchfallLevels.fit_zoom(view, band) + 0.01
+	play_reserve = rails if play_rails else band
+	var left: float = safe.x + HUD_EDGE
+	var top: float = safe.y + HUD_EDGE
+	pause_button.size = Vector2.ONE * chip
+	pause_button.position = Vector2(view.x - safe.z - HUD_EDGE - chip, top)
+	meter.vertical = play_rails
+	meter.scale = Vector2.ONE * grow
+	unravel_tag.scale = Vector2.ONE * grow
+	skip_hint.scale = Vector2.ONE * grow
+	if play_rails:
+		# Each rail is a column: the meter standing up with the unravel count under it, and the pause button with the
+		# skip's hint under it.
+		meter.size = Vector2(79, 205)
+		meter.position = Vector2(left + (chip - 79.0 * grow) * 0.5, top)
+		unravel_tag.size = Vector2(chip / grow, 58)
+		unravel_tag.position = Vector2(left, top + 205.0 * grow + 12.0)
+		skip_hint.size = Vector2(chip / grow, 92)
+		skip_hint_label.size = Vector2(chip / grow - 16.0, 88)
+		skip_hint_label.text = SKIP_HINT.replace(" ", "\n")
+		skip_hint.position = Vector2(pause_button.position.x, top + chip + 12.0)
+		room_label.position = Vector2((view.x - room_label.size.x) * 0.5, safe.y - 6.0)
+		room_label.add_theme_font_size_override("font_size", 24)
+		hint_back.position = Vector2((view.x - hint_back.size.x) * 0.5, safe.y + 54.0)
+	else:
+		meter.size = Vector2(205, 79)
+		meter.position = Vector2(left, top + (chip - 79.0 * grow) * 0.5)
+		unravel_tag.size = Vector2(150, 58)
+		unravel_tag.position = Vector2(meter.position.x + 205.0 * grow + 14.0, top + (chip - 58.0 * grow) * 0.5)
+		skip_hint.size = Vector2(252, 58)
+		skip_hint_label.size = Vector2(236, 52)
+		skip_hint_label.text = SKIP_HINT
+		skip_hint.position = Vector2(pause_button.position.x - (252.0 * grow + 14.0), top + (chip - 58.0 * grow) * 0.5)
+		room_label.position = Vector2((view.x - room_label.size.x) * 0.5, top + (chip - room_label.size.y) * 0.5)
+		room_label.add_theme_font_size_override("font_size", 28)
+		hint_back.position = Vector2((view.x - hint_back.size.x) * 0.5, play_reserve.y + 10.0)
+	unravel_tag.pivot_offset = unravel_tag.size * 0.5
+	unravel_label.size = Vector2(unravel_tag.size.x - 20.0, 52)
+	# Over the room's empty top, under the room's name as it comes and goes.
+	coach.position = Vector2((view.x - coach.size.x) * 0.5, play_reserve.y + 96.0)
+	if play_reserve != before:
+		play_frame_changed.emit()
+
+
+# The screen's cutouts (a notch or a camera hole) as insets in view pixels. Only on a phone: a computer's safe area
+# is its desktop, not the game's window.
+func _safe_insets() -> Vector4:
+	if not OS.has_feature("mobile"):
+		return Vector4.ZERO
+	var window: Vector2 = Vector2(DisplayServer.window_get_size())
+	var safe: Rect2 = Rect2(DisplayServer.get_display_safe_area())
+	if window.x <= 0.0 or window.y <= 0.0 or safe.size.x <= 0.0 or safe.size.y <= 0.0:
+		return Vector4.ZERO
+	var per: Vector2 = root.size / window
+	return Vector4(safe.position.x * per.x, safe.position.y * per.y,
+		maxf(window.x - safe.end.x, 0.0) * per.x, maxf(window.y - safe.end.y, 0.0) * per.y)
+
+
+# The pages that may carry the banner: every page but play itself, Settings and About (where consent and privacy
+# live), the Shop and its offers, a chapter's short title card and the update offer.
 func _banner_page(page: Control) -> bool:
-	return [level_page, wardrobe_page, credits_page, stats_page].has(page)
+	return [level_page, wardrobe_page, credits_page, stats_page, help_page, pause_page, clear_page].has(page)
 
 
 # A menu page that carries the banner shrinks from its top until everything on it ends BUTTON_GAP_DP above the
@@ -252,7 +385,9 @@ func page_fit(page: Control) -> float:
 	if not _banner_page(page):
 		return 1.0
 	var bottom: float = 0.0
-	for child: Node in page.get_children():
+	# The clear card slides in as one piece, so its parts are measured inside it.
+	var holder: Control = clear_card if page == clear_page else page
+	for child: Node in holder.get_children():
 		var part: Control = child as Control
 		if part != null and part.visible and not part.has_meta(&"cloth"):
 			bottom = maxf(bottom, part.position.y + part.size.y)
@@ -265,7 +400,8 @@ func _trim_cloth(page: Control, fit: float) -> void:
 	var end: float = INF
 	if _banner_page(page) and StitchfallAds.banner_wanted():
 		end = (StitchfallAds.banner_rect().position.y - CLOTH_GAP_DP * StitchfallAds.per_dp()) / fit
-	for child: Node in page.get_children():
+	var holder: Control = clear_card if page == clear_page else page
+	for child: Node in holder.get_children():
 		if child.has_meta(&"cloth"):
 			var cloth: Control = child as Control
 			var rest: Rect2 = cloth.get_meta(&"cloth")
@@ -404,35 +540,44 @@ func _build_home() -> void:
 	var botanicals: Control = HOME_BOTANICALS.new() as Control
 	home_page.add_child(botanicals)
 	botanicals.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	# Everything in the pocket hangs from one menu, so it can shrink as a whole above a banner on a short phone.
+	home_menu = Control.new()
+	home_menu.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	home_page.add_child(home_menu)
 	# The logo's felt label, low enough that the pocket's stitched top edge passes above it, not through it.
 	var title: TextureRect = TextureRect.new()
 	title.texture = LOGO
 	title.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	title.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	title.position = Vector2(126, 150)
-	title.size = Vector2(640, 640.0 * LOGO.get_height() / LOGO.get_width())
-	home_page.add_child(title)
-	var line: Label = _label(home_page, Vector2(138, 306), Vector2(840, 84), 36, INK)
-	line.text = "Find the buttons. Turn the pull.\nOpen the seam."
-	var menu_items: Array[Array] = [
-		["PLAY", "play", Color("e0a278"), _begin_from_home],
+	title.position = HOME_LOGO.position
+	title.size = Vector2(HOME_LOGO.size.x, HOME_LOGO.size.x * LOGO.get_height() / LOGO.get_width())
+	home_menu.add_child(title)
+	# One thing to do here: play. It names the room it picks up from, so a returning player knows where they are.
+	home_play = _tag(home_menu, HOME_PLAY, "PLAY", "play", Color("e0a278"))
+	home_play.primary = true
+	home_play.caption_size = 62
+	home_play.pressed.connect(_begin_from_home)
+	var tiles: Array[Array] = [
 		["LEVELS", "levels", Color("dbe5d1"), show_levels],
 		["WARDROBE", "wardrobe", Color("efd3b8"), show_wardrobe],
-		["GUIDE", "help", Color("e8d8bd"), show_help],
-		["SETTINGS", "settings", Color("e4d0b1"), show_settings],
 	]
 	# Google Play's build sells packs and takes tips. The browser build has no shop.
 	if StitchfallShop.on_play:
-		menu_items.insert(3, ["SHOP", "bag", Color("f0c9a8"), show_shop])
-	# Six rows (with the shop) sit a little closer, so the last stays inside the pocket.
-	var row_step: float = 84.0 if menu_items.size() > 5 else 88.0
-	for index: int in range(menu_items.size()):
-		var item: Array = menu_items[index]
-		var button: StitchedButton = _tag(home_page, Rect2(146, 428 + index * row_step, 560, row_step - 6.0), item[0], item[1], item[2])
-		button.home_link = true
-		var open: Callable = item[3]
+		tiles.append(["SHOP", "bag", Color("f0c9a8"), show_shop])
+	var step: float = (HOME_PLAY.size.x + HOME_TILE_GAP) / float(tiles.size())
+	for index: int in range(tiles.size()):
+		var tile: Array = tiles[index]
+		var rect: Rect2 = Rect2(HOME_PLAY.position.x + step * index, HOME_TILES_Y, step - HOME_TILE_GAP, HOME_TILE_HEIGHT)
+		var button: StitchedButton = _tag(home_menu, rect, tile[0], tile[1], tile[2])
+		button.pause_action = true
+		button.caption_size = 30
+		var open: Callable = tile[3]
 		button.pressed.connect(func() -> void: open.call())
+	# Settings, with the guide, sound and the rest, waits in the corner.
+	home_settings = _tag(home_page, Rect2(0, HUD_EDGE, 112, 112), "", "settings", Color("e4d0b1"))
+	home_settings.tooltip_text = "Settings"
+	home_settings.pressed.connect(show_settings)
 	hero = AnimatedSprite2D.new()
 	hero.sprite_frames = _dance_frames()
 	hero.scale = Vector2.ONE * 0.92
@@ -467,27 +612,43 @@ func _dress_dancers() -> void:
 			dancer.play("dance")
 
 
+# One chapter a page. The header names it, with its line and its stars so far. Its five rooms are big patches, the
+# next one to play ringed, and the chapter turns with the arrows at the card's edges or a swipe across the page.
 func _build_levels() -> void:
 	level_page = _page()
-	_cloth_page(level_page, Rect2(65, 50, 1790, 970))
-	# The wide card's corner knot sits at x 160 to 240, so a heading starts clear of it.
-	level_heading = _label(level_page, Vector2(255, 100), Vector2(1200, 105), 77, INK, true)
+	_cloth_page(level_page, Rect2(60, 34, 1800, 820))
+	# The card's scalloped edge runs about 80 px deep, so the header starts inside it.
+	_tag(level_page, Rect2(150, 122, 104, 104), "", "back", Color("e5d5bc")).pressed.connect(show_home)
+	level_kicker = _label(level_page, Vector2(284, 112), Vector2(900, 36), 28, ACCENT, true)
+	level_heading = _label(level_page, Vector2(278, 140), Vector2(1000, 92), 74, INK, true)
 	level_heading.add_theme_font_override("font", FONT_DISPLAY)
-	level_tally = _label(level_page, Vector2(261, 200), Vector2(1100, 60), 36, ACCENT)
-	level_previous = _tag(level_page, Rect2(1460, 102, 100, 101), "", "back", Color("e5d5bc"))
+	level_line = _label(level_page, Vector2(284, 228), Vector2(1000, 44), 31, Color(INK, 0.8))
+	# The chapter's stars, at the right of the header, level with its name.
+	level_tally = _label(level_page, Vector2(1250, 150), Vector2(470, 70), 40, ACCENT, true)
+	level_tally.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	level_previous = _tag(level_page, Rect2(78, 410, 112, 112), "", "back", Color("e5d5bc"))
 	level_previous.pressed.connect(func() -> void: _turn_level_page(-1))
-	level_next = _tag(level_page, Rect2(1580, 102, 100, 101), "", "next", Color("e5d5bc"))
+	level_next = _tag(level_page, Rect2(1730, 410, 112, 112), "", "next", Color("e5d5bc"))
 	level_next.pressed.connect(func() -> void: _turn_level_page(1))
-	_tag(level_page, Rect2(1700, 102, 100, 101), "", "home", Color("e5d5bc")).pressed.connect(show_home)
+	# The rooms ride in one holder so a page turn slides them together. It is as tall as the rooms, since the page
+	# shrinks above a banner by how far down its parts reach.
+	level_rooms = Control.new()
+	level_rooms.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	level_rooms.size = Vector2(1920, LEVEL_TILES_Y + LEVEL_TILE_HEIGHT)
+	level_page.add_child(level_rooms)
 	for slot: int in range(StitchfallLevels.CHAPTER_ROOMS):
-		var button: StitchedButton = _tag(level_page, Rect2(150 + slot * 330, 330, 310, 360), "", "seam", Color("f1e1c8"))
+		var button: StitchedButton = _tag(level_rooms, Rect2(LEVEL_TILES_X + slot * LEVEL_TILE_STEP, LEVEL_TILES_Y, LEVEL_TILE_STEP - 26.0, LEVEL_TILE_HEIGHT), "", "seam", Color("f1e1c8"))
 		button.level_tile = true
 		button.pressed.connect(_select_visible_level.bind(slot))
 		level_buttons.append(button)
+	level_dots = StitchfallPageDots.new()
+	level_dots.position = Vector2(560, LEVEL_TILES_Y + LEVEL_TILE_HEIGHT + 14.0)
+	level_dots.size = Vector2(800, 40)
+	level_page.add_child(level_dots)
 	# A shut room says what opens it when tapped: sewing the room before it, or in Google Play's build, Every room.
-	level_note = _label(level_page, Vector2(150, 718), Vector2(1080, 60), 32, INK)
+	level_note = _label(level_page, Vector2(230, 718), Vector2(1000, 60), 32, INK)
 	level_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	level_unlock = _tag(level_page, Rect2(1250, 704, 520, 86), "EVERY ROOM", "levels", Color("dbe5d1"))
+	level_unlock = _tag(level_page, Rect2(1250, 704, 470, 86), "EVERY ROOM", "levels", Color("dbe5d1"))
 	level_unlock.caption_size = 30
 	level_unlock.pressed.connect(func() -> void: show_offer(StitchfallMonetize.LEVELS_ID, "levels"))
 	level_note.visible = false
@@ -495,12 +656,40 @@ func _build_levels() -> void:
 	_set_level_page(0)
 
 
-# One page is one chapter, with its name, its stars so far, and its five rooms.
+# A swipe across the Levels page turns it, the way the arrows do, as long as it is mostly sideways. It is read
+# before the buttons see the touch, since most of the page is room patches, and a turn cancels the patch's press,
+# or lifting the finger would open the new chapter's room under it.
+func _input(event: InputEvent) -> void:
+	if screen != "levels":
+		return
+	var press: InputEventScreenTouch = event as InputEventScreenTouch
+	if press != null:
+		level_swipe_from = press.position if press.pressed else Vector2.INF
+		return
+	var drag: InputEventScreenDrag = event as InputEventScreenDrag
+	if drag == null or level_swipe_from == Vector2.INF:
+		return
+	var travel: Vector2 = drag.position - level_swipe_from
+	if absf(travel.x) > LEVEL_SWIPE and absf(travel.x) > absf(travel.y) * 1.5:
+		level_swipe_from = Vector2.INF
+		for button: StitchedButton in level_buttons:
+			button.disabled = true
+		_turn_level_page(-1 if travel.x > 0.0 else 1)
+		get_tree().create_timer(0.2).timeout.connect(func() -> void:
+			for button: StitchedButton in level_buttons:
+				button.disabled = false)
+
+
+# One page is one chapter, with its name, its line, its stars so far, and its five rooms.
 func _set_level_page(value: int) -> void:
+	var from: int = level_page_index
 	level_page_index = clampi(value, 0, StitchfallLevels.chapter_count() - 1)
 	level_previous.visible = level_page_index > 0
 	level_next.visible = level_page_index + 1 < StitchfallLevels.chapter_count()
+	level_kicker.text = "CHAPTER %d" % (level_page_index + 1)
 	level_heading.text = StitchfallLevels.chapter_name(level_page_index).to_upper()
+	level_line.text = StitchfallLevels.chapter_line(level_page_index)
+	var next_room: int = progress.continue_room(StitchfallLevels.count()) if progress != null else 0
 	var earned: int = 0
 	var rooms: int = 0
 	for slot: int in range(level_buttons.size()):
@@ -518,46 +707,84 @@ func _set_level_page(value: int) -> void:
 		button.cloth = _biome_cloth(biome)
 		button.stars = progress.stars(index) if progress != null else 0
 		button.locked = progress != null and not StitchfallShop.room_open(progress, index)
+		button.next_up = index == next_room and not button.locked and button.stars <= 0
 		button.tooltip_text = ""
 		earned += maxi(button.stars, 0)
 		button.queue_redraw()
-	level_tally.text = "Chapter %d     %d of %d stars" % [level_page_index + 1, earned, rooms * 3]
+	level_tally.text = "%d of %d stars" % [earned, rooms * 3]
+	_fill_level_dots()
+	# The rooms slide in from the side the page turned toward, fast, and settle.
+	if from != level_page_index and level_page.is_visible_in_tree():
+		var side: float = 1.0 if level_page_index > from else -1.0
+		level_rooms.position.x = 140.0 * side
+		level_rooms.modulate.a = 0.0
+		var slide: Tween = create_tween().set_parallel(true)
+		slide.tween_property(level_rooms, "position:x", 0.0, 0.32).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
+		slide.tween_property(level_rooms, "modulate:a", 1.0, 0.16)
 
 
+func _fill_level_dots() -> void:
+	var count: int = StitchfallLevels.chapter_count()
+	var states: PackedInt32Array = PackedInt32Array()
+	for chapter: int in range(count):
+		var first: int = chapter * StitchfallLevels.CHAPTER_ROOMS
+		var sewn: int = 0
+		for slot: int in range(StitchfallLevels.CHAPTER_ROOMS):
+			if progress != null and progress.stars(first + slot) > 0:
+				sewn += 1
+		var open: bool = progress == null or StitchfallShop.room_open(progress, first)
+		states.append(2 if sewn == StitchfallLevels.CHAPTER_ROOMS else (1 if open else 0))
+	level_dots.count = count
+	level_dots.current = level_page_index
+	level_dots.states = states
+	level_dots.queue_redraw()
+
+
+# The moves, one card each with its gesture moving (or its keys on a computer), the goal above them, and a way to
+# run the first room's lessons again.
 func _build_help() -> void:
 	help_page = _page()
-	_cloth_page(help_page, Rect2(170, 70, 1580, 910))
-	# The card's left knots sit at about x 240 to 320, so the heading and the footer start clear of them.
-	var heading: Label = _label(help_page, Vector2(350, 135), Vector2(1150, 104), 67, INK, true)
+	_cloth_page(help_page, Rect2(170, 40, 1580, 900))
+	_tag(help_page, Rect2(262, 118, 104, 104), "", "back", Color("e5d5bc")).pressed.connect(show_settings)
+	var heading: Label = _label(help_page, Vector2(394, 106), Vector2(1150, 96), 70, INK, true)
 	heading.add_theme_font_override("font", FONT_DISPLAY)
 	heading.text = "HOW TO PLAY"
-	_tag(help_page, Rect2(1560, 130, 112, 105), "", "back", Color("e5d5bc")).pressed.connect(show_home)
-	var introduction: Label = _label(help_page, Vector2(266, 244), Vector2(1250, 60), 35, ACCENT)
-	introduction.text = "Draw a gesture on the cloth to move the runner."
-	var instructions: Array[PackedStringArray] = [
-		PackedStringArray(["MOVE", "Slide left or right", "move"]),
-		PackedStringArray(["JUMP", "Swipe up", "jump"]),
-		PackedStringArray(["CROUCH", "Swipe down", "crouch"]),
-		PackedStringArray(["SHIFT", "Tap the playfield", "shift"]),
+	var goal: Label = _label(help_page, Vector2(400, 196), Vector2(1200, 50), 34, ACCENT)
+	goal.text = "Gather every button, then slip out through the zipper."
+	var keys: bool = not touch()
+	var moves: Array[PackedStringArray] = [
+		PackedStringArray(["MOVE", "Hold and slide left or right", "A or D", "move"]),
+		PackedStringArray(["JUMP", "Swipe up", "W or Space", "jump"]),
+		PackedStringArray(["TURN", "Tap anywhere to turn the room a quarter", "Shift", "shift"]),
+		PackedStringArray(["CROUCH", "Swipe down", "S", "crouch"]),
 	]
-	for index: int in range(instructions.size()):
-		var column: int = index % 2
-		var row: int = index / 2
-		var instruction: PackedStringArray = instructions[index]
-		var card: Panel = _panel(help_page, Rect2(250 + column * 720, 335 + row * 250, 660, 185), Color("ecdfc7") if index != 3 else Color("e2b18f"))
-		var title: Label = _label(card, Vector2(24, 24), Vector2(210, 60), 40, INK, true)
-		title.text = instruction[0]
-		var caption: Label = _label(card, Vector2(24, 107), Vector2(210, 58), 27, ACCENT)
-		caption.text = instruction[1]
+	for index: int in range(moves.size()):
+		var move: PackedStringArray = moves[index]
+		var rect: Rect2 = Rect2(262 + (index % 2) * 712, 264 + (index / 2) * 214, 686, 196)
+		var card: Panel = _panel(help_page, rect, Color("e2b18f") if move[0] == "TURN" else Color("ecdfc7"))
+		var title: Label = _label(card, Vector2(28, 22), Vector2(330, 60), 46, INK, true)
+		title.text = move[0]
+		var line: Label = _label(card, Vector2(28, 84), Vector2(350, 92), 30, Color(INK, 0.85))
+		line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		line.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+		line.text = move[2] if keys else move[1]
 		var gesture: StitchfallGestureGuide = GESTURE_GUIDE.new() as StitchfallGestureGuide
-		gesture.position = Vector2(240, 12)
-		gesture.size = Vector2(405, 160)
-		gesture.kind = instruction[2]
+		gesture.size = Vector2(300, 170)
+		gesture.pivot_offset = gesture.size * 0.5
+		gesture.scale = Vector2.ONE * 1.12
+		gesture.position = Vector2(356, 13)
+		gesture.kind = move[3]
 		card.add_child(gesture)
-	var footer: Label = _label(help_page, Vector2(335, 800), Vector2(1140, 70), 31, ACCENT)
-	footer.text = "Keyboard: A / D, W / Space, S, Shift. Esc pauses. R retries."
-	var start: StitchedButton = _tag(help_page, Rect2(1490, 810, 145, 126), "", "play", Color("e0a278"))
-	start.tooltip_text = "Start playing"
+	var footer: Label = _label(help_page, Vector2(268, 726), Vector2(700, 48), 28, ACCENT)
+	footer.text = "Esc pauses. R retries the room." if keys else "A flower saves your place. Needles unravel you."
+	var practice: StitchedButton = _tag(help_page, Rect2(1000, 696, 410, 108), "PRACTICE", "move", Color("dbe5d1"))
+	practice.primary = true
+	practice.caption_size = 36
+	practice.subcaption = "The lessons again"
+	practice.pressed.connect(func() -> void: practice_pressed.emit())
+	var start: StitchedButton = _tag(help_page, Rect2(1430, 696, 240, 108), "PLAY", "play", Color("e0a278"))
+	start.primary = true
+	start.caption_size = 36
 	start.pressed.connect(func() -> void: begin_pressed.emit())
 
 
@@ -609,65 +836,86 @@ func _build_about() -> void:
 	about_page.add_child(portrait)
 
 
+# Two columns of wide rows, each saying what it is and, for a switch, whether it is on: how the game sounds and
+# feels on the left, and help and the game's pages on the right. Reset stands apart at the foot.
 func _build_settings() -> void:
 	settings_page = _page()
-	_cloth_page(settings_page, Rect2(330, 70, 1260, 940))
-	var heading: Label = _label(settings_page, Vector2(560, 120), Vector2(800, 110), 72, INK, true)
+	_cloth_page(settings_page, Rect2(250, 40, 1420, 1000))
+	_tag(settings_page, Rect2(338, 120, 104, 104), "", "back", Color("e5d5bc")).pressed.connect(show_home)
+	var heading: Label = _label(settings_page, Vector2(560, 116), Vector2(800, 110), 72, INK, true)
 	heading.add_theme_font_override("font", FONT_DISPLAY)
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	heading.text = "SETTINGS"
-	_tag(settings_page, Rect2(1420, 125, 105, 105), "", "back", Color("e5d5bc")).pressed.connect(show_home)
 	# Google Play's build has its Shop here too, as the kit games do.
-	var bag: StitchedButton = _tag(settings_page, Rect2(1295, 125, 105, 105), "", "bag", Color("f0c9a8"))
+	var bag: StitchedButton = _tag(settings_page, Rect2(1478, 120, 104, 104), "", "bag", Color("f0c9a8"))
 	bag.tooltip_text = "Shop"
 	bag.pressed.connect(func() -> void: show_shop("settings"))
 	settings_tags["shop"] = bag
-	var entries: Array = [
+	var left: Array = [
 		["sound", "SOUND", "sound", Color("e8d8bd"), _toggle_sound],
 		["music", "MUSIC", "music", Color("dbe5d1"), _toggle_music],
 		["shake", "SHAKE", "shake", Color("efd3b8"), _toggle_shake],
 		["fullscreen", "FULLSCREEN", "fullscreen", Color("e4d0b1"), _toggle_fullscreen],
+	]
+	var right: Array = [
+		["help", "HOW TO PLAY", "help", Color("e0a278"), show_help],
 		["stats", "STATS", "stats", Color("dbe5d1"), show_stats],
 		["credits", "CREDITS", "credits", Color("e8d8bd"), show_credits],
-		["about", "ABOUT", "help", Color("e4d0b1"), show_about],
-		["reset", "RESET", "restart", Color("e9c9bd"), _reset_progress],
+		["about", "ABOUT", "seam", Color("e4d0b1"), show_about],
 	]
-	for index: int in range(entries.size()):
-		var entry: Array = entries[index]
-		var tag: StitchedButton = _tag(settings_page, Rect2(420 + (index % 4) * 275, 250 + (index / 4) * 300, 255, 270), entry[1], entry[2], entry[3])
-		tag.pause_action = true
-		tag.pressed.connect(entry[4])
-		settings_tags[entry[0]] = tag
+	for column: int in range(2):
+		var entries: Array = left if column == 0 else right
+		for index: int in range(entries.size()):
+			var entry: Array = entries[index]
+			var tag: StitchedButton = _tag(settings_page, Rect2(SETTINGS_X[column], SETTINGS_Y + index * SETTINGS_STEP, SETTINGS_ROW.x, SETTINGS_ROW.y), entry[1], entry[2], entry[3])
+			tag.primary = true
+			tag.caption_size = 38
+			tag.pressed.connect(entry[4])
+			settings_tags[entry[0]] = tag
 	sound_buttons.append(settings_tags["sound"])
 	settings_tags["fullscreen"].visible = not OS.has_feature("android")
 	# Google's consent service says when a player must be able to change their ad consent, and then this takes
 	# the place a phone has no Fullscreen for.
-	var privacy: StitchedButton = _tag(settings_page, Rect2(420 + 3 * 275, 250, 255, 270), "PRIVACY", "lock", Color("e4d0b1"))
-	privacy.pause_action = true
+	var privacy: StitchedButton = _tag(settings_page, Rect2(SETTINGS_X[0], SETTINGS_Y + 3 * SETTINGS_STEP, SETTINGS_ROW.x, SETTINGS_ROW.y), "PRIVACY", "lock", Color("e4d0b1"))
+	privacy.primary = true
+	privacy.caption_size = 38
+	privacy.subcaption = "Ad choices"
 	privacy.pressed.connect(func() -> void: StitchfallAds.open_privacy_options())
 	privacy.visible = false
 	settings_tags["privacy"] = privacy
-	var note: Label = _label(settings_page, Vector2(480, 845), Vector2(960, 50), 28, ACCENT)
-	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	# Reset asks twice and sits on its own, below the rest, so it is never a slip of the thumb.
+	var reset: StitchedButton = _tag(settings_page, Rect2(SETTINGS_X[1] + SETTINGS_ROW.x - 320.0, SETTINGS_Y + 4 * SETTINGS_STEP + 30.0, 320, 96), "RESET", "restart", Color("e9c9bd"))
+	reset.primary = true
+	reset.caption_size = 34
+	reset.pressed.connect(_reset_progress)
+	settings_tags["reset"] = reset
+	var note: Label = _label(settings_page, Vector2(SETTINGS_X[0], SETTINGS_Y + 4 * SETTINGS_STEP + 52.0), Vector2(620, 50), 28, ACCENT)
 	note.text = "M changes sound. F goes fullscreen."
-	# A phone has no keys to name, and this way its banner needs less room.
+	# A phone has no keys to name.
 	note.visible = not OS.has_feature("android")
 
 
-# Shows each switch's state in its icon, and puts the reset back to asking once.
+# Shows each switch's state on its row, and puts the reset back to asking once.
 func _refresh_settings() -> void:
 	if progress == null:
 		return
 	settings_tags["sound"].glyph = "sound" if audio_enabled else "mute"
 	settings_tags["music"].glyph = "music" if progress.music else "music_off"
 	settings_tags["shake"].glyph = "shake" if progress.shake else "shake_off"
-	settings_tags["sound"].caption = "SOUND" if audio_enabled else "NO SOUND"
-	settings_tags["music"].caption = "MUSIC" if progress.music else "NO MUSIC"
-	settings_tags["shake"].caption = "SHAKE" if progress.shake else "NO SHAKE"
+	settings_tags["sound"].subcaption = "On" if audio_enabled else "Off"
+	settings_tags["music"].subcaption = "On" if progress.music else "Off"
+	settings_tags["shake"].subcaption = "On" if progress.shake else "Off"
+	settings_tags["fullscreen"].subcaption = "Fill the screen"
+	settings_tags["help"].subcaption = "Moves, and a practice run"
+	settings_tags["stats"].subcaption = "Your stitches so far"
+	settings_tags["credits"].subcaption = "Who made it, and with what"
+	settings_tags["about"].subcaption = "Version %s" % version_name()
 	settings_tags["privacy"].visible = StitchfallAds.privacy_options_required()
+	settings_tags["fullscreen"].visible = not OS.has_feature("android") and not settings_tags["privacy"].visible
 	settings_tags["shop"].visible = StitchfallShop.on_play
 	reset_armed = false
 	settings_tags["reset"].caption = "RESET"
+	settings_tags["reset"].subcaption = "Start over"
 	for tag: StitchedButton in settings_tags.values():
 		tag.queue_redraw()
 
@@ -689,11 +937,13 @@ func _reset_progress() -> void:
 	if not reset_armed:
 		reset_armed = true
 		settings_tags["reset"].caption = "SURE?"
+		settings_tags["reset"].subcaption = "Tap again to erase"
 		settings_tags["reset"].queue_redraw()
 		return
 	progress_reset.emit()
 	_refresh_settings()
 	settings_tags["reset"].caption = "DONE"
+	settings_tags["reset"].subcaption = "A fresh start"
 	settings_tags["reset"].queue_redraw()
 	_dress_dancers()
 
@@ -1418,6 +1668,7 @@ func _show_screen(name: String) -> void:
 	room_label.visible = false
 	unravel_tag.visible = false
 	skip_hint.visible = false
+	coach_holder.visible = false
 	if name == "home":
 		hero.play("dance")
 	else:
@@ -1433,11 +1684,9 @@ func show_credits() -> void:
 	_show_screen("credits")
 
 
+# The first room's coach teaches the controls in play, so Play always plays.
 func _begin_from_home() -> void:
-	if DisplayServer.is_touchscreen_available() and not guide_seen:
-		show_help()
-	else:
-		begin_pressed.emit()
+	begin_pressed.emit()
 
 
 func show_levels() -> void:
@@ -1519,11 +1768,19 @@ func hide_panel() -> void:
 	room_label.visible = true
 	unravel_tag.visible = unravel_count > 0
 	skip_hint.visible = skip_ready
+	coach_holder.visible = true
 	hero.stop()
 
 
 func set_room_label(chapter_title: String, number: int, room_name: String) -> void:
 	room_label.text = "%s  %d   %s" % [chapter_title, number, room_name]
+	home_play.queue_redraw()
+
+
+# Home's Play leads to the room loaded now, so it names it the way the Levels page numbers it.
+func set_next_room(index: int, room_name: String) -> void:
+	home_play.subcaption = "Room %d · %s" % [index + 1, room_name]
+	home_play.queue_redraw()
 
 
 # Called as the room's unravels change: true once the pause page would offer a skip.

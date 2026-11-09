@@ -10,15 +10,20 @@ const CHAPTER_ROOMS: int = 5
 # joins the campaign.
 static var chapter_ids: PackedStringArray = CHAPTER_IDS
 
-# A screen room is seen whole at a fixed zoom, so every trap is on screen from the first frame.
+# A screen room is always seen whole, so every trap is on screen from the first frame. It is fitted to the screen
+# as large as the HUD's reserve allows (fit_zoom), so a wide phone shows it larger than a 16:9 monitor does.
 const SCREEN: Rect2 = Rect2(330, 250, 1260, 640)
-const SCREEN_ZOOM: float = 1.4
 const WALL: float = 30.0
 # The inside of a screen room, between its walls.
 const FLOOR_Y: float = 860.0
 const CEILING_Y: float = 280.0
 const LEFT_X: float = 360.0
 const RIGHT_X: float = 1560.0
+const INSIDE: Rect2 = Rect2(LEFT_X, CEILING_Y, RIGHT_X - LEFT_X, FLOOR_Y - CEILING_Y)
+# How much of the walls stays in view around the inside when a room is fitted, in room units.
+const FIT_RIM: float = 16.0
+# The largest a room is ever drawn, so a tablet does not blow it up past what its art holds.
+const FIT_MOST: float = 2.0
 # Where the runner's centre is when standing on the floor or the ceiling.
 const STAND_FLOOR: float = 821.0
 const STAND_CEILING: float = 319.0
@@ -57,6 +62,19 @@ static func chapter_line(chapter: int) -> String:
 
 static func get_level(index: int) -> Dictionary:
 	return chapter_script(chapter_ids[index / CHAPTER_ROOMS]).build(index % CHAPTER_ROOMS)
+
+
+# The zoom that shows a room's inside, with FIT_RIM of its walls, as large as `view` allows once `reserve` is kept
+# clear for the HUD (left, top, right and bottom, in view pixels).
+static func fit_zoom(view: Vector2, reserve: Vector4) -> float:
+	var room: Vector2 = INSIDE.size + Vector2.ONE * FIT_RIM * 2.0
+	var free: Vector2 = view - Vector2(reserve.x + reserve.z, reserve.y + reserve.w)
+	return clampf(minf(free.x / room.x, free.y / room.y), 0.1, FIT_MOST)
+
+
+# Where the camera looks so the room sits in the middle of what the reserve leaves free.
+static func fit_centre(zoom: float, reserve: Vector4) -> Vector2:
+	return INSIDE.get_center() - Vector2(reserve.x - reserve.z, reserve.y - reserve.w) * 0.5 / zoom
 
 
 static func screen_frame() -> Array[Rect2]:

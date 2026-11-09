@@ -2,6 +2,8 @@ class_name ButtonMeter
 extends Control
 
 var collected: int = 0
+# Standing up in a side rail, the buttons run down rather than across.
+var vertical: bool = false
 # The first banked buttons are sewn on by a flower. The rest of the collected ones are loose and wobble.
 var banked: int = 0
 var total: int = 3
@@ -57,11 +59,17 @@ func _draw() -> void:
 	draw_colored_polygon(front, colors[0])
 	draw_polyline(front, colors[1], 2.0, true)
 	draw_line(front[7], front[0], colors[1], 2.0, true)
-	for x: int in range(28, int(size.x - 17), 15):
-		draw_line(Vector2(x, 11), Vector2(x + 7, 11), colors[1], 1.6, true)
-		draw_line(Vector2(x, size.y - 18), Vector2(x + 7, size.y - 18), colors[1], 1.6, true)
+	if vertical:
+		for y: int in range(28, int(size.y - 17), 15):
+			draw_line(Vector2(11, y), Vector2(11, y + 7), colors[1], 1.6, true)
+			draw_line(Vector2(size.x - 18, y), Vector2(size.x - 18, y + 7), colors[1], 1.6, true)
+	else:
+		for x: int in range(28, int(size.x - 17), 15):
+			draw_line(Vector2(x, 11), Vector2(x + 7, 11), colors[1], 1.6, true)
+			draw_line(Vector2(x, size.y - 18), Vector2(x + 7, size.y - 18), colors[1], 1.6, true)
 	for index: int in range(total):
-		var center: Vector2 = Vector2(45.0 + float(index) * 55.0, size.y * 0.49)
+		var step: float = 45.0 + float(index) * 55.0
+		var center: Vector2 = Vector2(size.x * 0.49, step) if vertical else Vector2(step, size.y * 0.49)
 		var held: bool = index < collected
 		var sewn: bool = index < banked
 		if held and not sewn:

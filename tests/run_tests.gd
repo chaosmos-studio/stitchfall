@@ -56,6 +56,9 @@ func _run() -> void:
 	await _test_gesture_controls()
 	await _test_fraying_ledge()
 	_test_room_clearance()
+	_test_room_fit()
+	_test_coached_flag()
+	await _test_coach_steps()
 	await _test_screen_routes()
 	await _test_stitchfall_playthrough()
 	print("\n==== TESTS: %d passed, %d failed ====" % [_passed, _failed])
@@ -1047,8 +1050,87 @@ func _test_next_brings_the_ad() -> void:
 	await process_frame
 
 
-# On every menu page that carries the banner, the page shrinks so its lowest button keeps BUTTON_GAP_DP above
-# the banner and its cloth stops short of it. Home, play and the full-screen cards never carry one.
+# A room is fitted to what the HUD leaves of the screen: larger than the old fixed zoom of 1.4 on a 16:9 screen and
+# a wide phone, its inside always wholly on screen and clear of the reserve, and centred in what is left.
+func _test_room_fit() -> void:
+	var inside: Rect2 = StitchfallLevels.INSIDE
+	var cases: Dictionary = {
+		"16:9 with a top strip": [Vector2(1920, 1080), Vector4(8, 108, 8, 8)],
+		"20:9 with side rails": [Vector2(2400, 1080), Vector4(142, 8, 142, 8)],
+		"4:3 with a top strip": [Vector2(1920, 1440), Vector4(8, 108, 8, 8)],
+	}
+	for name: String in cases:
+		var view: Vector2 = cases[name][0]
+		var reserve: Vector4 = cases[name][1]
+		var zoom: float = StitchfallLevels.fit_zoom(view, reserve)
+		var centre: Vector2 = StitchfallLevels.fit_centre(zoom, reserve)
+		# Where the inside lands on screen with the camera at `centre`, centred on the view.
+		var shown: Rect2 = Rect2((inside.position - centre) * zoom + view * 0.5, inside.size * zoom)
+		var free: Rect2 = Rect2(reserve.x, reserve.y, view.x - reserve.x - reserve.z, view.y - reserve.y - reserve.w)
+		_check("%s draws the room larger than the old 1.4 (%.2f)" % [name, zoom], zoom > 1.45)
+		_check("%s keeps the room's inside on screen and clear of the HUD" % name, free.grow(0.5).encloses(shown))
+		_check("%s centres the room in what the HUD leaves" % name, shown.get_center().distance_to(free.get_center()) < 0.5)
+	_check("a wide phone fits the room by its height", StitchfallLevels.fit_zoom(Vector2(2400, 1080), Vector4(142, 8, 142, 8)) > 1.7)
+	_check("a tablet never blows the room past its art", StitchfallLevels.fit_zoom(Vector2(4000, 3000), Vector4.ZERO) <= StitchfallLevels.FIT_MOST)
+
+
+# Whether the first room's coach has taught: a new player has not, someone with stars from before the coach counts as
+# taught, and a reset brings the lessons back.
+func _test_coached_flag() -> void:
+	var old_path: String = StitchfallProgress.path
+	StitchfallProgress.path = "user://test_coached.cfg"
+	var fresh: StitchfallProgress = StitchfallProgress.new()
+	fresh.load_saved()
+	_check("a new player has not been coached", not fresh.coached)
+	var file: ConfigFile = ConfigFile.new()
+	file.set_value("stars", "0", 3)
+	file.save(StitchfallProgress.path)
+	var veteran: StitchfallProgress = StitchfallProgress.new()
+	veteran.load_saved()
+	_check("a player with stars from before the coach counts as coached", veteran.coached)
+	veteran.reset()
+	var after: StitchfallProgress = StitchfallProgress.new()
+	after.load_saved()
+	_check("a reset brings the lessons back", not after.coached)
+	after.coached = true
+	after.save()
+	var kept: StitchfallProgress = StitchfallProgress.new()
+	kept.load_saved()
+	_check("being coached is saved", kept.coached)
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(StitchfallProgress.path))
+	StitchfallProgress.path = old_path
+
+
+# The coach only counts the lesson on its card, skips a lesson already learned, and holds the room's clock while it
+# teaches but not on its last card.
+func _test_coach_steps() -> void:
+	var coach: StitchfallCoach = StitchfallCoach.new()
+	root.add_child(coach)
+	await process_frame
+	coach.begin(true)
+	_check("the coach starts with running", coach.current() == "move" and coach.coaching())
+	coach.done("jump")
+	_check("a jump does not finish the running lesson", coach.current() == "move")
+	coach.done("move")
+	_check("the running lesson praises, then waits", coach.current() == "")
+	coach._next()
+	_check("then comes jumping", coach.current() == "jump")
+	coach.stop()
+	coach.begin(true)
+	_check("a lesson learned this session is skipped next time", coach.current() == "jump")
+	coach.learned["jump"] = true
+	coach.learned["turn"] = true
+	coach.learned["floor"] = true
+	coach.stop()
+	coach.begin(true)
+	_check("with every lesson learned only the goal is left", coach.current() == "goal" and not coach.coaching())
+	coach.queue_free()
+	await process_frame
+
+
+# On every page that carries the banner, the page shrinks so its lowest button keeps BUTTON_GAP_DP above the
+# banner and its cloth stops short of it. Play never carries one, since the room is played by tapping anywhere,
+# and nor do Settings, About, the Shop and the page before a purchase.
 func _test_banner_keeps_clear() -> void:
 	var game: Node2D = _game()
 	await process_frame
@@ -1060,7 +1142,7 @@ func _test_banner_keeps_clear() -> void:
 		game.progress.best_stars[room] = 1
 	var hud: StitchfallHud = game.hud
 	var pages: Dictionary = {"levels": hud.level_page, "wardrobe": hud.wardrobe_page, "credits": hud.credits_page,
-		"stats": hud.stats_page}
+		"stats": hud.stats_page, "help": hud.help_page}
 	for name: String in pages:
 		hud.call("show_%s" % name)
 		var page: Control = pages[name]
@@ -1080,7 +1162,16 @@ func _test_banner_keeps_clear() -> void:
 		_check("%s keeps every button and line %d px clear of the banner (lowest %d, banner top %d)" % [name, roundi(StitchfallAds.BUTTON_GAP_DP * StitchfallAds.per_dp()), roundi(lowest), roundi(banner.position.y)], lowest <= clear_line + 0.5)
 		_check("%s's cloth stops above the banner" % name, cloth_end <= banner.position.y)
 		_check("%s shrinks no further than it must" % name, hud.page_fit(page) >= 0.7)
-	for name: String in ["home", "help", "settings", "about"]:
+	# Home's menu shrinks as a page does, and its lowest button keeps the same gap.
+	hud.show_home()
+	var gap: float = StitchfallAds.BUTTON_GAP_DP * StitchfallAds.per_dp()
+	var home_top: float = StitchfallAds.banner_rect().position.y
+	var home_lowest: float = 0.0
+	for part: Node in hud.home_menu.find_children("*", "StitchedButton", true, false):
+		home_lowest = maxf(home_lowest, (part as Control).get_global_rect().end.y)
+	_check("home carries the banner once 3 rooms are sewn", StitchfallAds.banner_wanted())
+	_check("home keeps its menu %d px clear of the banner (lowest %d, banner top %d)" % [roundi(gap), roundi(home_lowest), roundi(home_top)], home_lowest <= home_top - gap + 0.5)
+	for name: String in ["settings", "about"]:
 		hud.call("show_%s" % name)
 		_check("%s never carries the banner" % name, not StitchfallAds.banner_wanted())
 	# A shut room's note and its Every room offer sit low on the Levels page, and still keep clear of the banner.
@@ -1106,7 +1197,14 @@ func _test_banner_keeps_clear() -> void:
 	game._on_begin()
 	_check("play never carries the banner", not StitchfallAds.banner_wanted())
 	game._on_pause()
-	_check("the pause page never carries the banner", not StitchfallAds.banner_wanted())
+	var pause_lowest: float = 0.0
+	for part: Node in hud.pause_page.find_children("*", "StitchedButton", true, false):
+		var pause_button: Control = part as Control
+		if pause_button.is_visible_in_tree():
+			pause_lowest = maxf(pause_lowest, pause_button.get_global_rect().end.y)
+	_check("a paused room carries the banner, since it is not play", StitchfallAds.banner_wanted())
+	_check("the pause page keeps its buttons clear of the banner (lowest %d, banner top %d)" % [roundi(pause_lowest), roundi(StitchfallAds.banner_rect().position.y)],
+		pause_lowest <= StitchfallAds.banner_rect().position.y - gap + 0.5)
 	hud.show_settings()
 	StitchfallShop.grant(game.progress, StitchfallMonetize.SUPPORTER_ID, true)
 	_check("a Supporter never sees the banner", not StitchfallAds.banner_wanted() and is_equal_approx(hud.page_fit(hud.settings_page), 1.0))

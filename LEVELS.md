@@ -27,7 +27,7 @@ Players also call it unfair and rage-inducing. Stitchfall should keep the surpri
 
 ## Stitchfall's rules for a room
 
-- **Seen whole.** A screen room is 1260 by 640, at a fixed zoom of 1.4 on every device, and the camera never moves (`SCREEN` and `SCREEN_ZOOM` in `scripts/level_data.gd`).
+- **Seen whole.** A screen room is 1260 by 640, and the camera never moves. It is fitted to the screen as large as the HUD allows, so its inside is always wholly in view (`fit_zoom` in `scripts/level_data.gd`, and MATH.md, Fitting a room to a phone).
 - **One prank, and a tell.** Every trap is fair on a second look: pop-up needles show their eyes in the cloth, a zipper that runs is sewn on a visible track. The first death should make you laugh, the second try should work.
 - **The buttons are the clue.** Where a button sits says which way to go: on the ceiling, in mid-air, on a wall. No room explains itself in words.
 - **A name, not an instruction.** The intro card shows only the room's name, like "Same Room" or "Nothing New".

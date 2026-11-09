@@ -75,6 +75,9 @@ var exit_position: Vector2 = Vector2.ZERO
 var exit_flees: int = 0
 var unravel: StitchfallUnravel
 var camera: Camera2D
+# Where the camera looks and how near, from the room fitted into what the HUD leaves of the screen.
+var fitted_zoom: float = 1.4
+var fitted_centre: Vector2 = StitchfallLevels.INSIDE.get_center()
 var hud: StitchfallHud
 var step_sound: AudioStreamPlayer
 var music: AudioStreamPlayer
@@ -97,6 +100,10 @@ const MUSIC_DB: float = -17.0
 const MUSIC_DUCK_DB: float = -32.0
 const PULL_IN_TIME: float = 0.42
 const CARD_DELAY: float = 0.95
+# The coach comes in once the room's name has had its moment, and counts a run once the runner is this far from
+# the start.
+const COACH_DELAY: float = 1.1
+const COACH_RUN: float = 140.0
 
 
 func _ready() -> void:
@@ -143,6 +150,9 @@ func _ready() -> void:
 	hud.level_selected.connect(_on_level_selected)
 	hud.sound_toggled.connect(_on_sound_toggled)
 	hud.skip_pressed.connect(_on_skip)
+	hud.play_frame_changed.connect(_fit_camera)
+	hud.coach.finished.connect(_on_coached)
+	hud.practice_pressed.connect(_on_practice)
 	_start_store()
 	StitchfallAds.start()
 	StitchfallAnalytics.start()
@@ -189,7 +199,9 @@ func _exit_tree() -> void:
 func _process(delta: float) -> void:
 	if playing and not finished:
 		run_time += delta
-		room_time += delta
+		# The room's clock stands still while the coach teaches, so learning never costs the Quick star.
+		if not hud.coach.coaching():
+			room_time += delta
 		_update_hud()
 	if is_instance_valid(pilot):
 		camera.position = camera.position.lerp(_camera_target(), minf(delta * 4.0, 1.0))
@@ -241,8 +253,17 @@ func _notification(what: int) -> void:
 
 
 func _camera_target() -> Vector2:
-	var chamber: Rect2 = level["chamber"]
-	return chamber.get_center()
+	return fitted_centre
+
+
+# Fits the room into the screen the HUD leaves free: called on every room and whenever the screen or the HUD's
+# layout changes.
+func _fit_camera() -> void:
+	var view: Vector2 = get_viewport().get_visible_rect().size
+	fitted_zoom = StitchfallLevels.fit_zoom(view, hud.play_reserve)
+	fitted_centre = StitchfallLevels.fit_centre(fitted_zoom, hud.play_reserve)
+	camera.zoom = Vector2.ONE * fitted_zoom
+	camera.position = fitted_centre
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -356,6 +377,7 @@ func _physics_process(_delta: float) -> void:
 	if not playing or finished or not is_instance_valid(pilot):
 		return
 	world.gust_clock = pilot.environment_clock
+	_check_coach()
 	if world.door_open and not respawning and pilot.position.distance_to(exit_position) < 65.0:
 		_clear_room()
 		return
@@ -369,7 +391,44 @@ func _physics_process(_delta: float) -> void:
 		print("STITCHFALL_FLEE ", level_index, " ", exit_flees)
 
 
+# The lessons that are states rather than moments: a run away from the start, and standing on the floor again
+# after turning the room all the way round.
+func _check_coach() -> void:
+	match hud.coach.current():
+		"move":
+			var start: Vector2 = level["start"]
+			if absf(pilot.position.x - start.x) > COACH_RUN:
+				hud.coach.done("move")
+		"floor":
+			if gravity_direction == Vector2.DOWN:
+				hud.coach.done("floor")
+
+
+func _wants_coach() -> bool:
+	return StitchfallCoach.enabled and DisplayServer.get_name() != "headless" and not progress.coached and level_index <= 1
+
+
+func _start_coach(index: int) -> void:
+	if level_index == index and playing and not cleared and not hud.coach.visible:
+		hud.coach.begin(StitchfallHud.touch())
+
+
+func _on_coached() -> void:
+	progress.coached = true
+	progress.save()
+
+
+# The guide's Practice: the first room from the start, with every lesson again.
+func _on_practice() -> void:
+	progress.coached = false
+	hud.coach.learned.clear()
+	finished = false
+	_load_level(0)
+	_on_begin()
+
+
 func _load_level(index: int) -> void:
+	hud.coach.stop()
 	touch_starts.clear()
 	mobile_crouched = false
 	level_index = index
@@ -421,7 +480,7 @@ func _load_level(index: int) -> void:
 		tripwire.body_entered.connect(_on_popup_tripped.bind(popup_index))
 	exit_position = level["exit"]
 	exit_flees = 0
-	camera.zoom = Vector2.ONE * StitchfallLevels.SCREEN_ZOOM
+	_fit_camera()
 	fray_ledges.clear()
 	for data: Dictionary in level["fray_ledges"]:
 		var ledge: StitchfallFrayLedge = FRAY_LEDGE_SCRIPT.new() as StitchfallFrayLedge
@@ -493,6 +552,7 @@ func _load_level(index: int) -> void:
 	world.popup_raised = popup_raised.duplicate()
 	hud.set_room_intro(level["name"])
 	hud.set_room_label(StitchfallLevels.chapter_name(index / StitchfallLevels.CHAPTER_ROOMS), index % StitchfallLevels.CHAPTER_ROOMS + 1, level["name"])
+	hud.set_next_room(index, level["name"])
 	hud.set_unravels(0)
 	hud.show_skip_hint(false)
 	_update_hud()
@@ -747,6 +807,7 @@ func _shift(step: int) -> void:
 	world.shift_age = 0.0
 	print("STITCHFALL_SHIFT ", gravity_direction)
 	_play_sound("shift")
+	hud.coach.done("turn")
 	_update_hud()
 
 
@@ -799,8 +860,8 @@ func _sew_shut(index: int, par: float) -> void:
 	world.celebrate(exit_position)
 	_shake(SHAKE_PRANK)
 	var punch: Tween = create_tween()
-	punch.tween_property(camera, "zoom", camera.zoom * 1.06, 0.12).set_ease(Tween.EASE_OUT)
-	punch.tween_property(camera, "zoom", camera.zoom, 0.45).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+	punch.tween_property(camera, "zoom", Vector2.ONE * fitted_zoom * 1.06, 0.12).set_ease(Tween.EASE_OUT)
+	punch.tween_property(camera, "zoom", Vector2.ONE * fitted_zoom, 0.45).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 	await get_tree().create_timer(CARD_DELAY - PULL_IN_TIME).timeout
 	if not cleared or level_index != index:
 		return
@@ -1002,6 +1063,8 @@ func _on_begin() -> void:
 	_set_running(true)
 	hud.hide_panel()
 	hud.set_room_intro(level["name"])
+	if _wants_coach() and not hud.coach.visible:
+		get_tree().create_timer(COACH_DELAY).timeout.connect(_start_coach.bind(level_index))
 	print("STITCHFALL_START ", level_index)
 
 
@@ -1029,6 +1092,7 @@ func _duck_music(hold: float) -> void:
 func _on_pilot_jumped() -> void:
 	print("STITCHFALL_JUMP")
 	_play_sound("jump")
+	hud.coach.done("jump")
 
 
 func _play_step(volume: float) -> void:

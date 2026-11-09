@@ -18,11 +18,16 @@ var glyph: String = ""
 var cloth: Color = Color("f1e2c8")
 var ink: Color = Color("493a37")
 var home_link: bool = false
+# Home's one big button: the play patch on the left, the word large, and the room it leads to under it.
+var primary: bool = false
 var pause_action: bool = false
 var level_tile: bool = false
 # A level tile shows its best stars, or none while it is -1, and fades out while locked.
 var stars: int = -1
 var locked: bool = false
+# The room Play would open next: an accent ring and a NEXT tag, breathing slowly.
+var next_up: bool = false
+var age: float = 0.0
 # A caption's font size, or 0 to size it from the button.
 var caption_size: int = 0
 # A pack in the Shop: a tall felt patch with its icon, name, what it holds, and its price or that it is owned.
@@ -30,6 +35,16 @@ var shop_card: bool = false
 var lines: PackedStringArray = PackedStringArray()
 var price_tag: String = ""
 var owned: bool = false
+var press: Tween
+
+const PRESS_SCALE: float = 0.94
+
+
+func _squeeze(to: float, seconds: float, trans: Tween.TransitionType, curve: Tween.EaseType) -> void:
+	if press != null:
+		press.kill()
+	press = create_tween()
+	press.tween_property(self, "scale", Vector2.ONE * to, seconds).set_trans(trans).set_ease(curve)
 
 
 func _ready() -> void:
@@ -38,7 +53,13 @@ func _ready() -> void:
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	for state: String in ["normal", "hover", "pressed", "focus", "disabled"]:
 		add_theme_stylebox_override(state, StyleBoxEmpty.new())
-	resized.connect(queue_redraw)
+	resized.connect(func() -> void:
+		pivot_offset = size * 0.5
+		queue_redraw())
+	pivot_offset = size * 0.5
+	# A press squeezes the patch in fast and lets it spring back on release, so a thumb feels it land.
+	button_down.connect(func() -> void: _squeeze(PRESS_SCALE, 0.07, Tween.TRANS_QUAD, Tween.EASE_OUT))
+	button_up.connect(func() -> void: _squeeze(1.0, 0.22, Tween.TRANS_BACK, Tween.EASE_OUT))
 	mouse_entered.connect(queue_redraw)
 	mouse_exited.connect(queue_redraw)
 	focus_entered.connect(queue_redraw)
@@ -49,6 +70,9 @@ func _draw() -> void:
 	var hovered: bool = is_hovered() or has_focus()
 	if home_link:
 		_draw_home_link(hovered)
+		return
+	if primary:
+		_draw_primary(hovered)
 		return
 	if pause_action:
 		_draw_pause_action(hovered)
@@ -91,6 +115,24 @@ func _draw_home_link(hovered: bool) -> void:
 	draw_string(MENU_FONT, Vector2(121, baseline), caption, HORIZONTAL_ALIGNMENT_LEFT, size.x - 135.0, font_size, label_color)
 
 
+func _draw_primary(hovered: bool) -> void:
+	var lift: float = -3.0 if hovered else 0.0
+	_draw_plate(lift, cloth.lightened(0.1) if hovered else cloth)
+	var patch: float = size.y * 0.66
+	var patch_position: Vector2 = Vector2(size.y * 0.2, (size.y - patch) * 0.5 + lift)
+	draw_texture_rect(ICON_PATCH, Rect2(patch_position, Vector2.ONE * patch), false, cloth.darkened(0.08))
+	_draw_icon(patch_position + Vector2.ONE * patch * 0.5, patch * 0.24)
+	var text_left: float = patch_position.x + patch + size.y * 0.14
+	var width: float = size.x - text_left - size.y * 0.16
+	var caption_font: int = caption_size if caption_size > 0 else 66
+	# The word sits high and the room's name low, with clear cloth between them.
+	var baseline: float = size.y * (0.62 if subcaption.is_empty() else 0.47) + lift
+	draw_string(MENU_FONT, Vector2(text_left, baseline), caption, HORIZONTAL_ALIGNMENT_LEFT, width, caption_font, ink)
+	if not subcaption.is_empty():
+		var small: int = int(clampf(size.y * 0.2, 24.0, 30.0))
+		draw_string(BODY_FONT, Vector2(text_left, size.y * 0.77 + lift), subcaption, HORIZONTAL_ALIGNMENT_LEFT, width, small, Color(ink, 0.82))
+
+
 func _draw_pause_action(hovered: bool) -> void:
 	var lift: float = -5.0 if hovered else 0.0
 	var patch_size: float = minf(size.x - 20.0, size.y * 0.72)
@@ -102,18 +144,43 @@ func _draw_pause_action(hovered: bool) -> void:
 	draw_string(MENU_FONT, Vector2(0, size.y - 8.0 + lift), caption, HORIZONTAL_ALIGNMENT_CENTER, size.x, font_size, ink)
 
 
+func _process(delta: float) -> void:
+	if level_tile and next_up and is_visible_in_tree():
+		age += delta
+		queue_redraw()
+
+
 func _draw_level_tile(hovered: bool) -> void:
-	var lift: float = -4.0 if hovered and not locked else 0.0
+	var breath: float = sin(age * 2.6) * 3.0 if next_up else 0.0
+	var lift: float = (-4.0 if hovered and not locked else 0.0) + breath
 	var tint: Color = cloth.lightened(0.1) if hovered and not locked else cloth
 	if locked:
 		tint = tint.darkened(0.25)
 	var faded: Color = Color(ink, 0.45) if locked else ink
-	draw_texture_rect(ICON_PATCH, Rect2(Vector2(12, lift), Vector2(size.x - 24.0, size.y - 42.0)), false, tint)
-	draw_string(MENU_FONT, Vector2(0, size.y * 0.5 + lift), caption, HORIZONTAL_ALIGNMENT_CENTER, size.x, 88, faded)
-	if stars >= 0 and not locked:
+	var patch: Rect2 = Rect2(Vector2(12, lift), Vector2(size.x - 24.0, size.y - 52.0))
+	if next_up:
+		# A terracotta patch behind the room to play next, showing round its edge.
+		draw_texture_rect(ICON_PATCH, patch.grow(10.0), false, Color("e0a278"))
+	draw_texture_rect(ICON_PATCH, patch, false, tint)
+	draw_string(MENU_FONT, Vector2(0, patch.size.y * 0.5 + 22.0 + lift), caption, HORIZONTAL_ALIGNMENT_CENTER, size.x, 88, faded)
+	if locked:
+		_draw_lock(Vector2(size.x * 0.5, patch.size.y * 0.78 + lift))
+	elif stars >= 0:
 		for index: int in range(3):
-			StitchfallStarRow.draw_star(self, Vector2(size.x * 0.5 + float(index - 1) * 46.0, size.y * 0.66 + lift), 19.0, index < stars, StitchfallStarRow.GOLD)
-	draw_string(BODY_FONT, Vector2(0, size.y - 1.0 + lift), "Locked" if locked else subcaption, HORIZONTAL_ALIGNMENT_CENTER, size.x, 34, faded)
+			StitchfallStarRow.draw_star(self, Vector2(size.x * 0.5 + float(index - 1) * 46.0, patch.size.y * 0.78 + lift), 19.0, index < stars, StitchfallStarRow.GOLD)
+	draw_string(BODY_FONT, Vector2(0, size.y - 8.0 + breath), "Locked" if locked else subcaption, HORIZONTAL_ALIGNMENT_CENTER, size.x, 32, faded)
+	if next_up:
+		var tag: Rect2 = Rect2(size.x * 0.5 - 52.0, lift - 14.0, 104.0, 36.0)
+		draw_rect(tag, Color("a85648"))
+		draw_string(FONT, Vector2(tag.position.x, tag.position.y + 28.0), "NEXT", HORIZONTAL_ALIGNMENT_CENTER, tag.size.x, 26, Color("f7edda"))
+
+
+# A small sewn padlock for a shut room.
+func _draw_lock(center: Vector2) -> void:
+	var body: Rect2 = Rect2(center + Vector2(-17, -6), Vector2(34, 26))
+	draw_arc(center + Vector2(0, -6), 11.0, PI, TAU, 16, Color(ink, 0.55), 4.0, true)
+	draw_rect(body, Color(ink, 0.55))
+	draw_circle(center + Vector2(0, 6), 3.5, Color(cloth, 0.9))
 
 
 func _draw_shop_card(hovered: bool) -> void:

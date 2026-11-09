@@ -32,6 +32,9 @@ var play_time: float = 0.0
 # The rooms sewn when Play's review card was last asked for, and whether Rate has opened the Play page.
 var rate_asked: int = 0
 var rated: bool = false
+# Whether the first room's coach has taught the controls. Someone who sewed a room before it existed counts as
+# taught.
+var coached: bool = false
 
 
 # One star for finishing, one for finishing without an unravel, one for beating the room's par time.
@@ -85,6 +88,7 @@ func load_saved() -> void:
 	sound = file.get_value("settings", "sound", true)
 	music = file.get_value("settings", "music", true)
 	shake = file.get_value("settings", "shake", true)
+	coached = file.get_value("settings", "coached", not best_stars.is_empty())
 
 
 func _keys(file: ConfigFile, section: String) -> PackedStringArray:
@@ -118,6 +122,7 @@ func save() -> void:
 	file.set_value("settings", "sound", sound)
 	file.set_value("settings", "music", music)
 	file.set_value("settings", "shake", shake)
+	file.set_value("settings", "coached", coached)
 	file.save(path)
 
 
@@ -197,4 +202,5 @@ func reset() -> void:
 	buttons = 0
 	banked = 0
 	play_time = 0.0
+	coached = false
 	save()

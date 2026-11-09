@@ -4,7 +4,7 @@ extends RefCounted
 # The kit's ads (kit/monetize/ads.gd in the kit games), placed for a landscape platformer. An ad that is not
 # loaded simply does not show, so the game never waits for one, and nothing ever shows during play.
 #
-# - A banner only on the menu pages (BANNER_SCREENS), once StitchfallAdPacing.BANNER_AFTER rooms are sewn: a
+# - A banner on every page but play (BANNER_SCREENS), once StitchfallAdPacing.BANNER_AFTER rooms are sewn: a
 #   320 dp strip centred at the foot of the screen, clear of Android's gesture area. The page it sits under
 #   shrinks until every button keeps BUTTON_GAP_DP above it, by AdMob's accidental-click guidance.
 # - An ad between rooms only from Next on the clear card (maybe_interstitial), paced by StitchfallAdPacing.
@@ -27,8 +27,11 @@ const BUTTON_GAP_DP: float = 40.0
 const PREVIEW_HEIGHT_DP: float = 400.0
 # Above the hud, as AdMob's own view is above the game.
 const BANNER_LAYER: int = 4
-# The pages people browse. Settings (with Privacy and Reset) and About stay clear, as in the kit games.
-const BANNER_SCREENS: PackedStringArray = ["levels", "wardrobe", "credits", "stats"]
+# Every page but play itself. Stitchfall is played by tapping and swiping anywhere, and AdMob advises against a
+# banner on a game screen people keep tapping, so a running room never has one (Shravan chose this on 9 November
+# 2026). Settings (with Privacy and Reset) and About stay clear as in the kit games, and so do the Shop and its
+# offers, a chapter's short title card and the update offer.
+const BANNER_SCREENS: PackedStringArray = ["home", "levels", "wardrobe", "credits", "stats", "help", "pause", "finish", "clear"]
 
 # The game's progress, set at launch, which says how many rooms are sewn and whether the Supporter pack is owned.
 static var progress: StitchfallProgress

@@ -20,6 +20,20 @@ Floodwater adds 33 percent of normal gravity and damps existing fall speed each 
 Dune wind adds a rightward world force, while the forest canopy adds an upward world force.
 The orbital rim uses 27 percent of normal gravity and slower air steering, extending jumps without changing the pull's direction.
 
+## Fitting a room to a phone
+
+A room is always seen whole, but a phone is wider than the 16:9 the rooms were drawn for, so a fixed zoom left a 20:9 phone with empty strips beside a small room.
+Now the camera fits the room's inside, 1200 by 580, plus 16 units of wall on every side (1232 by 612), into whatever the HUD leaves of the screen.
+With the screen `W × H` and the HUD keeping `l, t, r, b` pixels clear at the left, top, right and bottom, the zoom is the smaller of `(W − l − r) / 1232` and `(H − t − b) / 612`.
+The camera then looks `((l − r) / 2, (t − b) / 2) / zoom` up and to the left of the room's middle, so the room sits in the middle of the free part, not the middle of the screen.
+
+Where the HUD goes decides the reserve, and the HUD tries both places and keeps the larger room:
+- **A strip along the top**, 138 pixels on a phone and 8 at the foot: on 16:9, 1920 by 1080, the height decides, `(1080 − 146) / 612 ≈ 1.53`, a little under the width's `(1920 − 16) / 1232 ≈ 1.55`.
+- **Two rails at the sides**, 142 pixels each: on 20:9, 2400 by 1080, a top strip would also give 1.53, but rails leave the full height, `(2400 − 284) / 1232 ≈ 1.72` against `(1080 − 16) / 612 ≈ 1.74`, so 1.72.
+
+Against the old 1.4 everywhere, that is about 9% larger on a 16:9 phone and 23% larger on a 20:9 one, half as much area again.
+The zoom stops at 2, so a tablet does not blow the art up past its detail.
+
 ## Falling sideways
 
 Turns only go one way, down, left, up, right, then down again.
