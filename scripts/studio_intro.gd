@@ -1,0 +1,34 @@
+class_name StitchfallStudioIntro
+extends RefCounted
+
+# A cold start opens on the studio's beat: the Chaosmos wordmark sewn onto the game's linen (res://intro/, made
+# and previewed in studio/chaosmos-intro and copied here by its tools/install.sh, so never edited here). The
+# banner stays covered while it plays, and a tap skips it. It plays once a launch, never headless (the tests and
+# the route proofs) and never in the capture tool.
+
+const STYLE: String = "res://intro/games/stitchfall.gd"
+const LAYER: int = 100
+
+static var enabled: bool = true
+static var _played: bool = false
+
+
+# Plays it over `host` and calls `done` once it has faded, or at once when it does not play.
+static func play(host: Node, done: Callable) -> void:
+	if _played or not enabled or DisplayServer.get_name() == "headless":
+		done.call()
+		return
+	_played = true
+	var layer: CanvasLayer = CanvasLayer.new()
+	layer.layer = LAYER
+	host.add_child(layer)
+	var intro: ChaosmosIntro = ChaosmosIntro.new()
+	intro.style_name = STYLE
+	layer.add_child(intro)
+	intro.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	StitchfallAds.cover(true)
+	intro.finished.connect(func() -> void:
+		StitchfallAds.cover(false)
+		layer.queue_free()
+		print("STITCHFALL_INTRO_DONE")
+		done.call())

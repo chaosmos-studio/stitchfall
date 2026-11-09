@@ -8,9 +8,9 @@ const DESKTOP = { viewport: { width: 1280, height: 720 } };
 
 // The buttons the check presses, as hud.gd's Rect2(x, y, width, height) in the 1920 x 1080 design.
 const HUD = {
-  // _build_home, in the menu's own space (HOME_PLAY and the tiles under it): the browser build has no Shop, so its
-  // two tiles share the Play patch's width. Settings is the corner patch, placed from the root's right edge.
-  home: { play: [0, 270, 640, 186], levels: [0, 482, 311, 192] },
+  // _build_home, in the menu's own space (HOME_PLAY and the rows under it from HOME_ROWS_Y): the browser build has
+  // no Shop, so Levels and Wardrobe are its two rows. Settings is the corner patch, placed from the root's right edge.
+  home: { play: [0, 270, 640, 186], levels: [0, 482, 640, 100] },
   // _build_help: Back to Settings, and PLAY, which starts the room.
   guide: { back: [262, 118, 104, 104], start: [1430, 696, 240, 108] },
   // _build_settings: two columns of rows from SETTINGS_X, SETTINGS_Y and SETTINGS_STEP. HOW TO PLAY opens the right
@@ -26,9 +26,9 @@ const HUD = {
 
 // The home painting's size and its painted pocket (HOME_SCENE, HOME_POCKET), and the menu sized to and centred in
 // it (HOME_MENU_SHARE, HOME_MENU_LARGEST, HOME_MARGIN, HOME_PLAY's width, and the menu's top and foot: HOME_LOGO's
-// y and HOME_TILES_Y + HOME_TILE_HEIGHT).
+// y and the browser build's second row's end, HOME_ROWS_Y + 2 * HOME_ROW_HEIGHT + HOME_ROW_GAP).
 const HOME_ART = { width: 1672, height: 941, pocket: [20, 80, 780, 760] };
-const HOME_MENU = { share: 0.74, largest: 1.25, margin: 24, width: 640, top: 110, foot: 674 };
+const HOME_MENU = { share: 0.74, largest: 1.25, margin: 24, width: 640, top: 110, foot: 696 };
 
 // hud.gd _layout_home: where the menu's own space lands on a root `rootWidth` by 1080, and how much it is scaled.
 function homeMenu(rootWidth) {
@@ -121,6 +121,9 @@ async function main() {
     const context = await browser.newContext(PHONE);
     await seedSave(context, baseUrl, '[skipped]\n\n8=true\n');
     const page = await context.newPage();
+    // A launch opens on the studio's beat (scripts/studio_intro.gd), which a tap would skip, so every page waits
+    // for it to end before pressing anything.
+    const pageIntro = printed(page, 'STITCHFALL_INTRO_DONE', 180000);
     const errors = [];
     const shifts = [];
     page.on('pageerror', error => errors.push(String(error)));
@@ -141,6 +144,7 @@ async function main() {
       throw new Error(`Game loading stalled at ${progress}: ${failure || error}`);
     }
     if (await page.locator('#error').textContent()) throw new Error(await page.locator('#error').textContent());
+    await pageIntro;
     await page.waitForTimeout(800);
     if (errors.length) throw new Error(errors.join('\n'));
     await page.screenshot({ path: path.join(results, 'intro.png') });
@@ -224,8 +228,10 @@ async function main() {
     await page.screenshot({ path: path.join(results, 'mobile.png') });
     await context.close();
     const desktop = await browser.newPage(DESKTOP);
+    const desktopIntro = printed(desktop, 'STITCHFALL_INTRO_DONE', 180000);
     await desktop.goto(baseUrl, { timeout: 180000 });
     await desktop.waitForFunction(() => document.getElementById('loading')?.hidden, null, { timeout: 90000 });
+    await desktopIntro;
     await desktop.waitForTimeout(800);
     const desktopStart = printed(desktop, 'STITCHFALL_START 0');
     const play = screen(DESKTOP.viewport, false).home(HUD.home.play);
@@ -250,9 +256,11 @@ async function main() {
       const previewErrors = [];
       preview.on('pageerror', error => previewErrors.push(String(error)));
       const roomLoaded = printed(preview, `STITCHFALL_ROOM ${room}`, 90000);
+      const previewIntro = printed(preview, 'STITCHFALL_INTRO_DONE', 180000);
       await preview.goto(new URL(`?room=${room}`, baseUrl).toString(), { timeout: 180000 });
       await roomLoaded;
       await preview.waitForFunction(() => document.getElementById('loading')?.hidden, null, { timeout: 90000 });
+      await previewIntro;
       const started = printed(preview, `STITCHFALL_START ${room}`);
       await tap(preview, phone.home(HUD.home.play), 0);
       await started;

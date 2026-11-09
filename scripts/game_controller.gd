@@ -148,8 +148,6 @@ func _ready() -> void:
 	music.stream = MUSIC_STREAM
 	music.volume_db = MUSIC_DB
 	add_child(music)
-	if DisplayServer.get_name() != "headless":
-		music.play()
 	progress.load_saved()
 	StitchfallAds.progress = progress
 	audio_enabled = audio_enabled and progress.sound
@@ -186,6 +184,11 @@ func _ready() -> void:
 	_load_level(initial_room)
 	launch_room = initial_room
 	hud.show_home()
+	# The studio's sewn beat first, with the music coming in after it.
+	StitchfallStudioIntro.play(self, func() -> void:
+		if DisplayServer.get_name() != "headless":
+			music.play()
+			music.stream_paused = not progress.music)
 
 
 # The Android build sells its packs and takes tips through Google Play's billing plugin. The browser build has

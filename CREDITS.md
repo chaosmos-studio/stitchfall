@@ -8,6 +8,7 @@ The original menu music was composed and synthesized for this project with `tool
 
 Threadline Satin and Woven are original Chaosmos fonts from [chaosmos-studio/threadline](https://github.com/chaosmos-studio/threadline) and are distributed under the SIL Open Font License 1.1 in `assets/fonts/Threadline-OFL.txt`.
 Darn Display and UI are original Chaosmos fonts from [chaosmos-studio/darn](https://github.com/chaosmos-studio/darn) and are distributed under the SIL Open Font License 1.1 in `assets/fonts/Darn-OFL.txt`.
+The Chaosmos wordmark in the opening is set in Bricolage Grotesque ExtraBold by The Bricolage Grotesque Project Authors, under the SIL Open Font License 1.1 in `intro/fonts/OFL.txt`.
 
 The browser export uses the official Godot 4.7 web template.
 
