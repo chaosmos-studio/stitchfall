@@ -101,6 +101,8 @@ var level_kicker: Label
 var level_line: Label
 var level_rooms: Control
 var level_dots: StitchfallPageDots
+var level_badge: TextureRect
+var chapter_badge: TextureRect
 var level_swipe_from: Vector2 = Vector2.INF
 var level_tally: Label
 var level_note: Label
@@ -626,6 +628,14 @@ func _build_levels() -> void:
 	# The chapter's stars, at the right of the header, level with its name.
 	level_tally = _label(level_page, Vector2(1250, 150), Vector2(470, 70), 40, ACCENT, true)
 	level_tally.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	# The chapter's embroidered patch beside its name, once the art is in.
+	level_badge = TextureRect.new()
+	level_badge.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	level_badge.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	level_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	level_badge.position = Vector2(272, 98)
+	level_badge.size = Vector2(170, 170)
+	level_page.add_child(level_badge)
 	level_previous = _tag(level_page, Rect2(78, 410, 112, 112), "", "back", Color("e5d5bc"))
 	level_previous.pressed.connect(func() -> void: _turn_level_page(-1))
 	level_next = _tag(level_page, Rect2(1730, 410, 112, 112), "", "next", Color("e5d5bc"))
@@ -689,6 +699,13 @@ func _set_level_page(value: int) -> void:
 	level_kicker.text = "CHAPTER %d" % (level_page_index + 1)
 	level_heading.text = StitchfallLevels.chapter_name(level_page_index).to_upper()
 	level_line.text = StitchfallLevels.chapter_line(level_page_index)
+	var badge: Texture2D = StitchfallLevels.chapter_badge(level_page_index)
+	level_badge.texture = badge
+	level_badge.visible = badge != null
+	var shift: float = 186.0 if badge != null else 0.0
+	level_kicker.position.x = 284.0 + shift
+	level_heading.position.x = 278.0 + shift
+	level_line.position.x = 284.0 + shift
 	var next_room: int = progress.continue_room(StitchfallLevels.count()) if progress != null else 0
 	var earned: int = 0
 	var rooms: int = 0
@@ -755,7 +772,7 @@ func _build_help() -> void:
 	var moves: Array[PackedStringArray] = [
 		PackedStringArray(["MOVE", "Hold and slide left or right", "A or D", "move"]),
 		PackedStringArray(["JUMP", "Swipe up", "W or Space", "jump"]),
-		PackedStringArray(["TURN", "Tap anywhere to turn the room a quarter", "Shift", "shift"]),
+		PackedStringArray(["TURN", "Tap to turn the room a quarter", "Shift", "shift"]),
 		PackedStringArray(["CROUCH", "Swipe down", "S", "crouch"]),
 	]
 	for index: int in range(moves.size()):
@@ -776,7 +793,7 @@ func _build_help() -> void:
 		gesture.kind = move[3]
 		card.add_child(gesture)
 	var footer: Label = _label(help_page, Vector2(268, 726), Vector2(700, 48), 28, ACCENT)
-	footer.text = "Esc pauses. R retries the room." if keys else "A flower saves your place. Needles unravel you."
+	footer.text = "Esc pauses. R retries." if keys else "A flower saves your place."
 	var practice: StitchedButton = _tag(help_page, Rect2(1000, 696, 410, 108), "PRACTICE", "move", Color("dbe5d1"))
 	practice.primary = true
 	practice.caption_size = 36
@@ -1116,12 +1133,23 @@ func _build_chapter() -> void:
 	chapter_name_label.pivot_offset = Vector2(500, 85)
 	chapter_line_label = _label(chapter_page, Vector2(460, 600), Vector2(1000, 70), 38, INK)
 	chapter_line_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	# The chapter's patch, sewn over the card's top edge, once the art is in.
+	chapter_badge = TextureRect.new()
+	chapter_badge.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	chapter_badge.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	chapter_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chapter_badge.position = Vector2(860, 130)
+	chapter_badge.size = Vector2(200, 200)
+	chapter_badge.pivot_offset = chapter_badge.size * 0.5
+	chapter_page.add_child(chapter_badge)
 
 
 func show_chapter(chapter: int, chapter_title: String, line: String) -> void:
 	chapter_number.text = "CHAPTER %d" % (chapter + 1)
 	chapter_name_label.text = chapter_title.to_upper()
 	chapter_line_label.text = line
+	chapter_badge.texture = StitchfallLevels.chapter_badge(chapter)
+	chapter_badge.visible = chapter_badge.texture != null
 	_show_screen("chapter")
 	if chapter_tween and chapter_tween.is_running():
 		chapter_tween.kill()
@@ -1129,6 +1157,11 @@ func show_chapter(chapter: int, chapter_title: String, line: String) -> void:
 	chapter_name_label.modulate.a = 0.0
 	chapter_line_label.modulate.a = 0.0
 	chapter_tween = create_tween()
+	# The patch lands first, as if slapped on, then the name.
+	chapter_badge.scale = Vector2.ONE * 1.4
+	chapter_badge.modulate.a = 0.0
+	chapter_tween.tween_property(chapter_badge, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	chapter_tween.parallel().tween_property(chapter_badge, "modulate:a", 1.0, 0.15)
 	chapter_tween.tween_property(chapter_name_label, "scale", Vector2.ONE, 0.45).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	chapter_tween.parallel().tween_property(chapter_name_label, "modulate:a", 1.0, 0.25)
 	chapter_tween.tween_property(chapter_line_label, "modulate:a", 1.0, 0.35)

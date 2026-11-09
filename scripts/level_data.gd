@@ -60,6 +60,13 @@ static func chapter_line(chapter: int) -> String:
 	return chapter_script(chapter_ids[chapter]).LINE
 
 
+# A chapter's embroidered patch (assets/art/chapters/<id>.png), or null while it has none, and the pages then go
+# without it.
+static func chapter_badge(chapter: int) -> Texture2D:
+	var path: String = "res://assets/art/chapters/%s.png" % chapter_ids[chapter]
+	return load(path) as Texture2D if ResourceLoader.exists(path) else null
+
+
 static func get_level(index: int) -> Dictionary:
 	return chapter_script(chapter_ids[index / CHAPTER_ROOMS]).build(index % CHAPTER_ROOMS)
 

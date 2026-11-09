@@ -6,6 +6,11 @@ var time: float = 0.0
 
 const INK: Color = Color("58483f")
 const THREAD: Color = Color("a46f5b")
+const HAND_PATH: String = "res://assets/art/ui/hand_point.png"
+# The hand's drawn size, and where its fingertip is in the image (as a share of its width and height).
+const HAND_SIZE: float = 96.0
+const HAND_TIP: Vector2 = Vector2(0.42, 0.08)
+static var HAND: Texture2D = load(HAND_PATH) as Texture2D if ResourceLoader.exists(HAND_PATH) else null
 
 
 func _ready() -> void:
@@ -63,6 +68,11 @@ func _draw_arrow(point: Vector2, direction: Vector2) -> void:
 
 
 func _draw_hand(point: Vector2) -> void:
+	# The embroidered hand, when the art is in: its fingertip sits HAND_TIP down and across from the image's top left.
+	if HAND != null:
+		var extent: Vector2 = Vector2.ONE * HAND_SIZE
+		draw_texture_rect(HAND, Rect2(point - Vector2(HAND_TIP.x * extent.x, HAND_TIP.y * extent.y), extent), false)
+		return
 	var outline: PackedVector2Array = PackedVector2Array([
 		Vector2(-17, 31), Vector2(-24, 8), Vector2(-12, 2),
 		Vector2(-8, 8), Vector2(-8, -29), Vector2(-3, -38),
