@@ -88,7 +88,9 @@ runner come apart. The browser build has none of it.
   Achievements, leaderboards (formats, orders, limits, tamper protection), events and stats were read back as
   "Ready to publish". 1.0.1 was approved and the Play Games project published with the owner's go, and the listing's
   last bullet now names Play Games, sent for review (8 November). 1.0.2 (a page before every purchase, the
-  banner off Settings and About) went up to Closed testing from the workflow the same day
+  banner off Settings and About) went up to Closed testing from the workflow the same day. 1.1.0 (rooms fitted to the
+  phone, the first room's coach, the new Home, Levels, Settings and guide, the chapter patches, and the banner on
+  every page but play) went up to Closed testing from the workflow on 9 November
 - [ ] 12 testers opted in for 14 days (write the date): ____
 - [ ] Applied for production (2.9)
 - [ ] Live on Play (2.10)
