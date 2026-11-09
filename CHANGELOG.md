@@ -7,6 +7,14 @@ one line, at most 500 characters in all. The release workflow turns it into the 
 bumps the patch.
 -->
 
+## 1.2.2
+
+- Opens straight into the sewn intro, then Home, with nothing flashing before it.
+- Settings sits with the other patches on Home, and has a switch for the swipe thread.
+- A clearer Shop with its prices up front, and fewer words on every screen.
+- The room keeps one tidy column for its buttons on the right.
+- Credits scroll inside their card.
+
 ## 1.2.1
 
 - A calmer Home: Play, then Levels, Wardrobe and the Shop as felt patches.
