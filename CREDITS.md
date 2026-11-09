@@ -1,6 +1,6 @@
 # Credits
 
-The textile backdrops, the seven runners' sheets, poses and dances, linen button artwork, embroidered icon sheets, the app icon and the logo art were made for this game with the help of AI tools.
+The textile backdrops, the seven runners' sheets, poses and dances, linen button artwork, embroidered icon sheets, the chapter patches, the felt hand in the guide, the app icon and the logo art were made for this game with the help of AI tools.
 The platforms, needle hazards, zipper exits, needle moths, weighted patches, button meter, interface layout, and needle cursor were authored for this project.
 The sound effects, including the unravel sting, the clear and chapter fanfares and the star chimes, were synthesized for this project with `tools/make_sound.py`.
 The wardrobe's trails, unravel styles, button colours, the thread confetti and the star burst are drawn in code for this project.
