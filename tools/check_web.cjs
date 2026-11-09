@@ -8,9 +8,10 @@ const DESKTOP = { viewport: { width: 1280, height: 720 } };
 
 // The buttons the check presses, as hud.gd's Rect2(x, y, width, height) in the 1920 x 1080 design.
 const HUD = {
-  // _build_home, in the menu's own space (HOME_PLAY and the rows under it from HOME_ROWS_Y): the browser build has
-  // no Shop, so Levels and Wardrobe are its two rows. Settings is the corner patch, placed from the root's right edge.
-  home: { play: [0, 270, 640, 186], levels: [0, 482, 640, 100] },
+  // _build_home, in the menu's own space (HOME_PLAY and the patches under it at HOME_PATCHES_Y): the browser build
+  // has no Shop, so Levels and Wardrobe are its two patches, centred under Play. Settings is the corner patch,
+  // placed from the root's right edge.
+  home: { play: [0, 270, 640, 186], levels: [170, 490, 128, 128] },
   // _build_help: Back to Settings, and PLAY, which starts the room.
   guide: { back: [262, 118, 104, 104], start: [1430, 696, 240, 108] },
   // _build_settings: two columns of rows from SETTINGS_X, SETTINGS_Y and SETTINGS_STEP. HOW TO PLAY opens the right
@@ -26,9 +27,9 @@ const HUD = {
 
 // The home painting's size and its painted pocket (HOME_SCENE, HOME_POCKET), and the menu sized to and centred in
 // it (HOME_MENU_SHARE, HOME_MENU_LARGEST, HOME_MARGIN, HOME_PLAY's width, and the menu's top and foot: HOME_LOGO's
-// y and the browser build's second row's end, HOME_ROWS_Y + 2 * HOME_ROW_HEIGHT + HOME_ROW_GAP).
+// y and the patches' foot, HOME_PATCHES_Y + HOME_PATCH).
 const HOME_ART = { width: 1672, height: 941, pocket: [20, 80, 780, 760] };
-const HOME_MENU = { share: 0.74, largest: 1.25, margin: 24, width: 640, top: 110, foot: 696 };
+const HOME_MENU = { share: 0.74, largest: 1.25, margin: 24, width: 640, top: 110, foot: 618 };
 
 // hud.gd _layout_home: where the menu's own space lands on a root `rootWidth` by 1080, and how much it is scaled.
 function homeMenu(rootWidth) {

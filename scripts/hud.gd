@@ -62,11 +62,12 @@ const TOUCH_SCALE: float = 1.2
 # where the banner stands.
 const HOME_LOGO: Rect2 = Rect2(20, 110, 600, 0)
 const HOME_PLAY: Rect2 = Rect2(0, 270, 640, 186)
-# The rows under Play: where the first starts, each one's height and the gap between them.
-const HOME_ROWS_Y: float = 482.0
-const HOME_ROW_HEIGHT: float = 100.0
-const HOME_ROW_GAP: float = 14.0
-const HOME_ROW_CLOTH: Color = Color("ecdfc6")
+# The felt patches under Play (Levels, Wardrobe and Shop): how far down, their size, the gap between them and
+# their cloth. Shravan chose icons alone over rows of words on 10 November 2026.
+const HOME_PATCHES_Y: float = 490.0
+const HOME_PATCH: float = 128.0
+const HOME_PATCH_GAP: float = 44.0
+const HOME_PATCH_CLOTH: Color = Color("ecdfc6")
 # The Levels page's five room patches, from this x, one every step, and how far a sideways swipe must travel to
 # turn the page.
 const LEVEL_TILES_X: float = 222.0
@@ -589,26 +590,24 @@ func _build_home() -> void:
 	home_play = _tag(home_menu, HOME_PLAY, "PLAY", "play", Color("e0a278"))
 	home_play.caption_size = 72
 	home_play.pressed.connect(_begin_from_home)
-	# Under it, the other places as slim rows the width of Play: a small patch, the word, a line and an arrow,
-	# like Settings' rows, so the menu reads as one list with Play at its head.
-	# One linen for every row, so only Play stands out.
-	var rows: Array[Array] = [
-		["LEVELS", "Pick any open room", "levels", HOME_ROW_CLOTH, show_levels],
-		["WARDROBE", "Runners, trails and fabrics", "wardrobe", HOME_ROW_CLOTH, show_wardrobe],
+	# Under it, the other places as felt patches in a row, the icon alone, so Play is the only thing to read. One
+	# linen for all of them, so only Play stands out. A computer names each one on hover.
+	var places: Array[Array] = [
+		["Levels", "levels", show_levels],
+		["Wardrobe", "wardrobe", show_wardrobe],
 	]
 	# Google Play's build sells packs and takes tips. The browser build has no shop.
 	if StitchfallShop.on_play:
-		rows.append(["SHOP", "Packs and tips", "bag", HOME_ROW_CLOTH, show_shop])
-	for index: int in range(rows.size()):
-		var entry: Array = rows[index]
-		var rect: Rect2 = Rect2(HOME_PLAY.position.x, HOME_ROWS_Y + float(index) * (HOME_ROW_HEIGHT + HOME_ROW_GAP), HOME_PLAY.size.x, HOME_ROW_HEIGHT)
-		var button: StitchedButton = _tag(home_menu, rect, entry[0], entry[2], entry[3])
-		button.subcaption = entry[1]
-		button.caption_size = 36
-		button.arrow = true
-		var open: Callable = entry[4]
-		button.pressed.connect(func() -> void: open.call())
-		home_menu_bottom = rect.end.y
+		places.append(["Shop", "bag", show_shop])
+	var across: float = float(places.size()) * HOME_PATCH + float(places.size() - 1) * HOME_PATCH_GAP
+	for index: int in range(places.size()):
+		var place: Array = places[index]
+		var spot: Rect2 = Rect2(HOME_PLAY.get_center().x - across * 0.5 + float(index) * (HOME_PATCH + HOME_PATCH_GAP), HOME_PATCHES_Y, HOME_PATCH, HOME_PATCH)
+		var patch: StitchedButton = _tag(home_menu, spot, "", place[1], HOME_PATCH_CLOTH)
+		patch.tooltip_text = place[0]
+		var go: Callable = place[2]
+		patch.pressed.connect(func() -> void: go.call())
+		home_menu_bottom = spot.end.y
 	# Settings, with the guide, sound and the rest, waits in the corner.
 	home_settings = _tag(home_page, Rect2(0, HUD_EDGE, 112, 112), "", "settings", Color("e4d0b1"))
 	home_settings.tooltip_text = "Settings"

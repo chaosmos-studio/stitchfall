@@ -21,7 +21,7 @@ The HUD keeps button progress and pause available during play.
 Each room's name appears briefly when the room begins.
 The HUD cloth palette follows the setting.
 The Home screen plays the runner's front-facing dance sheet.
-Its sewn woodland stage has a quiet fabric pocket for the menu: the logo, one big Play that names the room it leads to, and under it slim rows the width of Play for Levels, Wardrobe and, on Google Play, Shop, each with a small patch, a line and an arrow, all sized to the pocket and centred in it. Home's banner stands under the dancer, beside the menu, so the menu keeps the pocket's full height. Settings waits in the top corner, and How to play lives in Settings.
+Its sewn woodland stage has a quiet fabric pocket for the menu: the logo, one big Play that names the room it leads to, and under it a row of felt icon patches for Levels, Wardrobe and, on Google Play, Shop, with no words (Shravan's choice on 10 November 2026, over rows of words), all sized to the pocket and centred in it. Home's banner stands under the dancer, beside the menu, so the menu keeps the pocket's full height. Settings waits in the top corner, and How to play lives in Settings.
 Every button with words is a felt card drawn in code (`stitched_button.gd`, `_draw_card`): a stitched edge, the icon on a round patch, and words that shrink until they fit, so nothing runs into the stitching.
 Level Select shows a chapter's kicker, name, line and stars, its five rooms as large patches with the next one to play marked, arrows at the card's edges, a sideways swipe, and a dot for each chapter.
 Settings is two columns of labelled rows, the switches with a sewn on and off switch on the left and the pages with an arrow on the right, with Reset apart at the foot.
