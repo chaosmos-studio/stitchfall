@@ -12,14 +12,16 @@ Collect the buttons in each room to open its zipper exit.
 ## Art direction
 
 Shravan chose the stitched world direction on 3 November 2026.
-Backgrounds are layered textile scenes with visible fiber, cut edges, and embroidery.
+Backgrounds are layered textile scenes with visible fiber, cut edges, and embroidery, one painting per chapter (`assets/art/backdrops/` for the six sewing-room chapters, `cloth_*.webp` for the six worlds), drawn to cover what the camera shows rather than a magnified slice of their middle.
 The runner uses hand-drawn character sheets with a longer run cycle and separate action poses.
-Platforms, hazards, pickups, exits, enemies, cargo, and HUD elements are drawn in Godot to match the fabric scenes.
+Ledges and walls are cut from one felt strip (`props/felt_ledge.png`) in the chapter's colour, with stitched corners and a repeated middle, and grass grows on their tops. The exit is a felt pocket that unzips and glows once every button is in, the buttons are sewn buttons in the wardrobe's colour, and the lit seams are amber felt. Hazards, moths, cargo and the HUD are drawn in Godot to match.
+The runner squashes and stretches as it lands and leaps, a landing kicks up fluff, the view leans as the room turns, every prank pops a "!" over the runner, and a sliding finger draws a thread from where it landed.
+A cold start opens on the studio's beat: the Chaosmos wordmark sewn onto the game's linen (`intro/`, made in `studio/chaosmos-intro` and installed from there, never edited here), then Home with the music.
 The HUD keeps button progress and pause available during play.
 Each room's name appears briefly when the room begins.
 The HUD cloth palette follows the setting.
 The Home screen plays the runner's front-facing dance sheet.
-Its sewn woodland stage has a quiet fabric pocket for the menu: the logo, one big Play that names the room it leads to, and a row of three tiles (Levels, Wardrobe and, on Google Play, Shop), sized to the pocket and centred in it. Home's banner stands under the dancer, beside the menu, so the menu keeps the pocket's full height. Settings waits in the top corner, and How to play lives in Settings.
+Its sewn woodland stage has a quiet fabric pocket for the menu: the logo, one big Play that names the room it leads to, and under it slim rows the width of Play for Levels, Wardrobe and, on Google Play, Shop, each with a small patch, a line and an arrow, all sized to the pocket and centred in it. Home's banner stands under the dancer, beside the menu, so the menu keeps the pocket's full height. Settings waits in the top corner, and How to play lives in Settings.
 Every button with words is a felt card drawn in code (`stitched_button.gd`, `_draw_card`): a stitched edge, the icon on a round patch, and words that shrink until they fit, so nothing runs into the stitching.
 Level Select shows a chapter's kicker, name, line and stars, its five rooms as large patches with the next one to play marked, arrows at the card's edges, a sideways swipe, and a dot for each chapter.
 Settings is two columns of labelled rows, the switches with a sewn on and off switch on the left and the pages with an arrow on the right, with Reset apart at the foot.
