@@ -50,6 +50,11 @@ var shifts: int = 0
 var last_shift: float = -1.0
 var touch_starts: Dictionary[int, Dictionary] = {}
 var mobile_crouched: bool = false
+# The keys' screen push away from the surface last frame, and a push away or into it that was already held when
+# the room turned, which does nothing until it is let go.
+var key_away_held: bool = false
+var key_stale_away: bool = false
+var key_stale_into: bool = false
 var last_touch_msec: int = -1000
 var last_back_msec: int = -1000
 var last_start_msec: int = -1000
@@ -104,6 +109,16 @@ const CARD_DELAY: float = 0.95
 # the start.
 const COACH_DELAY: float = 1.1
 const COACH_RUN: float = 140.0
+# How near the runner's middle must be to a button's to take it: the button's trigger is 66 by 72 and the runner
+# about 50 by 80, so any real touch is well inside this.
+const SPARK_REACH: float = 100.0
+# How much of a key or stick push must point away from the surface to jump, or into it to crouch. A diagonal is
+# 0.71 each way, so up and right together on the floor still run and jump at once.
+const KEY_ROLE: float = 0.5
+# A slide must travel this far before it means anything, and be this much more along the surface than across it
+# to run.
+const SLIDE_MIN: float = 64.0
+const SLIDE_RUN_BIAS: float = 1.15
 
 
 func _ready() -> void:
@@ -322,12 +337,12 @@ func _unhandled_input(event: InputEvent) -> void:
 func _handle_touch(event: InputEventScreenTouch) -> void:
 	last_touch_msec = Time.get_ticks_msec()
 	if event.pressed:
-		touch_starts[event.index] = {"origin": event.position, "mode": "", "axis": 0.0, "dragged": false}
+		touch_starts[event.index] = {"origin": event.position, "offset": Vector2.ZERO, "mode": "", "axis": 0.0, "dragged": false}
 		return
 	if not touch_starts.has(event.index):
 		return
 	var touch: Dictionary = touch_starts[event.index]
-	if not touch["dragged"] and event.position.distance_to(touch["origin"]) < 64.0:
+	if not touch["dragged"] and event.position.distance_to(touch["origin"]) < SLIDE_MIN:
 		_shift(1)
 	touch_starts.erase(event.index)
 	_sync_touch_controls()
@@ -339,27 +354,95 @@ func _handle_drag(event: InputEventScreenDrag) -> void:
 		return
 	var touch: Dictionary = touch_starts[event.index]
 	var offset: Vector2 = event.position - touch["origin"]
-	if offset.length() < 64.0:
+	if offset.length() < SLIDE_MIN:
 		return
 	touch["dragged"] = true
+	touch["offset"] = offset
+	_read_slide(touch, true)
+	_sync_touch_controls()
+
+
+# A slide is read in screen directions against the surface the runner stands on: mostly along it runs that way,
+# away from it jumps, and into it crouches. So on a wall a slide up runs up the wall and a slide off it jumps.
+# acting is false when the room turned under a held finger: the slide takes its new meaning without jumping or
+# crouching, so a run to the right does not become a jump off the left wall.
+func _read_slide(touch: Dictionary, acting: bool) -> void:
+	var offset: Vector2 = touch["offset"]
+	var along: float = offset.dot(_run_direction())
+	var away: float = offset.dot(-gravity_direction)
 	var previous: String = touch["mode"]
-	if absf(offset.x) > absf(offset.y) * 1.15:
+	if absf(along) > absf(away) * SLIDE_RUN_BIAS:
 		touch["mode"] = "move"
-		touch["axis"] = signf(offset.x)
-		mobile_crouched = false
-	elif (offset.y < 0.0) != (gravity_direction == Vector2.UP):
+		touch["axis"] = signf(along)
+		if acting:
+			mobile_crouched = false
+	elif away > 0.0:
 		touch["mode"] = "jump"
 		touch["axis"] = 0.0
-		mobile_crouched = false
-		if previous != "jump":
+		if acting and previous != "jump":
+			mobile_crouched = false
 			pilot.queue_touch_jump()
 	else:
 		touch["mode"] = "crouch"
 		touch["axis"] = 0.0
-		if previous != "crouch":
+		if acting and previous != "crouch":
 			mobile_crouched = not mobile_crouched
-	touch_starts[event.index] = touch
+
+
+# The screen direction the runner's +1 move takes it. The runner turns its own moves round on the ceiling, so this
+# is screen right on the floor and the ceiling, down the left wall and up the right one.
+func _run_direction() -> Vector2:
+	var tangent: Vector2 = Vector2(gravity_direction.y, -gravity_direction.x)
+	return -tangent if gravity_direction == Vector2.UP else tangent
+
+
+# The arrows, WASD, the d-pad and the stick are screen directions, turned here into the runner's moves for the way
+# gravity points, the same way a slide is read: the push along the surface runs, away from it jumps (once, as it is
+# pressed) and into it crouches.
+func _steer_from_keys() -> void:
+	var push: Vector2 = Vector2(
+		clampf(Input.get_axis("screen_left", "screen_right") + Input.get_axis("stick_left", "stick_right"), -1.0, 1.0),
+		clampf(Input.get_axis("screen_up", "screen_down") + Input.get_axis("stick_up", "stick_down"), -1.0, 1.0))
+	var away: bool = push.dot(-gravity_direction) > KEY_ROLE
+	var into: bool = push.dot(gravity_direction) > KEY_ROLE
+	key_stale_away = key_stale_away and away
+	key_stale_into = key_stale_into and into
+	pilot.key_axis = clampf(push.dot(_run_direction()), -1.0, 1.0)
+	pilot.key_crouch = into and not key_stale_into
+	var pushing_away: bool = away and not key_stale_away
+	if pushing_away and not key_away_held:
+		pilot.queue_touch_jump()
+	elif key_away_held and not pushing_away:
+		pilot.key_jump_released = true
+	key_away_held = pushing_away
+
+
+# After the room turns, every held key and finger is read against the new surface, but a push that now points
+# away from it or into it waits to be let go before it jumps or crouches.
+func _reread_held_controls() -> void:
+	var push: Vector2 = Vector2(
+		Input.get_axis("screen_left", "screen_right") + Input.get_axis("stick_left", "stick_right"),
+		Input.get_axis("screen_up", "screen_down") + Input.get_axis("stick_up", "stick_down"))
+	key_away_held = false
+	key_stale_away = push.dot(-gravity_direction) > KEY_ROLE
+	key_stale_into = push.dot(gravity_direction) > KEY_ROLE
+	for touch: Dictionary in touch_starts.values():
+		if touch["dragged"]:
+			_read_slide(touch, false)
 	_sync_touch_controls()
+
+
+func _release_held_controls() -> void:
+	touch_starts.clear()
+	mobile_crouched = false
+	key_away_held = false
+	key_stale_away = false
+	key_stale_into = false
+	if is_instance_valid(pilot):
+		pilot.touch_axis = 0.0
+		pilot.key_axis = 0.0
+		pilot.key_crouch = false
+		pilot.set_touch_crouch(false)
 
 
 func _sync_touch_controls() -> void:
@@ -376,6 +459,7 @@ func _sync_touch_controls() -> void:
 func _physics_process(_delta: float) -> void:
 	if not playing or finished or not is_instance_valid(pilot):
 		return
+	_steer_from_keys()
 	world.gust_clock = pilot.environment_clock
 	_check_coach()
 	if world.door_open and not respawning and pilot.position.distance_to(exit_position) < 65.0:
@@ -429,8 +513,7 @@ func _on_practice() -> void:
 
 func _load_level(index: int) -> void:
 	hud.coach.stop()
-	touch_starts.clear()
-	mobile_crouched = false
+	_release_held_controls()
 	level_index = index
 	level = StitchfallLevels.get_level(index)
 	gravity_direction = Vector2.DOWN
@@ -709,6 +792,8 @@ func _respawn() -> void:
 	pilot.velocity = Vector2.ZERO
 	pilot.jump_buffer = 0.0
 	pilot.touch_jump = false
+	_reread_held_controls()
+	mobile_crouched = false
 	pilot.set_touch_crouch(false)
 	pilot.touch_axis = 0.0
 	pilot.reset_physics_interpolation()
@@ -753,7 +838,11 @@ func _respawn() -> void:
 
 
 func _on_spark_body(body: Node2D, index: int, area: Area2D) -> void:
-	if body != pilot or not playing or collected[index]:
+	if body != pilot or not playing or respawning or collected[index]:
+		return
+	# A button the runner unravelled on is put back as the runner comes back, and its trigger wakes while the physics
+	# still has the body where it came apart, so it would be taken again at once. Only a runner really there takes it.
+	if pilot.global_position.distance_to(area.global_position) > SPARK_REACH:
 		return
 	collected[index] = true
 	print("STITCHFALL_SPARK ", level_index, " ", index)
@@ -805,6 +894,7 @@ func _shift(step: int) -> void:
 	world.gravity_direction = gravity_direction
 	world.shift_origin = pilot.position
 	world.shift_age = 0.0
+	_reread_held_controls()
 	print("STITCHFALL_SHIFT ", gravity_direction)
 	_play_sound("shift")
 	hud.coach.done("turn")
@@ -927,10 +1017,7 @@ func _restart() -> void:
 func _on_pause() -> void:
 	if not playing:
 		return
-	touch_starts.clear()
-	mobile_crouched = false
-	pilot.touch_axis = 0.0
-	pilot.set_touch_crouch(false)
+	_release_held_controls()
 	_set_running(false)
 	progress.save()
 	StitchfallPlayGames.progressed()
@@ -978,14 +1065,10 @@ func _skip_room(cost: String) -> void:
 
 
 func _on_home() -> void:
-	if is_instance_valid(pilot):
-		pilot.touch_axis = 0.0
-		pilot.set_touch_crouch(false)
+	_release_held_controls()
 	_set_running(false)
 	progress.save()
 	StitchfallPlayGames.progressed()
-	touch_starts.clear()
-	mobile_crouched = false
 	hud.show_home()
 
 

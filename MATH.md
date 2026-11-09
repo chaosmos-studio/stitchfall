@@ -2,8 +2,24 @@
 
 The pilot's gravity is a unit vector that points down, left, up or right.
 Each shift rotates it by ninety degrees and rounds the result to a cardinal direction.
-Running follows the tangent to gravity, so the same left and right controls work on every surface.
-Jumping pushes against gravity.
+Running follows the tangent to gravity, and jumping pushes against gravity.
+
+## Controls that follow the screen
+
+The runner's own moves are along its surface and away from it: run with `t = (g.y, −g.x)`, the tangent to gravity `g`, and jump against `g`.
+On a wall those are up and down the screen and off the wall, so the keys and slides are read as screen directions and turned into the runner's moves for the way gravity points.
+A push `p` (an arrow, a stick, or a slide's offset from where the finger landed) splits three ways:
+- along the surface, `p · r`, runs, where `r` is the screen direction the runner's +1 move takes it: `t` on the floor and walls, `−t` on the ceiling, where the runner turns its moves round so right stays right;
+- away from it, `p · (−g)`, jumps;
+- into it, `p · g`, crouches.
+
+So on the left wall (`g = (−1, 0)`, `r = (0, 1)`) up runs up the wall, right jumps off it, and left crouches into it, and on the floor it is the usual left, right, up to jump and down to crouch.
+A key counts toward jumping or crouching past `KEY_ROLE = 0.5`, so a diagonal, 0.71 each way, still runs and jumps at once.
+A slide runs when it is `SLIDE_RUN_BIAS = 1.15` times more along the surface than across it.
+
+A push held through a turn would change its meaning under the finger: running right on the floor, then the room turns onto the left wall, where right means jump.
+So after a turn a push that now points away from the surface or into it does nothing until it is let go (`_reread_held_controls`), and a held slide takes its new meaning without acting on it.
+The rooms' proofs press the runner's own moves (`move_left`, `move_right`, `jump`, `crouch`), which have no keys of their own, so the proofs stay true whatever the screen mapping is.
 
 The cargo applies force along the same gravity vector each physics frame.
 When the runner presses into the cargo, a contact impulse points along the surface tangent.

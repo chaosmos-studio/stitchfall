@@ -12,6 +12,8 @@ const JUMP_SPEED: float = 590.0
 const GRAVITY: float = 1550.0
 const COYOTE_TIME: float = 0.11
 const JUMP_BUFFER: float = 0.13
+# How much shorter than the body the room above a crouch is tested, in pixels (_can_stand).
+const STAND_SLACK: float = 1.0
 const CLEANUP_SHADER: Shader = preload("res://shaders/runner_cleanup.gdshader")
 
 # Which wardrobe runner to draw, set before the runner enters the room.
@@ -23,6 +25,12 @@ var environment_zone: Rect2 = Rect2()
 var touch_axis: float = 0.0
 var touch_jump: bool = false
 var touch_crouch: bool = false
+# The keys, the d-pad and the stick, already turned from screen directions into the runner's own moves by the
+# game for the way gravity points: the move along the surface, whether the key into it is held, and a jump key
+# just let go (which cuts the jump short, as letting go of Space does).
+var key_axis: float = 0.0
+var key_crouch: bool = false
+var key_jump_released: bool = false
 var crouching: bool = false
 var control_enabled: bool = true
 var coyote: float = 0.0
@@ -137,7 +145,7 @@ func _physics_process(delta: float) -> void:
 	if not control_enabled:
 		return
 	environment_clock += delta
-	_set_crouch(Input.is_action_pressed("crouch") or touch_crouch)
+	_set_crouch(Input.is_action_pressed("crouch") or touch_crouch or key_crouch)
 	var grounded: bool = is_on_floor()
 	coyote = COYOTE_TIME if grounded else maxf(0.0, coyote - delta)
 	jump_buffer = maxf(0.0, jump_buffer - delta)
@@ -149,6 +157,8 @@ func _physics_process(delta: float) -> void:
 	var axis: float = Input.get_axis("move_left", "move_right")
 	if absf(touch_axis) > absf(axis):
 		axis = touch_axis
+	if absf(key_axis) > absf(axis):
+		axis = key_axis
 	if gravity_direction == Vector2.UP:
 		axis = -axis
 	var in_field: bool = environment_zone.has_point(position)
@@ -183,8 +193,9 @@ func _physics_process(delta: float) -> void:
 		takeoff_time = 0.14
 		landing_time = 0.0
 		jumped.emit()
-	if Input.is_action_just_released("jump") and falling < -JUMP_SPEED * 0.48:
+	if (Input.is_action_just_released("jump") or key_jump_released) and falling < -JUMP_SPEED * 0.48:
 		falling = -JUMP_SPEED * 0.48
+	key_jump_released = false
 	velocity = tangent * along + gravity_direction * falling
 	move_and_slide()
 	if absf(axis) > 0.1:
@@ -258,10 +269,12 @@ func _set_crouch(requested: bool) -> void:
 		step_age = 0.15
 
 
+# A hair shorter than the standing body: at the spawn the runner's feet sit exactly on the floor's edge, and a full
+# height shape counted that floor as in the way, so a crouch there stuck until the runner moved.
 func _can_stand() -> bool:
 	var standing: CapsuleShape2D = CapsuleShape2D.new()
 	standing.radius = 25.0
-	standing.height = 78.0
+	standing.height = 78.0 - STAND_SLACK
 	var query: PhysicsShapeQueryParameters2D = PhysicsShapeQueryParameters2D.new()
 	query.shape = standing
 	query.transform = global_transform

@@ -57,6 +57,7 @@ func _run() -> void:
 	await _test_fraying_ledge()
 	_test_room_clearance()
 	_test_room_fit()
+	await _test_button_comes_back()
 	_test_coached_flag()
 	await _test_coach_steps()
 	await _test_screen_routes()
@@ -1074,6 +1075,31 @@ func _test_room_fit() -> void:
 	_check("a tablet never blows the room past its art", StitchfallLevels.fit_zoom(Vector2(4000, 3000), Vector4.ZERO) <= StitchfallLevels.FIT_MOST)
 
 
+# A loose button comes back when the runner unravels, even when the runner came apart standing on it (Green Canopy's
+# Updraft, where the pin lands by the far button), and can then be taken again.
+func _test_button_comes_back() -> void:
+	var game: Node2D = _game()
+	await process_frame
+	game._load_level(StitchfallLevels.room_of("canopy", 0))
+	game._on_begin()
+	await physics_frame
+	var button: Vector2 = game.level["shards"][1]
+	game.pilot.position = button
+	for frame: int in range(8):
+		await physics_frame
+	_check("the far button in Updraft is taken", game.collected[1])
+	game._on_hazard_body(game.pilot)
+	for frame: int in range(70):
+		await physics_frame
+	_check("unravelled on the button, it comes back", not game.collected[1] and not game.world.collected[1])
+	game.pilot.position = button
+	for frame: int in range(8):
+		await physics_frame
+	_check("and the runner can take it again", game.collected[1])
+	game.queue_free()
+	await process_frame
+
+
 # Whether the first room's coach has taught: a new player has not, someone with stars from before the coach counts as
 # taught, and a reset brings the lessons back.
 func _test_coached_flag() -> void:
@@ -1400,8 +1426,11 @@ func _test_input_map_is_wired() -> void:
 	var table: Dictionary = InputMapGen.bindings()
 	for action: String in table:
 		_check("action %s exists, re-run tools/make_input_map.gd" % action, InputMap.has_action(action))
-		if InputMap.has_action(action):
+		# The runner's sideways moves have no keys on purpose: the screen's directions drive them.
+		if InputMap.has_action(action) and action not in ["move_left", "move_right"]:
 			_check("action %s has bindings" % action, InputMap.action_get_events(action).size() > 0)
+	for direction: String in ["left", "right", "up", "down"]:
+		_check("the %s keys are a screen direction, not one of the runner's moves" % direction, InputMap.has_action("screen_" + direction) and InputMap.has_action("stick_" + direction))
 
 # A string here converts to 0, which is Landscape, whatever the string said.
 func _test_orientation_is_an_int() -> void:
@@ -1548,23 +1577,90 @@ func _test_gesture_controls() -> void:
 		game.last_start_msec = -100000
 		game._unhandled_input(click)
 		_check("a mouse click turns gravity", game.gravity_direction == Vector2.RIGHT)
+	# Every slide is a screen direction, read against the surface the runner stands on.
+	for case: Array in [
+		[Vector2.DOWN, Vector2.RIGHT, "move", Vector2.RIGHT, "on the floor a slide right runs right"],
+		[Vector2.DOWN, Vector2.UP, "jump", Vector2.ZERO, "on the floor a slide up jumps"],
+		[Vector2.RIGHT, Vector2.UP, "move", Vector2.UP, "on the right wall a slide up runs up it"],
+		[Vector2.RIGHT, Vector2.LEFT, "jump", Vector2.ZERO, "on the right wall a slide left jumps off it"],
+		[Vector2.LEFT, Vector2.DOWN, "move", Vector2.DOWN, "on the left wall a slide down runs down it"],
+		[Vector2.LEFT, Vector2.RIGHT, "jump", Vector2.ZERO, "on the left wall a slide right jumps off it"],
+		[Vector2.UP, Vector2.LEFT, "move", Vector2.LEFT, "on the ceiling a slide left runs left"],
+		[Vector2.UP, Vector2.DOWN, "jump", Vector2.ZERO, "on the ceiling a slide down jumps"],
+	]:
+		var gravity: Vector2 = case[0]
+		game.gravity_direction = gravity
+		game.pilot.set_gravity_direction(gravity)
+		game.pilot.touch_jump = false
+		game._unhandled_input(press)
+		var slide: InputEventScreenDrag = InputEventScreenDrag.new()
+		slide.index = 0
+		slide.position = press.position + (case[1] as Vector2) * 150.0
+		game._unhandled_input(slide)
+		# Where the runner's own sum (player.gd: tangent times the axis, turned round on the ceiling) sends it.
+		var screen_run: Vector2 = Vector2(gravity.y, -gravity.x) * game.pilot.touch_axis * (-1.0 if gravity == Vector2.UP else 1.0)
+		if case[2] == "move":
+			_check(case[4], screen_run.is_equal_approx(case[3]) and not game.pilot.touch_jump)
+		else:
+			_check(case[4], game.pilot.touch_jump and game.pilot.touch_axis == 0.0)
+		release.position = slide.position
+		game._unhandled_input(release)
+		_check("lifting the finger stops the runner", game.pilot.touch_axis == 0.0)
+	game.gravity_direction = Vector2.DOWN
+	game.pilot.set_gravity_direction(Vector2.DOWN)
+	# A finger held through a turn takes its new meaning without acting on it: running right on the floor, then the
+	# room turns onto the left wall, where right is away from the wall, and the runner neither runs nor jumps.
 	game._unhandled_input(press)
-	var slide: InputEventScreenDrag = InputEventScreenDrag.new()
-	slide.index = 0
-	slide.position = Vector2(660, 500)
-	game._unhandled_input(slide)
-	_check("a horizontal slide walks right", game.pilot.touch_axis == 1.0)
-	release.position = slide.position
+	var held: InputEventScreenDrag = InputEventScreenDrag.new()
+	held.index = 0
+	held.position = press.position + Vector2(150, 0)
+	game._unhandled_input(held)
+	game.pilot.touch_jump = false
+	game.last_shift = -1.0
+	game._shift(1)
+	_check("a slide held through a turn onto a wall neither runs nor jumps", game.gravity_direction == Vector2.LEFT and game.pilot.touch_axis == 0.0 and not game.pilot.touch_jump)
+	held.position = press.position + Vector2(20, -150)
+	game._unhandled_input(held)
+	_check("the held finger runs up the wall once it slides up", game.pilot.touch_axis != 0.0 and (game._run_direction() * game.pilot.touch_axis).is_equal_approx(Vector2.UP) and not game.pilot.touch_jump)
+	release.position = held.position
 	game._unhandled_input(release)
-	_check("lifting the finger stops walking", game.pilot.touch_axis == 0.0)
-	game._unhandled_input(press)
-	var upward: InputEventScreenDrag = InputEventScreenDrag.new()
-	upward.index = 0
-	upward.position = Vector2(500, 370)
-	game._unhandled_input(upward)
-	_check("an upward swipe queues a jump", game.pilot.touch_jump)
-	release.position = upward.position
-	game._unhandled_input(release)
+	# The keys are screen directions too.
+	game.gravity_direction = Vector2.RIGHT
+	game.pilot.set_gravity_direction(Vector2.RIGHT)
+	game._reread_held_controls()
+	game.pilot.touch_jump = false
+	Input.action_press("screen_up")
+	game._steer_from_keys()
+	_check("on the right wall the up key runs up it", (game._run_direction() * game.pilot.key_axis).is_equal_approx(Vector2.UP) and not game.pilot.touch_jump)
+	Input.action_release("screen_up")
+	Input.action_press("screen_left")
+	game._steer_from_keys()
+	_check("on the right wall the left key jumps off it", game.pilot.touch_jump and game.pilot.key_axis == 0.0)
+	Input.action_release("screen_left")
+	game._steer_from_keys()
+	_check("letting go of the key cuts the jump short", game.pilot.key_jump_released)
+	Input.action_press("screen_right")
+	game._steer_from_keys()
+	_check("on the right wall the right key crouches into it", game.pilot.key_crouch)
+	Input.action_release("screen_right")
+	game.gravity_direction = Vector2.DOWN
+	game.pilot.set_gravity_direction(Vector2.DOWN)
+	game._reread_held_controls()
+	game.pilot.touch_jump = false
+	Input.action_press("screen_right")
+	game._steer_from_keys()
+	_check("on the floor the right key runs right", game.pilot.key_axis == 1.0)
+	game.last_shift = -1.0
+	game._shift(1)
+	game._steer_from_keys()
+	_check("a key held through a turn onto a wall neither runs nor jumps", game.pilot.key_axis == 0.0 and not game.pilot.touch_jump)
+	Input.action_release("screen_right")
+	game._steer_from_keys()
+	_check("letting go of a stale key does nothing", not game.pilot.touch_jump and not game.pilot.key_crouch)
+	game.gravity_direction = Vector2.DOWN
+	game.pilot.set_gravity_direction(Vector2.DOWN)
+	game._reread_held_controls()
+	# Upright again at the spawn, its feet exactly on the floor's edge, where standing up once stuck.
 	_check("the pilot supports a crouch action", game.pilot.has_method("set_touch_crouch"))
 	if game.pilot.has_method("set_touch_crouch"):
 		game._unhandled_input(press)

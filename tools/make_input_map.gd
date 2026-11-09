@@ -8,13 +8,27 @@ extends SceneTree
 
 const DEADZONE: float = 0.2
 
+# The runner's own moves (move_left, move_right, jump, crouch) are along and away from whatever surface it stands on,
+# which is what the rooms' proofs press. The arrows, WASD, the d-pad and the stick are screen directions instead
+# (screen_* and stick_*), and the game turns them into the runner's moves for the way gravity points
+# (game_controller.gd, _steer_from_keys): the way you press is the way the runner goes, even on a wall. So move_left
+# and move_right have no keys of their own. Space and A always jump, and B always crouches.
+#
 # Physical keycodes, so WASD stays under the same fingers on non-QWERTY layouts.
 static func bindings() -> Dictionary:
 	return {
-		"move_left": [_key(KEY_A), _key(KEY_LEFT), _axis(JOY_AXIS_LEFT_X, -1.0)],
-		"move_right": [_key(KEY_D), _key(KEY_RIGHT), _axis(JOY_AXIS_LEFT_X, 1.0)],
-		"jump": [_key(KEY_W), _key(KEY_UP), _key(KEY_SPACE), _button(JOY_BUTTON_A)],
-		"crouch": [_key(KEY_S), _key(KEY_DOWN), _button(JOY_BUTTON_B)],
+		"move_left": [],
+		"move_right": [],
+		"jump": [_key(KEY_SPACE), _button(JOY_BUTTON_A)],
+		"crouch": [_button(JOY_BUTTON_B)],
+		"screen_left": [_key(KEY_A), _key(KEY_LEFT), _button(JOY_BUTTON_DPAD_LEFT)],
+		"screen_right": [_key(KEY_D), _key(KEY_RIGHT), _button(JOY_BUTTON_DPAD_RIGHT)],
+		"screen_up": [_key(KEY_W), _key(KEY_UP), _button(JOY_BUTTON_DPAD_UP)],
+		"screen_down": [_key(KEY_S), _key(KEY_DOWN), _button(JOY_BUTTON_DPAD_DOWN)],
+		"stick_left": [_axis(JOY_AXIS_LEFT_X, -1.0)],
+		"stick_right": [_axis(JOY_AXIS_LEFT_X, 1.0)],
+		"stick_up": [_axis(JOY_AXIS_LEFT_Y, -1.0)],
+		"stick_down": [_axis(JOY_AXIS_LEFT_Y, 1.0)],
 		"shift_gravity": [_key(KEY_SHIFT), _button(JOY_BUTTON_X)],
 		"pause": [_key(KEY_ESCAPE), _key(KEY_P), _button(JOY_BUTTON_START)],
 		"retry": [_key(KEY_R)],
