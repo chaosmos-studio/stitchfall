@@ -193,7 +193,7 @@ func _ready() -> void:
 	StitchfallStudioIntro.play(self, func() -> void:
 		if DisplayServer.get_name() != "headless":
 			music.play()
-			music.stream_paused = not progress.music)
+			music.stream_paused = not progress.music, not audio_enabled)
 
 
 # The Android build sells its packs and takes tips through Google Play's billing plugin. The browser build has

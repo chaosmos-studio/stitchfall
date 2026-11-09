@@ -6,15 +6,17 @@ extends RefCounted
 # banner stays covered while it plays, and a tap skips it. It plays once a launch, never headless (the tests and
 # the route proofs) and never in the capture tool.
 
-const STYLE: String = "res://intro/games/stitchfall.gd"
+# The game's beat, at the one path the studio's install tool writes for every game.
+const STYLE: String = "res://intro/beat.gd"
 const LAYER: int = 100
 
 static var enabled: bool = true
 static var _played: bool = false
 
 
-# Plays it over `host` and calls `done` once it has faded, or at once when it does not play.
-static func play(host: Node, done: Callable) -> void:
+# Plays it over `host` and calls `done` once it has faded into Home, or at once when it does not play. `muted`
+# when the player has the sound off.
+static func play(host: Node, done: Callable, muted: bool = false) -> void:
 	if _played or not enabled or DisplayServer.get_name() == "headless":
 		done.call()
 		return
@@ -24,6 +26,8 @@ static func play(host: Node, done: Callable) -> void:
 	host.add_child(layer)
 	var intro: ChaosmosIntro = ChaosmosIntro.new()
 	intro.style_name = STYLE
+	intro.reveal = true
+	intro.muted = muted
 	layer.add_child(intro)
 	intro.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	StitchfallAds.cover(true)

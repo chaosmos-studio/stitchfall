@@ -30,7 +30,8 @@ const SKIP_FADE: float = 0.18
 const PIXEL_SNAP: Shader = preload("res://intro/pixel_snap.gdshader")
 
 
-class Stage extends Control:
+# Named for the intro alone: a game's own global classes (Sunwise has a Stage) would hide a plainer name.
+class ChaosmosStage extends Control:
 	var intro: ChaosmosIntro
 
 	func _draw() -> void:
@@ -41,6 +42,10 @@ class Stage extends Control:
 @export var dark: bool = false
 # Off in the preview renders, so a recording plays every frame of the style.
 @export var skippable: bool = true
+# In a game: the intro fades away over the screen under it (its Home), rather than to its own background.
+@export var reveal: bool = false
+# In a game with its sound off: no sting.
+@export var muted: bool = false
 
 var style: ChaosmosIntroStyle
 var word: ChaosmosWordmark = ChaosmosWordmark.new()
@@ -50,7 +55,7 @@ var done: bool = false
 var sting: AudioStreamPlayer
 var frame: SubViewportContainer
 var viewport: SubViewport
-var stage: Stage
+var stage: ChaosmosStage
 var veil: ColorRect
 
 
@@ -65,6 +70,13 @@ func _ready() -> void:
 	if dark:
 		style.paper = ChaosmosWordmark.CHARCOAL
 		style.ink = ChaosmosWordmark.LIGHT
+	# Solid from the first frame: the stage's own picture only exists from the frame after it is made, and a game
+	# would show its Home through the gap.
+	var backdrop: ColorRect = ColorRect.new()
+	backdrop.color = style.background()
+	backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(backdrop)
+	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	frame = SubViewportContainer.new()
 	frame.stretch = true
 	frame.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -79,7 +91,7 @@ func _ready() -> void:
 	frame.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	viewport = SubViewport.new()
 	frame.add_child(viewport)
-	stage = Stage.new()
+	stage = ChaosmosStage.new()
 	stage.intro = self
 	viewport.add_child(stage)
 	veil = ColorRect.new()
@@ -90,7 +102,7 @@ func _ready() -> void:
 	sting = AudioStreamPlayer.new()
 	add_child(sting)
 	var sound: String = style.sting()
-	if not sound.is_empty() and ResourceLoader.exists(sound):
+	if not muted and not sound.is_empty() and ResourceLoader.exists(sound):
 		sting.stream = load(sound) as AudioStream
 		sting.play()
 
@@ -105,7 +117,11 @@ func _process(delta: float) -> void:
 	clock += delta
 	var end: float = ending if ending >= 0.0 else style.settle() + HOLD
 	var fade: float = SKIP_FADE if ending >= 0.0 else FADE
-	veil.color = Color(style.background(), clampf((clock - end) / fade, 0.0, 1.0))
+	var gone: float = clampf((clock - end) / fade, 0.0, 1.0)
+	if reveal:
+		modulate.a = 1.0 - gone
+	else:
+		veil.color = Color(style.background(), gone)
 	frame.stretch_shrink = maxi(style.pixel(clock), 1)
 	(frame.material as ShaderMaterial).set_shader_parameter("snap", frame.stretch_shrink > 1)
 	stage.size = Vector2(viewport.size)
