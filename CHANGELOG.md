@@ -7,6 +7,12 @@ one line, at most 500 characters in all. The release workflow turns it into the 
 bumps the patch.
 -->
 
+## 1.1.1
+
+- On a wall or the ceiling the controls turn with you: press or slide the way you want to go.
+- Buttons you lose when you unravel now come back where they were.
+- Home's menu sits in the middle of its pocket, and Play, Settings and the pause page's buttons fit their words.
+
 ## 1.1.0
 
 - The room fills more of your screen, with the buttons beside it on wide phones.
