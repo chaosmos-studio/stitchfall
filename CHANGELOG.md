@@ -7,6 +7,13 @@ one line, at most 500 characters in all. The release workflow turns it into the 
 bumps the patch.
 -->
 
+## 1.1.0
+
+- The room fills more of your screen, with the buttons beside it on wide phones.
+- The first room teaches you to run, jump and turn the room, one move at a time.
+- A calmer Home with one big Play button, and a Levels page with each chapter's patch and your next room marked.
+- Simpler Settings, and How to play with bigger moves and a Practice run.
+
 ## 1.0.2
 
 - Every pack in the Shop has its own page before you buy, with what it holds, its price and what the Complete pack saves.
