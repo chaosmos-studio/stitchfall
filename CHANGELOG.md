@@ -7,6 +7,11 @@ one line, at most 500 characters in all. The release workflow turns it into the 
 bumps the patch.
 -->
 
+## 1.2.1
+
+- A calmer Home: Play, then Levels, Wardrobe and the Shop as felt patches.
+- A quick tap of an arrow key always jumps now.
+
 ## 1.2.0
 
 - Every chapter now has its own painted world, seen whole behind the room.
