@@ -12,6 +12,12 @@ const JUMP_SPEED: float = 590.0
 const GRAVITY: float = 1550.0
 const COYOTE_TIME: float = 0.11
 const JUMP_BUFFER: float = 0.13
+# The drawing's size, and how it stretches as the runner leaps and squashes as it lands (width, height), and how
+# long it takes to spring back, in seconds.
+const SPRITE_SCALE: float = 0.32
+const LEAP_STRETCH: Vector2 = Vector2(0.86, 1.15)
+const LAND_SQUASH: Vector2 = Vector2(1.18, 0.84)
+const SPRING_BACK: float = 0.22
 # How much shorter than the body the room above a crouch is tested, in pixels (_can_stand).
 const STAND_SLACK: float = 1.0
 const CLEANUP_SHADER: Shader = preload("res://shaders/runner_cleanup.gdshader")
@@ -43,6 +49,7 @@ var shift_time: float = 0.0
 var step_age: float = 0.0
 var environment_clock: float = 0.0
 var rotation_tween: Tween
+var squash_tween: Tween
 var collision_shape: CollisionShape2D
 var capsule: CapsuleShape2D
 
@@ -60,7 +67,7 @@ func _ready() -> void:
 	add_child(collision_shape)
 	sprite = AnimatedSprite2D.new()
 	sprite.sprite_frames = _build_frames()
-	sprite.scale = Vector2.ONE * 0.32
+	sprite.scale = Vector2.ONE * SPRITE_SCALE
 	sprite.position = Vector2(0, -18)
 	sprite.z_index = 5
 	var material: ShaderMaterial = ShaderMaterial.new()
@@ -192,6 +199,7 @@ func _physics_process(delta: float) -> void:
 		jump_buffer = 0.0
 		takeoff_time = 0.14
 		landing_time = 0.0
+		_squash(LEAP_STRETCH)
 		jumped.emit()
 	if (Input.is_action_just_released("jump") or key_jump_released) and falling < -JUMP_SPEED * 0.48:
 		falling = -JUMP_SPEED * 0.48
@@ -209,6 +217,7 @@ func _physics_process(delta: float) -> void:
 		landing_time = 0.17
 		takeoff_time = 0.0
 		step_age = 0.2
+		_squash(LAND_SQUASH)
 		landed.emit()
 	takeoff_time = maxf(0.0, takeoff_time - delta)
 	landing_time = maxf(0.0, landing_time - delta)
@@ -248,6 +257,16 @@ func set_gravity_direction(direction: Vector2) -> void:
 	gravity_direction = direction
 	up_direction = -direction
 	coyote = 0.0
+
+
+# Stretches or squashes the drawing for a moment and lets it spring back. The drawing turns with gravity, so its
+# height is always along the pull.
+func _squash(shape: Vector2) -> void:
+	if squash_tween != null:
+		squash_tween.kill()
+	sprite.scale = shape * SPRITE_SCALE
+	squash_tween = create_tween()
+	squash_tween.tween_property(sprite, "scale", Vector2.ONE * SPRITE_SCALE, SPRING_BACK).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
 func queue_touch_jump() -> void:

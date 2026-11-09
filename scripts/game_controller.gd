@@ -117,8 +117,11 @@ const SPARK_REACH: float = 100.0
 const KEY_ROLE: float = 0.5
 # A slide must travel this far before it means anything, and be this much more along the surface than across it
 # to run.
-const SLIDE_MIN: float = 64.0
+const SLIDE_MIN: float = 48.0
 const SLIDE_RUN_BIAS: float = 1.15
+# How far the view leans as the room turns, in radians, and where the runner's feet are from its middle.
+const TURN_LEAN: float = 0.03
+const FEET: float = 36.0
 
 
 func _ready() -> void:
@@ -129,6 +132,8 @@ func _ready() -> void:
 	add_child(world)
 	camera = Camera2D.new()
 	camera.position = Vector2(960, 540)
+	# It leans a little as the room turns (_shift).
+	camera.ignore_rotation = false
 	add_child(camera)
 	camera.make_current()
 	for name: String in sound_names:
@@ -279,6 +284,9 @@ func _fit_camera() -> void:
 	fitted_centre = StitchfallLevels.fit_centre(fitted_zoom, hud.play_reserve)
 	camera.zoom = Vector2.ONE * fitted_zoom
 	camera.position = fitted_centre
+	# The painting behind the room covers what the camera shows, with a little over for a shake or a punch.
+	var seen: Vector2 = view / fitted_zoom
+	world.view = Rect2(fitted_centre - seen * 0.5, seen).grow(seen.x * 0.04)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -337,7 +345,8 @@ func _unhandled_input(event: InputEvent) -> void:
 func _handle_touch(event: InputEventScreenTouch) -> void:
 	last_touch_msec = Time.get_ticks_msec()
 	if event.pressed:
-		touch_starts[event.index] = {"origin": event.position, "offset": Vector2.ZERO, "mode": "", "axis": 0.0, "dragged": false}
+		touch_starts[event.index] = {"origin": event.position, "now": event.position, "offset": Vector2.ZERO, "mode": "", "axis": 0.0, "dragged": false}
+		_sync_touch_controls()
 		return
 	if not touch_starts.has(event.index):
 		return
@@ -353,8 +362,10 @@ func _handle_drag(event: InputEventScreenDrag) -> void:
 	if not touch_starts.has(event.index):
 		return
 	var touch: Dictionary = touch_starts[event.index]
+	touch["now"] = event.position
 	var offset: Vector2 = event.position - touch["origin"]
 	if offset.length() < SLIDE_MIN:
+		_sync_touch_controls()
 		return
 	touch["dragged"] = true
 	touch["offset"] = offset
@@ -438,6 +449,7 @@ func _release_held_controls() -> void:
 	key_away_held = false
 	key_stale_away = false
 	key_stale_into = false
+	hud.swipe_thread.show_fingers([])
 	if is_instance_valid(pilot):
 		pilot.touch_axis = 0.0
 		pilot.key_axis = 0.0
@@ -446,6 +458,7 @@ func _release_held_controls() -> void:
 
 
 func _sync_touch_controls() -> void:
+	hud.swipe_thread.show_fingers(touch_starts.values())
 	if not is_instance_valid(pilot):
 		return
 	pilot.touch_axis = 0.0
@@ -470,6 +483,7 @@ func _physics_process(_delta: float) -> void:
 		exit_position = flee[exit_flees]
 		exit_flees += 1
 		world.exit_position = exit_position
+		world.surprise()
 		_play_sound("zip")
 		_shake(SHAKE_PRANK)
 		print("STITCHFALL_FLEE ", level_index, " ", exit_flees)
@@ -616,7 +630,10 @@ func _load_level(index: int) -> void:
 	pilot.control_enabled = playing
 	pilot.jumped.connect(_on_pilot_jumped)
 	pilot.stepped.connect(func() -> void: _play_step(-17.0))
-	pilot.landed.connect(func() -> void: _play_step(-11.0))
+	pilot.landed.connect(func() -> void:
+		_play_step(-11.0)
+		world.puff(pilot.position + gravity_direction * FEET, gravity_direction))
+	world.runner = pilot
 	camera.position = _camera_target()
 	world.level = level
 	world.phase = phase
@@ -733,6 +750,7 @@ func _on_popup_tripped(body: Node2D, index: int) -> void:
 		return
 	popup_areas[index].monitoring = true
 	world.popup_raised = popup_raised.duplicate()
+	world.surprise()
 	_shake(SHAKE_PRANK)
 	_play_sound("shing")
 	print("STITCHFALL_POPUP ", level_index, " ", index)
@@ -771,6 +789,7 @@ func _on_flower_body(body: Node2D, index: int) -> void:
 
 
 func _on_patch_gave_way() -> void:
+	world.surprise()
 	_shake(SHAKE_LAND)
 	_play_sound("rip")
 
@@ -815,7 +834,7 @@ func _respawn() -> void:
 	if lost:
 		_play_sound("loose")
 	pilot.sprite.scale = Vector2.ONE * 0.18
-	create_tween().tween_property(pilot.sprite, "scale", Vector2.ONE * 0.32, 0.32).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	create_tween().tween_property(pilot.sprite, "scale", Vector2.ONE * StitchfallCourier.SPRITE_SCALE, 0.32).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	world.collected = collected.duplicate()
 	world.door_open = not collected.has(false) and (level["pad"] == Vector2.ZERO or pad_armed)
 	world.phase = phase
@@ -895,6 +914,11 @@ func _shift(step: int) -> void:
 	world.shift_origin = pilot.position
 	world.shift_age = 0.0
 	_reread_held_controls()
+	# The view leans the way the room turns and springs back, so the turn is felt as well as seen.
+	if progress.shake:
+		var lean: Tween = create_tween()
+		lean.tween_property(camera, "rotation", TURN_LEAN, 0.07).set_ease(Tween.EASE_OUT)
+		lean.tween_property(camera, "rotation", 0.0, 0.55).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 	print("STITCHFALL_SHIFT ", gravity_direction)
 	_play_sound("shift")
 	hud.coach.done("turn")

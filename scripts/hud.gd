@@ -130,6 +130,7 @@ var clear_heading: Label
 var clear_card: Control
 var clear_opened: Label
 var room_label: Label
+var swipe_thread: StitchfallSwipeThread
 var unravel_tag: Panel
 var skip_hint: Panel
 var skip_hint_label: Label
@@ -272,6 +273,10 @@ func _ready() -> void:
 	skip_hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	skip_hint_label.text = SKIP_HINT
 	skip_hint.visible = false
+	# The thread a sliding finger draws, over the room and under the coach and the pages.
+	swipe_thread = StitchfallSwipeThread.new()
+	root.add_child(swipe_thread)
+	swipe_thread.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	# The first room's coach, over the room and under every page, which hides it while open.
 	coach_holder = Control.new()
 	coach_holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -359,8 +364,8 @@ func _layout_play() -> void:
 		skip_hint_label.size = Vector2(chip / grow - 16.0, 88)
 		skip_hint_label.text = SKIP_HINT.replace(" ", "\n")
 		skip_hint.position = Vector2(pause_button.position.x, top + chip + 12.0)
-		room_label.position = Vector2((view.x - room_label.size.x) * 0.5, safe.y - 6.0)
-		room_label.add_theme_font_size_override("font_size", 24)
+		room_label.position = Vector2((view.x - room_label.size.x) * 0.5, safe.y - 4.0)
+		room_label.add_theme_font_size_override("font_size", 28)
 		hint_back.position = Vector2((view.x - hint_back.size.x) * 0.5, safe.y + 54.0)
 	else:
 		meter.size = Vector2(205, 79)
