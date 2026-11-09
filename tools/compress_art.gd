@@ -7,6 +7,10 @@ extends SceneTree
 
 const MIN_BYTES: int = 300000
 const QUALITY: float = 0.85
+# Folders whose art is drawn far smaller than it is painted: their textures are scaled down to this many pixels on
+# their longest side as they import, while the full-size source stays in git. The chapter patches are painted at
+# 1024 and never drawn above about 200.
+const SIZE_LIMITS: Dictionary[String, int] = {"res://assets/art/chapters": 512}
 
 
 func _initialize() -> void:
@@ -18,13 +22,15 @@ func _initialize() -> void:
 		var source: String = path.trim_suffix(".import")
 		if FileAccess.open(source, FileAccess.READ).get_length() < MIN_BYTES:
 			continue
-		if int(config.get_value("params", "compress/mode", 0)) == 1 and is_equal_approx(float(config.get_value("params", "compress/lossy_quality", 0.0)), QUALITY):
+		var limit: int = SIZE_LIMITS.get(source.get_base_dir(), 0)
+		if int(config.get_value("params", "compress/mode", 0)) == 1 and is_equal_approx(float(config.get_value("params", "compress/lossy_quality", 0.0)), QUALITY) and int(config.get_value("params", "process/size_limit", 0)) == limit:
 			continue
 		config.set_value("params", "compress/mode", 1)
 		config.set_value("params", "compress/lossy_quality", QUALITY)
+		config.set_value("params", "process/size_limit", limit)
 		config.save(path)
 		changed += 1
-	print("set %d textures to lossy WebP at %.2f" % [changed, QUALITY])
+	print("set %d textures to lossy WebP at %.2f, with their folder's size limit" % [changed, QUALITY])
 	quit()
 
 
