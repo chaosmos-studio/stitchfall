@@ -67,8 +67,11 @@ static func chapter_badge(chapter: int) -> Texture2D:
 	return load(path) as Texture2D if ResourceLoader.exists(path) else null
 
 
+# A room, with its chapter's id as "art": which painting and felt it is drawn with (world_view.gd).
 static func get_level(index: int) -> Dictionary:
-	return chapter_script(chapter_ids[index / CHAPTER_ROOMS]).build(index % CHAPTER_ROOMS)
+	var room: Dictionary = chapter_script(chapter_ids[index / CHAPTER_ROOMS]).build(index % CHAPTER_ROOMS)
+	room["art"] = chapter_ids[index / CHAPTER_ROOMS]
+	return room
 
 
 # The zoom that shows a room's inside, with FIT_RIM of its walls, as large as `view` allows once `reserve` is kept

@@ -1,14 +1,66 @@
 class_name StitchfallWorldView
 extends Node2D
 
-const LINEN: Texture2D = preload("res://assets/art/linen_landscape.png")
 const FELT: Texture2D = preload("res://assets/art/felt_tile.png")
-const WATER_CLOTH: Texture2D = preload("res://assets/art/cloth_water.webp")
-const DUNE_CLOTH: Texture2D = preload("res://assets/art/cloth_dunes.webp")
-const FOREST_CLOTH: Texture2D = preload("res://assets/art/cloth_forest.webp")
-const NIGHT_CLOTH: Texture2D = preload("res://assets/art/cloth_night.webp")
-const RAIN_CLOTH: Texture2D = preload("res://assets/art/cloth_rain.webp")
-const FROST_CLOTH: Texture2D = preload("res://assets/art/cloth_frost.webp")
+# Each chapter's painting, by chapter id. The first six are sewing-room scenes, the rest are worlds.
+const BACKDROPS: Dictionary[String, Texture2D] = {
+	"linen": preload("res://assets/art/backdrops/linen.webp"),
+	"pins": preload("res://assets/art/backdrops/pins.webp"),
+	"unpinned": preload("res://assets/art/backdrops/unpinned.webp"),
+	"seams": preload("res://assets/art/backdrops/seams.webp"),
+	"moths": preload("res://assets/art/backdrops/moths.webp"),
+	"patch": preload("res://assets/art/backdrops/patch.webp"),
+	"water": preload("res://assets/art/cloth_water.webp"),
+	"dunes": preload("res://assets/art/cloth_dunes.webp"),
+	"canopy": preload("res://assets/art/cloth_forest.webp"),
+	"night": preload("res://assets/art/cloth_night.webp"),
+	"rain": preload("res://assets/art/cloth_rain.webp"),
+	"frost": preload("res://assets/art/cloth_frost.webp"),
+}
+# A wardrobe fabric (its backdrop number in looks.gd) dresses the sewing-room chapters as one of the worlds.
+const FABRIC_ART: Dictionary[int, String] = {4: "water", 5: "dunes", 6: "canopy", 7: "night", 8: "rain", 9: "frost"}
+const SEWING_ROOMS: PackedStringArray = ["linen", "pins", "unpinned", "seams", "moths", "patch"]
+# The felt each chapter's ledges are cut from, as a tint on the cream felt, chosen to stand out on its painting.
+const FELT_TINTS: Dictionary[String, Color] = {
+	"linen": Color("8e9c72"), "pins": Color("c46a58"), "unpinned": Color("7590a3"), "seams": Color("4f7e7b"),
+	"moths": Color("8b78a6"), "patch": Color("a7794c"), "water": Color("5f8f95"), "dunes": Color("b48552"),
+	"canopy": Color("6d8a5c"), "night": Color("6c71a0"), "rain": Color("6a948c"), "frost": Color("8aa3b6"),
+}
+# The grass along a floor, tinted for the chapters that grow any.
+const GRASS_TINTS: Dictionary[String, Color] = {
+	"linen": Color.WHITE, "pins": Color.WHITE, "unpinned": Color.WHITE, "seams": Color("b9c9b8"),
+	"moths": Color("c9bdd6"), "patch": Color("e8dcae"), "canopy": Color.WHITE, "rain": Color("d5e6dc"),
+}
+const LEDGE: Texture2D = preload("res://assets/art/props/felt_ledge.png")
+const POCKET_SHUT: Texture2D = preload("res://assets/art/props/pocket_closed.png")
+const POCKET_OPEN: Texture2D = preload("res://assets/art/props/pocket_open.png")
+const BUTTONS: Texture2D = preload("res://assets/art/props/buttons.png")
+const GRASS: Texture2D = preload("res://assets/art/props/grass_fringe.png")
+# The felt ledge art: the whole strip, its square corners, and the tileable run in its middle, in its pixels.
+const LEDGE_STRIP: Rect2 = Rect2(5, 27, 1014, 140)
+const LEDGE_CORNER: float = 52.0
+const LEDGE_RUN: Vector2 = Vector2(256, 768)
+# How large a ledge's corner is drawn, as a share of its thickness and at most, and where its shadow falls.
+const LEDGE_ROUND: float = 0.5
+const LEDGE_ROUND_MOST: float = 26.0
+const LEDGE_SHADOW: Vector2 = Vector2(4, 7)
+# The grass art's blades (its pixel rows), how tall they are drawn and how far they sink into the felt.
+const GRASS_ROWS: Vector2 = Vector2(67, 128)
+const GRASS_HEIGHT: float = 24.0
+const GRASS_SINK: float = 5.0
+# The pocket art's opaque middle and height in its pixels, and how tall the pocket is drawn.
+const POCKET_MIDDLE: Vector2 = Vector2(255, 361)
+const POCKET_ART_HEIGHT: float = 534.0
+const POCKET_HEIGHT: float = 176.0
+# A button is the cream one in the sheet (the fourth cell), tinted the wardrobe's colour, drawn this wide.
+const BUTTON_CELL: Rect2 = Rect2(768, 0, 256, 256)
+const BUTTON_SIZE: float = 50.0
+# How much more of the painting is cropped from its top than its foot, so its ground meets the room's floor.
+const BACKDROP_TOP_CROP: float = 0.7
+# A landing's fluff: how many bits and how long they last. How long a prank's "!" stays over the runner.
+const FLUFF_COUNT: int = 8
+const FLUFF_LIFE: float = 0.42
+const SURPRISE_TIME: float = 0.8
 const CHECKPOINT: Texture2D = preload("res://assets/art/sewn_checkpoint.png")
 const NEEDLES_RAISED: Texture2D = preload("res://assets/art/props/needle_strip_raised.png")
 const NEEDLES_FLAT: Texture2D = preload("res://assets/art/props/needle_strip_flat.png")
@@ -56,6 +108,12 @@ var confetti: Array[Dictionary] = []
 # The wardrobe's button colour and room fabric. A fabric of -1 keeps each room's own cloth.
 var button_colour: Color = Color("e4c77f")
 var fabric_backdrop: int = -1
+# What the camera shows of the world when the room is fitted, which the painting covers.
+var view: Rect2 = Rect2(0, 0, 1920, 1080)
+# Bits of felt fluff kicked up by a landing, and the runner, whom the surprise bubble follows.
+var fluff: Array[Dictionary] = []
+var runner: Node2D
+var surprise_age: float = 9.0
 
 
 func _ready() -> void:
@@ -91,17 +149,64 @@ func _process(delta: float) -> void:
 		bloom_bursts[index]["age"] += delta
 		if bloom_bursts[index]["age"] > 0.55:
 			bloom_bursts.remove_at(index)
+	for bit: Dictionary in fluff:
+		var drift: Vector2 = bit["velocity"]
+		bit["velocity"] = drift * (1.0 - delta * 5.0)
+		bit["pos"] += drift * delta
+		bit["age"] += delta
+	fluff = fluff.filter(func(bit: Dictionary) -> bool: return float(bit["age"]) < FLUFF_LIFE)
+	surprise_age += delta
 	queue_redraw()
 
 
+# A landing kicks felt fluff out either side along the surface, `feet` where the runner touched down.
+func puff(feet: Vector2, pull: Vector2) -> void:
+	var along: Vector2 = Vector2(pull.y, -pull.x)
+	for index: int in range(FLUFF_COUNT):
+		var side: float = -1.0 if index % 2 == 0 else 1.0
+		var speed: float = 70.0 + float(index) * 18.0
+		fluff.append({"pos": feet, "velocity": along * side * speed - pull * (20.0 + float(index % 3) * 12.0), "age": 0.0, "size": 2.5 + float(index % 3) * 1.5})
+
+
+# A prank just sprang: a stitched bubble with a "!" pops up over the runner's head.
+func surprise() -> void:
+	surprise_age = 0.0
+
+
+func _draw_fluff() -> void:
+	for bit: Dictionary in fluff:
+		var fade: float = 1.0 - float(bit["age"]) / FLUFF_LIFE
+		draw_circle(bit["pos"], float(bit["size"]) * (0.6 + fade * 0.4), Color(THREAD, 0.85 * fade))
+
+
+func _draw_surprise() -> void:
+	if surprise_age >= SURPRISE_TIME or not is_instance_valid(runner):
+		return
+	var grow: float = clampf(surprise_age / 0.16, 0.0, 1.0)
+	var pop: float = 1.0 + 0.35 * sin(grow * PI) if grow < 1.0 else 1.0
+	var fade: float = clampf((SURPRISE_TIME - surprise_age) / 0.2, 0.0, 1.0)
+	var centre: Vector2 = runner.position - gravity_direction * 92.0
+	var radius: float = 22.0 * grow * pop
+	draw_circle(centre + Vector2(2, 3), radius, Color(0, 0, 0, 0.2 * fade))
+	draw_circle(centre, radius, Color(Color("f7edda"), fade))
+	draw_arc(centre, radius - 3.0, 0.0, TAU, 32, Color(RUST, 0.7 * fade), 2.0, true)
+	draw_set_transform(centre, gravity_direction.angle() - PI * 0.5, Vector2.ONE * grow * pop)
+	draw_line(Vector2(0, -11), Vector2(0, 3), Color(RUST, fade), 5.0, true)
+	draw_circle(Vector2(0, 10), 3.2, Color(RUST, fade))
+	draw_set_transform(Vector2.ZERO)
+
+
 func _draw() -> void:
-	draw_texture_rect(_backdrop_texture(), Rect2(-330, -180, 2580, 1440), false)
+	_draw_backdrop()
 	if level.is_empty():
 		return
 	_draw_chamber()
 	_draw_environment()
 	for wall: Rect2 in level["walls"]:
+		_draw_felt(wall, Color(0, 0, 0, 0.22), LEDGE_SHADOW)
+	for wall: Rect2 in level["walls"]:
 		_draw_wall(wall)
+	_draw_grass()
 	for bridge: Rect2 in level["phase_walls"]:
 		_draw_bridge(bridge)
 	_draw_sentry_tracks()
@@ -123,6 +228,8 @@ func _draw() -> void:
 	_draw_spark_bursts()
 	_draw_bloom_bursts()
 	_draw_confetti()
+	_draw_fluff()
+	_draw_surprise()
 	if shift_age < 0.68:
 		_draw_shift_seam()
 
@@ -133,44 +240,31 @@ func _backdrop() -> int:
 	return fabric_backdrop if fabric_backdrop >= 0 and backdrop < 4 else backdrop
 
 
-func _backdrop_texture() -> Texture2D:
-	match _backdrop():
-		4:
-			return WATER_CLOTH
-		5:
-			return DUNE_CLOTH
-		6:
-			return FOREST_CLOTH
-		7:
-			return NIGHT_CLOTH
-		8:
-			return RAIN_CLOTH
-		9:
-			return FROST_CLOTH
-	return LINEN
+# Which painting and felt the room uses: its chapter's, unless a worn fabric dresses a sewing-room chapter.
+func art_id() -> String:
+	var chapter: String = level.get("art", "linen")
+	if chapter in SEWING_ROOMS and FABRIC_ART.has(fabric_backdrop):
+		return FABRIC_ART[fabric_backdrop]
+	return chapter
 
 
-func _cloth_color() -> Color:
-	match _backdrop():
-		4:
-			return Color("85aeb0")
-		5:
-			return Color("c4a16c")
-		6:
-			return Color("809b73")
-		7:
-			return Color("8185a4")
-		8:
-			return Color("7fa8a1")
-		9:
-			return Color("aabec9")
-	return Color("a1a88b")
+# The painting covers what the camera shows, cropped more from its sky than its ground, so the whole picture is
+# seen at its own sharpness instead of a magnified slice of its middle.
+func _draw_backdrop() -> void:
+	var painting: Texture2D = BACKDROPS.get(art_id(), BACKDROPS["linen"])
+	var art: Vector2 = painting.get_size()
+	var cover: float = maxf(view.size.x / art.x, view.size.y / art.y)
+	var drawn: Vector2 = art * cover
+	var spare: Vector2 = drawn - view.size
+	# A wide margin first, in case the camera is ever off its fitted place, then the fitted picture.
+	draw_texture_rect(painting, view.grow(view.size.x * 0.5), false, Color(1, 1, 1, 1))
+	draw_texture_rect(painting, Rect2(view.position - Vector2(spare.x * 0.5, spare.y * BACKDROP_TOP_CROP), drawn), false)
 
 
 func _draw_chamber() -> void:
 	var chamber: Rect2 = level["chamber"]
-	draw_rect(chamber.grow(12.0), Color("644f43", 0.15))
-	draw_rect(chamber, Color("f7efdc", 0.2))
+	draw_rect(chamber.grow(12.0), Color("644f43", 0.12))
+	draw_rect(chamber, Color("f7efdc", 0.07))
 
 
 func _draw_environment() -> void:
@@ -236,30 +330,77 @@ func _draw_field_edge(zone: Rect2, color: Color) -> void:
 
 
 func _draw_wall(wall: Rect2) -> void:
-	var fabric: Color = _cloth_color()
-	draw_rect(wall.grow(8.0), Color("635347", 0.2))
-	draw_rect(wall.grow(2.0), INK)
-	draw_rect(wall, fabric)
-	draw_texture_rect(FELT, wall.grow(-4.0), true, fabric.lightened(0.25))
-	if wall.size.x > wall.size.y:
-		for x: int in range(int(wall.position.x + 9), int(wall.end.x - 7), 15):
-			draw_line(Vector2(x, wall.position.y + 4), Vector2(x + 7, wall.position.y + 4), THREAD, 2.0, true)
-			draw_line(Vector2(x, wall.end.y - 4), Vector2(x + 7, wall.end.y - 4), Color("59473a", 0.7), 2.0, true)
-		for x: int in range(int(wall.position.x + 18), int(wall.end.x - 8), 40):
-			draw_line(Vector2(x, wall.position.y + 9), Vector2(x + 12, wall.end.y - 8), Color("eedec0", 0.31), 1.0, true)
-	else:
-		for y: int in range(int(wall.position.y + 9), int(wall.end.y - 7), 15):
-			draw_line(Vector2(wall.position.x + 4, y), Vector2(wall.position.x + 4, y + 7), THREAD, 2.0, true)
-			draw_line(Vector2(wall.end.x - 4, y), Vector2(wall.end.x - 4, y + 7), Color("59473a", 0.7), 2.0, true)
+	_draw_felt(wall, FELT_TINTS.get(art_id(), FELT_TINTS["linen"]), Vector2.ZERO)
 
 
+# A ledge or wall cut from the felt strip: its rounded, stitched corners kept square and its middle repeated along
+# it, so the stitches keep their size however long the ledge is. A wall taller than it is wide is the strip
+# turned on its side. `shift` moves it, for the shadow.
+func _draw_felt(rect: Rect2, tint: Color, shift: Vector2) -> void:
+	var upright: bool = rect.size.y > rect.size.x
+	var length: float = rect.size.y if upright else rect.size.x
+	var thick: float = rect.size.x if upright else rect.size.y
+	var corner: float = minf(minf(thick * LEDGE_ROUND, LEDGE_ROUND_MOST), length * 0.5)
+	var scale: float = corner / LEDGE_CORNER
+	draw_set_transform(rect.get_center() + shift, PI * 0.5 if upright else 0.0)
+	var local: Rect2 = Rect2(-length * 0.5, -thick * 0.5, length, thick)
+	var rows: Array[float] = [local.position.y, local.position.y + corner, local.end.y - corner, local.end.y]
+	var src_rows: Array[float] = [LEDGE_STRIP.position.y, LEDGE_STRIP.position.y + LEDGE_CORNER, LEDGE_STRIP.end.y - LEDGE_CORNER, LEDGE_STRIP.end.y]
+	for row: int in range(3):
+		var height: float = rows[row + 1] - rows[row]
+		if height <= 0.01:
+			continue
+		var src_y: float = src_rows[row]
+		var src_h: float = src_rows[row + 1] - src_rows[row]
+		draw_texture_rect_region(LEDGE, Rect2(local.position.x, rows[row], corner, height), Rect2(LEDGE_STRIP.position.x, src_y, LEDGE_CORNER, src_h), tint)
+		draw_texture_rect_region(LEDGE, Rect2(local.end.x - corner, rows[row], corner, height), Rect2(LEDGE_STRIP.end.x - LEDGE_CORNER, src_y, LEDGE_CORNER, src_h), tint)
+		_run(LEDGE, Rect2(LEDGE_RUN.x, src_y, LEDGE_RUN.y - LEDGE_RUN.x, src_h), Rect2(local.position.x + corner, rows[row], local.size.x - corner * 2.0, height), scale, tint)
+	draw_set_transform(Vector2.ZERO)
+
+
+# Repeats `src` along x across `dest`, each copy `scale` times its size, cutting the last one short.
+func _run(texture: Texture2D, src: Rect2, dest: Rect2, scale: float, tint: Color) -> void:
+	var step: float = src.size.x * scale
+	var offset: float = 0.0
+	while offset < dest.size.x - 0.01 and step > 0.0:
+		var piece: float = minf(step, dest.size.x - offset)
+		draw_texture_rect_region(texture, Rect2(dest.position + Vector2(offset, 0), Vector2(piece, dest.size.y)), Rect2(src.position, Vector2(piece / scale, src.size.y)), tint)
+		offset += step
+
+
+# Embroidered grass along the top of every floor and ledge, in the chapters that grow any.
+func _draw_grass() -> void:
+	if not GRASS_TINTS.has(art_id()):
+		return
+	var tint: Color = GRASS_TINTS[art_id()]
+	var scale: float = GRASS_HEIGHT / (GRASS_ROWS.y - GRASS_ROWS.x)
+	var chamber: Rect2 = level["chamber"]
+	for wall: Rect2 in level["walls"]:
+		# Only tops the runner can stand on: wider than tall, and below the room's ceiling.
+		if wall.size.x <= wall.size.y or wall.position.y <= chamber.position.y + 1.0:
+			continue
+		var strip: Rect2 = Rect2(wall.position.x + 6.0, wall.position.y - GRASS_HEIGHT + GRASS_SINK, wall.size.x - 12.0, GRASS_HEIGHT)
+		_run(GRASS, Rect2(0, GRASS_ROWS.x, GRASS.get_width(), GRASS_ROWS.y - GRASS_ROWS.x), strip, scale, tint)
+
+
+# A lit seam: solid, it is amber felt glowing along its middle thread. Unlit, only its stitched outline shows,
+# dashes of light where it will be.
 func _draw_bridge(bridge: Rect2) -> void:
-	var opacity: float = 1.0 if phase == 1 else 0.33
-	draw_rect(bridge.grow(3.0), Color("385e60", opacity))
-	draw_texture_rect(FELT, bridge.grow(-3.0), true, Color(0.65, 0.84, 0.77, opacity))
-	for x: int in range(int(bridge.position.x + 8), int(bridge.end.x - 7), 16):
-		draw_line(Vector2(x, bridge.position.y + 5), Vector2(x + 7, bridge.position.y + 5), Color(1.0, 0.96, 0.82, opacity), 2.0, true)
-		draw_line(Vector2(x, bridge.end.y - 5), Vector2(x + 7, bridge.end.y - 5), Color(0.2, 0.35, 0.34, opacity), 2.0, true)
+	if phase == 1:
+		_draw_felt(bridge, Color(0, 0, 0, 0.18), LEDGE_SHADOW)
+		for ring: int in range(4):
+			draw_rect(bridge.grow(4.0 + float(ring) * 5.0), Color(Color("ffcf7a"), 0.05))
+		_draw_felt(bridge, Color("e8b45c"), Vector2.ZERO)
+		var glow: float = 0.6 + 0.25 * sin(time * 4.0)
+		var middle: Vector2 = bridge.get_center()
+		var along: Vector2 = Vector2(bridge.size.x * 0.5 - 10.0, 0) if bridge.size.x > bridge.size.y else Vector2(0, bridge.size.y * 0.5 - 10.0)
+		draw_line(middle - along, middle + along, Color(Color("fff2c8"), glow), 3.0, true)
+	else:
+		var dash: Color = Color(Color("e8b45c"), 0.55)
+		_draw_stitches(bridge.position, Vector2(bridge.end.x, bridge.position.y), dash, 14.0)
+		_draw_stitches(Vector2(bridge.position.x, bridge.end.y), bridge.end, dash, 14.0)
+		_draw_stitches(bridge.position, Vector2(bridge.position.x, bridge.end.y), dash, 14.0)
+		_draw_stitches(Vector2(bridge.end.x, bridge.position.y), bridge.end, dash, 14.0)
 
 
 # Steel needles sewn into a band, tips along dir. The art points up, so it is turned to face dir with its
@@ -381,10 +522,11 @@ func _draw_shard(point: Vector2, index: int) -> void:
 	for spoke: int in range(8):
 		var angle: float = float(spoke) * TAU / 8.0 + time * 0.25
 		draw_line(center + Vector2.from_angle(angle) * 27.0, center + Vector2.from_angle(angle) * 35.0, Color(button_colour, 0.78), 2.0, true)
-	draw_circle(center, 18.0, INK)
-	draw_circle(center, 15.0, button_colour)
-	for hole: int in range(4):
-		draw_circle(center + Vector2.from_angle(float(hole) * TAU / 4.0 + PI * 0.25) * 7.0, 2.2, INK)
+	# The cream button from the sheet, tinted the wardrobe's colour, the sheet's cell a little larger than the
+	# button it holds.
+	var cell: float = BUTTON_SIZE * BUTTON_CELL.size.x / 200.0
+	draw_texture_rect_region(BUTTONS, Rect2(center - Vector2.ONE * cell * 0.5 + Vector2(2, 4), Vector2.ONE * cell), BUTTON_CELL, Color(0, 0, 0, 0.22))
+	draw_texture_rect_region(BUTTONS, Rect2(center - Vector2.ONE * cell * 0.5, Vector2.ONE * cell), BUTTON_CELL, button_colour.lightened(0.15))
 
 
 func _draw_pad(pos: Vector2) -> void:
@@ -396,24 +538,23 @@ func _draw_pad(pos: Vector2) -> void:
 		draw_circle(pos + Vector2(x, 4), 3.0, Color("f3dfbb"))
 
 
+# The zipper pocket: shut while buttons are missing, then unzipped and glowing from inside, breathing a little so
+# the eye finds it. It swells for a moment as it opens.
 func _draw_door(pos: Vector2) -> void:
-	var outside: Rect2 = Rect2(pos - Vector2(58, 79), Vector2(116, 158))
-	draw_rect(outside.grow(7), Color("6a5147", 0.24))
-	draw_rect(outside, INK)
-	draw_rect(outside.grow(-5), Color("b7aa8c"))
-	var opening: Rect2 = Rect2(pos - Vector2(39, 58), Vector2(78, 123))
-	draw_rect(opening, Color("524746"))
-	draw_rect(opening.grow(-5), Color("5e8c81").lerp(Color("ecdfb2"), door_progress))
-	for y: int in range(int(outside.position.y + 8), int(outside.end.y - 8), 14):
-		draw_line(Vector2(outside.position.x + 9, y), Vector2(outside.position.x + 9, y + 7), THREAD, 2.0, true)
-		draw_line(Vector2(outside.end.x - 9, y), Vector2(outside.end.x - 9, y + 7), THREAD, 2.0, true)
-	# The pull slides up as the zipper opens and back down as it closes, with the teeth still shut below it.
-	var pull_y: float = lerpf(60.0, -52.0, door_progress)
-	for y: int in range(int(opening.position.y + 8), int(opening.end.y - 4), 12):
-		if float(y) > pos.y + pull_y:
-			draw_line(Vector2(pos.x - 3, y), Vector2(pos.x + 3, y + 5), Color("e8c989"), 3.0, true)
-	draw_line(pos + Vector2(0, pull_y), pos + Vector2(0, pull_y + 16), INK, 4.0, true)
-	draw_circle(pos + Vector2(0, pull_y + 16), 9.0, RUST)
+	var scale: float = POCKET_HEIGHT / POCKET_ART_HEIGHT
+	var open: float = door_progress
+	var swell: float = 1.0 + sin(open * PI) * 0.08 + (sin(time * 3.0) * 0.015 if door_open else 0.0)
+	var size: Vector2 = POCKET_SHUT.get_size() * scale * swell
+	var corner: Vector2 = pos - POCKET_MIDDLE * scale * swell
+	draw_texture_rect(POCKET_SHUT, Rect2(corner + Vector2(4, 7), size), false, Color(0, 0, 0, 0.2))
+	if open > 0.0:
+		var glow: float = open * (0.55 + 0.15 * sin(time * 3.0))
+		for ring: int in range(6):
+			draw_circle(pos, POCKET_HEIGHT * (0.35 + float(ring) * 0.1), Color(Color("ffd27a"), glow * 0.06))
+	if open < 1.0:
+		draw_texture_rect(POCKET_SHUT, Rect2(corner, size), false, Color(1, 1, 1, 1.0 - open))
+	if open > 0.0:
+		draw_texture_rect(POCKET_OPEN, Rect2(corner, size), false, Color(1, 1, 1, open))
 
 
 func _draw_loose_threads() -> void:
