@@ -24,23 +24,38 @@ const HUD = {
   pause: { home: [1120, 500, 230, 255] },
 };
 
-// The home painting's size and its painted pocket's middle (HOME_SCENE, HOME_POCKET), which Home's menu centres in.
-const HOME_ART = { width: 1672, height: 941, pocket: 410 };
+// The home painting's size and its painted pocket (HOME_SCENE, HOME_POCKET), and the menu sized to and centred in
+// it (HOME_MENU_SHARE, HOME_MENU_LARGEST, HOME_MARGIN, HOME_PLAY's width, and the menu's top and foot: HOME_LOGO's
+// y and HOME_TILES_Y + HOME_TILE_HEIGHT).
+const HOME_ART = { width: 1672, height: 941, pocket: [20, 80, 780, 760] };
+const HOME_MENU = { share: 0.74, largest: 1.25, margin: 24, width: 640, top: 110, foot: 674 };
+
+// hud.gd _layout_home: where the menu's own space lands on a root `rootWidth` by 1080, and how much it is scaled.
+function homeMenu(rootWidth) {
+  const cover = Math.max(rootWidth / HOME_ART.width, 1080 / HOME_ART.height);
+  const [x, y, w, h] = HOME_ART.pocket.map(value => value * cover);
+  const pocketLeft = (rootWidth - HOME_ART.width * cover) / 2 + x;
+  const pocketTop = (1080 - HOME_ART.height * cover) / 2 + y;
+  const top = Math.max(pocketTop, HOME_MENU.margin);
+  const bottom = Math.min(pocketTop + h, 1080 - HOME_MENU.margin);
+  const tall = HOME_MENU.foot - HOME_MENU.top;
+  const fit = Math.min(Math.max(Math.min((bottom - top) * HOME_MENU.share / tall, w * 0.84 / HOME_MENU.width), 0.6), HOME_MENU.largest);
+  const left = Math.max(40, pocketLeft + w / 2 - HOME_MENU.width / 2 * fit);
+  return { left, top: (top + bottom - tall * fit) / 2 - HOME_MENU.top * fit, fit };
+}
 
 // The 1920 x 1080 design is stretched with canvas_items and aspect expand, so a screen wider than 16:9 shows a root
-// wider than 1920. Every page but Home is 1920 wide and centred in it. Home's menu centres in the painted pocket as
-// the painting covers the root, and Settings and the pause button keep HUD_EDGE from the right edge (hud.gd
-// _layout and _layout_play). The browser build carries no banner, so nothing shrinks for one.
+// wider than 1920. Every page but Home is 1920 wide and centred in it. Home's menu is sized to and centred in the
+// painted pocket as the painting covers the root, and Settings and the pause button keep HUD_EDGE from the right
+// edge (hud.gd _layout and _layout_play). The browser build carries no banner, so nothing shrinks for one.
 function screen({ width, height }, touch) {
   const scale = Math.min(width / 1920, height / 1080);
   const rootWidth = width / scale;
   const centre = ([x, y, w, h], left) => ({ x: (left + x + w / 2) * scale, y: (y + h / 2) * scale });
-  const cover = Math.max(rootWidth / HOME_ART.width, 1080 / HOME_ART.height);
-  const pocket = (rootWidth - HOME_ART.width * cover) / 2 + HOME_ART.pocket * cover;
-  const menuLeft = Math.max(40, pocket - 640 / 2);
+  const menu = homeMenu(rootWidth);
   const chip = touch ? 120 : 100;
   return {
-    home: rect => centre(rect, menuLeft),
+    home: ([x, y, w, h]) => ({ x: (menu.left + (x + w / 2) * menu.fit) * scale, y: (menu.top + (y + h / 2) * menu.fit) * scale }),
     settings: () => centre([rootWidth - 14 - 112, 14, 112, 112], 0),
     page: rect => centre(rect, (rootWidth - 1920) / 2),
     pause: () => centre([rootWidth - 14 - chip, 14, chip, chip], 0),

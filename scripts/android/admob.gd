@@ -268,16 +268,16 @@ func _on_banner_failed() -> void:
 			_make_banner())
 
 
-# The banner `height_dp` tall and BANNER_WIDTH_DP wide, centred, sitting StitchfallAds.gap_dp above the system
-# navigation inset. The plugin's custom position is dp from the top left of the full-screen view, with no inset
-# added (its Banner.kt).
+# The banner `height_dp` tall and BANNER_WIDTH_DP wide, at the page's spot along the foot (StitchfallAds.banner_left),
+# sitting StitchfallAds.gap_dp above the system navigation inset. The plugin's custom position is dp from the top
+# left of the full-screen view, with no inset added (its Banner.kt).
 func _clear_position(height_dp: float) -> AdPosition:
 	var density: float = DisplayServer.screen_get_dpi() / 160.0
 	var screen_px: Vector2 = Vector2(DisplayServer.window_get_size())
 	if density <= 0.0 or screen_px.y <= 0.0:
 		return AdPosition.BOTTOM
 	var inset: float = StitchfallAds.inset_dp()
-	var left_dp: float = maxf(0.0, (screen_px.x / density - StitchfallAds.BANNER_WIDTH_DP) * 0.5)
+	var left_dp: float = maxf(0.0, StitchfallAds.banner_left(screen_px.x / density, StitchfallAds.BANNER_WIDTH_DP, StitchfallAds.EDGE_DP))
 	var top_dp: float = screen_px.y / density - inset - StitchfallAds.gap_dp(inset) - maxf(height_dp, StitchfallAds.BANNER_HEIGHT_DP)
 	return AdPosition.custom(int(floorf(left_dp)), int(floorf(top_dp)))
 

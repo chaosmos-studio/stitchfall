@@ -4,7 +4,6 @@ extends Button
 const FONT: FontFile = preload("res://assets/fonts/Threadline-Satin.ttf")
 const BODY_FONT: FontFile = preload("res://assets/fonts/Darn-UI.ttf")
 const MENU_FONT: FontFile = preload("res://assets/fonts/Threadline-Woven.ttf")
-const PLATE: Texture2D = preload("res://assets/art/linen_button_plate.png")
 const ICON_PATCH: Texture2D = preload("res://assets/art/linen_icon_patch.png")
 const ICONS: Texture2D = preload("res://assets/art/stitched_icons.png")
 const WORLD_ICONS: Texture2D = preload("res://assets/art/stitched_world_icons.png")
@@ -18,8 +17,6 @@ var glyph: String = ""
 var cloth: Color = Color("f1e2c8")
 var ink: Color = Color("493a37")
 var home_link: bool = false
-# Home's one big button: the play patch on the left, the word large, and the room it leads to under it.
-var primary: bool = false
 var pause_action: bool = false
 var level_tile: bool = false
 # A level tile shows its best stars, or none while it is -1, and fades out while locked.
@@ -35,9 +32,24 @@ var shop_card: bool = false
 var lines: PackedStringArray = PackedStringArray()
 var price_tag: String = ""
 var owned: bool = false
+# A Settings row's switch: -1 for none, else 0 off and 1 on. A row that opens a page shows a small arrow instead.
+var switch_on: int = -1
+var arrow: bool = false
 var press: Tween
 
 const PRESS_SCALE: float = 0.94
+# The card's stitching: a dash this long every period, this far inside the edge.
+const STITCH_DASH: float = 9.0
+const STITCH_PERIOD: float = 16.0
+const STITCH_INSET: float = 9.0
+const CARD_EDGE: Color = Color("947a65")
+const CARD_SHADOW: Color = Color("45372f", 0.2)
+const CARD_DROP: float = 6.0
+# The fonts' capital height as a share of their size (all three fonts' OS/2 tables say 700 of 1000).
+const CAP_HEIGHT: float = 0.7
+const SWITCH_SIZE: Vector2 = Vector2(96, 52)
+const SWITCH_ON: Color = Color("6f9a64")
+const SWITCH_OFF: Color = Color("cbbda6")
 
 
 func _squeeze(to: float, seconds: float, trans: Tween.TransitionType, curve: Tween.EaseType) -> void:
@@ -70,37 +82,19 @@ func _draw() -> void:
 	var hovered: bool = is_hovered() or has_focus()
 	if home_link:
 		_draw_home_link(hovered)
-		return
-	if primary:
-		_draw_primary(hovered)
-		return
-	if pause_action:
+	elif pause_action:
 		_draw_pause_action(hovered)
-		return
-	if level_tile:
+	elif level_tile:
 		_draw_level_tile(hovered)
-		return
-	if shop_card:
+	elif shop_card:
 		_draw_shop_card(hovered)
-		return
-	var lift: float = -3.0 if hovered else 0.0
-	var tint: Color = cloth.lightened(0.13) if hovered else cloth
-	if caption.is_empty():
-		draw_texture_rect(ICON_PATCH, Rect2(Vector2(0, lift), size), false, tint)
+	elif caption.is_empty():
+		var lift: float = -3.0 if hovered else 0.0
+		draw_texture_rect(ICON_PATCH, Rect2(Vector2(0, lift), size), false, cloth.lightened(0.13) if hovered else cloth)
+		if not glyph.is_empty():
+			_draw_icon(Vector2(size.x * 0.5, size.y * 0.48 + lift), minf(size.x, size.y) * 0.26)
 	else:
-		_draw_plate(lift, tint)
-	var icon_center: Vector2 = Vector2(size.x * (0.5 if caption.is_empty() else 0.18), size.y * 0.48 + lift)
-	var icon_scale: float = minf(size.x, size.y) * (0.26 if caption.is_empty() else 0.19)
-	if not glyph.is_empty():
-		_draw_icon(icon_center, icon_scale)
-	if not caption.is_empty():
-		var font_size: int = caption_size if caption_size > 0 else (55 if size.x >= 680 else (44 if size.y > 110 else 38))
-		var text_left: float = 18.0 if glyph.is_empty() else size.x * 0.33
-		var baseline: float = size.y * (0.54 if subcaption.is_empty() else 0.42) + lift
-		draw_string(FONT, Vector2(text_left, baseline), caption, HORIZONTAL_ALIGNMENT_CENTER if subcaption.is_empty() else HORIZONTAL_ALIGNMENT_LEFT, size.x - text_left * 2.0 if glyph.is_empty() else size.x - text_left - 34.0, font_size, ink)
-		if not subcaption.is_empty():
-			var small_size: int = 43 if size.x > 720 else 32
-			draw_string(BODY_FONT, Vector2(text_left, size.y * 0.78 + lift), subcaption, HORIZONTAL_ALIGNMENT_LEFT, size.x - text_left - 34.0, small_size, ink)
+		_draw_card(hovered)
 
 
 func _draw_home_link(hovered: bool) -> void:
@@ -115,22 +109,135 @@ func _draw_home_link(hovered: bool) -> void:
 	draw_string(MENU_FONT, Vector2(121, baseline), caption, HORIZONTAL_ALIGNMENT_LEFT, size.x - 135.0, font_size, label_color)
 
 
-func _draw_primary(hovered: bool) -> void:
+# The card: a rounded felt patch with a stitched line inside its edge, the icon on a round patch at the left, a
+# switch or an arrow at the right, and the caption with its line under it centred as one block between them. Each
+# line shrinks until it fits its room, so a long word never runs into the stitching.
+func _draw_card(hovered: bool) -> void:
 	var lift: float = -3.0 if hovered else 0.0
-	_draw_plate(lift, cloth.lightened(0.1) if hovered else cloth)
-	var patch: float = size.y * 0.66
-	var patch_position: Vector2 = Vector2(size.y * 0.2, (size.y - patch) * 0.5 + lift)
-	draw_texture_rect(ICON_PATCH, Rect2(patch_position, Vector2.ONE * patch), false, cloth.darkened(0.08))
-	_draw_icon(patch_position + Vector2.ONE * patch * 0.5, patch * 0.24)
-	var text_left: float = patch_position.x + patch + size.y * 0.14
-	var width: float = size.x - text_left - size.y * 0.16
-	var caption_font: int = caption_size if caption_size > 0 else 66
-	# The word sits high and the room's name low, with clear cloth between them.
-	var baseline: float = size.y * (0.62 if subcaption.is_empty() else 0.47) + lift
-	draw_string(MENU_FONT, Vector2(text_left, baseline), caption, HORIZONTAL_ALIGNMENT_LEFT, width, caption_font, ink)
+	var body: Rect2 = Rect2(0, lift, size.x, size.y - CARD_DROP)
+	var radius: float = minf(body.size.y * 0.26, 30.0)
+	var tint: Color = cloth.lightened(0.08) if hovered else cloth
+	_draw_rounded(Rect2(0, CARD_DROP, body.size.x, body.size.y), radius, CARD_SHADOW)
+	_draw_rounded(body, radius, CARD_EDGE)
+	_draw_rounded(body.grow(-2.5), radius - 2.5, tint)
+	_draw_dashes(_rounded_outline(body.grow(-STITCH_INSET), maxf(radius - STITCH_INSET, 4.0)), Color("896b57", 0.7))
+	var pad: float = clampf(body.size.y * 0.15, 12.0, 26.0)
+	var left: float = STITCH_INSET + pad
+	var right: float = body.size.x - STITCH_INSET - pad
+	var middle: float = body.get_center().y
+	# A card about as tall as it is wide stacks its icon over its word, as Home's tiles do.
+	if not glyph.is_empty() and body.size.x < body.size.y * 1.6:
+		var room_wide: float = body.size.x - (STITCH_INSET + 10.0) * 2.0
+		var word: int = stacked_word_size()
+		var word_height: float = word * CAP_HEIGHT
+		var disc: float = minf(room_wide, body.size.y - (STITCH_INSET + pad) * 2.0 - word_height - pad * 0.8)
+		var stack_top: float = middle - (disc + pad * 0.8 + word_height) * 0.5
+		var disc_centre: Vector2 = Vector2(body.get_center().x, stack_top + disc * 0.5)
+		draw_circle(disc_centre, disc * 0.5, tint.darkened(0.12), true, -1.0, true)
+		_draw_dashes(_circle_outline(disc_centre, disc * 0.5 - 6.0), Color("896b57", 0.55))
+		_draw_icon(disc_centre, disc * 0.29)
+		draw_string(MENU_FONT, Vector2(STITCH_INSET + 10.0, stack_top + disc + pad * 0.8 + word_height), caption, HORIZONTAL_ALIGNMENT_CENTER, room_wide, word, ink)
+		return
+	if not glyph.is_empty():
+		var patch: float = minf(body.size.y - (STITCH_INSET + pad * 0.7) * 2.0, 120.0)
+		var centre: Vector2 = Vector2(left + patch * 0.5, middle)
+		draw_circle(centre, patch * 0.5, tint.darkened(0.12), true, -1.0, true)
+		_draw_dashes(_circle_outline(centre, patch * 0.5 - 6.0), Color("896b57", 0.55))
+		_draw_icon(centre, patch * 0.29)
+		left += patch + pad
+	if switch_on >= 0:
+		_draw_switch(Vector2(right - SWITCH_SIZE.x * 0.5, middle), switch_on == 1)
+		right -= SWITCH_SIZE.x + pad
+	elif arrow:
+		var tip: Vector2 = Vector2(right - 6.0, middle)
+		draw_polyline(PackedVector2Array([tip + Vector2(-13, -16), tip, tip + Vector2(-13, 16)]), Color(ink, 0.55), 5.0, true)
+		right -= 34.0
+	var room: float = right - left
+	var caption_font: int = _fit(MENU_FONT, caption, caption_size if caption_size > 0 else int(body.size.y * 0.4), room)
+	var small_font: int = _fit(BODY_FONT, subcaption, int(clampf(body.size.y * 0.22, 22.0, 32.0)), room)
+	var caption_height: float = caption_font * CAP_HEIGHT
+	var gap: float = caption_font * 0.36
+	var block: float = caption_height + (gap + small_font * CAP_HEIGHT if not subcaption.is_empty() else 0.0)
+	var top: float = middle - block * 0.5
+	var align: HorizontalAlignment = HORIZONTAL_ALIGNMENT_CENTER if glyph.is_empty() and switch_on < 0 and not arrow else HORIZONTAL_ALIGNMENT_LEFT
+	draw_string(MENU_FONT, Vector2(left, top + caption_height), caption, align, room, caption_font, ink)
 	if not subcaption.is_empty():
-		var small: int = int(clampf(size.y * 0.2, 24.0, 30.0))
-		draw_string(BODY_FONT, Vector2(text_left, size.y * 0.77 + lift), subcaption, HORIZONTAL_ALIGNMENT_LEFT, width, small, Color(ink, 0.82))
+		draw_string(BODY_FONT, Vector2(left, top + block), subcaption, align, room, small_font, Color(ink, 0.8))
+
+
+# The size a stacked card's word is drawn at, so a row of them can share the smallest.
+func stacked_word_size() -> int:
+	var largest: int = caption_size if caption_size > 0 else int((size.y - CARD_DROP) * 0.18)
+	return _fit(MENU_FONT, caption, largest, size.x - (STITCH_INSET + 10.0) * 2.0)
+
+
+# The largest size, up to `largest`, at which `text` fits `room` wide.
+func _fit(font: Font, text: String, largest: int, room: float) -> int:
+	var font_size: int = largest
+	while font_size > 16 and font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x > room:
+		font_size -= 1
+	return font_size
+
+
+func _draw_switch(centre: Vector2, on: bool) -> void:
+	var track: Rect2 = Rect2(centre - SWITCH_SIZE * 0.5, SWITCH_SIZE)
+	_draw_rounded(track, SWITCH_SIZE.y * 0.5, CARD_EDGE)
+	_draw_rounded(track.grow(-2.5), SWITCH_SIZE.y * 0.5 - 2.5, SWITCH_ON if on else SWITCH_OFF)
+	var knob_radius: float = SWITCH_SIZE.y * 0.5 - 7.0
+	var knob: Vector2 = Vector2(track.end.x - SWITCH_SIZE.y * 0.5 if on else track.position.x + SWITCH_SIZE.y * 0.5, centre.y)
+	draw_circle(knob + Vector2(0, 2), knob_radius, Color(CARD_SHADOW, 0.3), true, -1.0, true)
+	draw_circle(knob, knob_radius, Color("f7edda"), true, -1.0, true)
+	_draw_dashes(_circle_outline(knob, knob_radius - 4.0), Color("896b57", 0.5))
+
+
+func _draw_rounded(rect: Rect2, radius: float, color: Color) -> void:
+	draw_colored_polygon(_rounded_outline(rect, radius), color)
+
+
+# The outline of a rounded rectangle, clockwise from the top right corner, closed.
+func _rounded_outline(rect: Rect2, radius: float) -> PackedVector2Array:
+	var corner: float = minf(radius, minf(rect.size.x, rect.size.y) * 0.5)
+	var centres: Array[Vector2] = [
+		Vector2(rect.end.x - corner, rect.position.y + corner),
+		Vector2(rect.end.x - corner, rect.end.y - corner),
+		Vector2(rect.position.x + corner, rect.end.y - corner),
+		Vector2(rect.position.x + corner, rect.position.y + corner),
+	]
+	var points: PackedVector2Array = PackedVector2Array()
+	for index: int in range(4):
+		for step: int in range(9):
+			var angle: float = -PI * 0.5 + float(index) * PI * 0.5 + float(step) / 8.0 * PI * 0.5
+			points.append(centres[index] + Vector2.from_angle(angle) * corner)
+	return points
+
+
+func _circle_outline(centre: Vector2, radius: float) -> PackedVector2Array:
+	var points: PackedVector2Array = PackedVector2Array()
+	for step: int in range(33):
+		points.append(centre + Vector2.from_angle(float(step) / 32.0 * TAU) * radius)
+	return points
+
+
+# Running stitches along a path: a dash, a gap, and on round the corners without starting over.
+func _draw_dashes(points: PackedVector2Array, color: Color) -> void:
+	var path: PackedVector2Array = points.duplicate()
+	if path.size() > 1 and path[0] != path[path.size() - 1]:
+		path.append(path[0])
+	var walked: float = 0.0
+	for index: int in range(path.size() - 1):
+		var from: Vector2 = path[index]
+		var to: Vector2 = path[index + 1]
+		var length: float = from.distance_to(to)
+		var at: float = 0.0
+		while at < length:
+			var into: float = fmod(walked + at, STITCH_PERIOD)
+			if into < STITCH_DASH:
+				var until: float = minf(length, at + STITCH_DASH - into)
+				draw_line(from.lerp(to, at / length), from.lerp(to, until / length), color, 2.0, true)
+				at = until
+			else:
+				at += STITCH_PERIOD - into
+		walked += length
 
 
 func _draw_pause_action(hovered: bool) -> void:
@@ -193,20 +300,6 @@ func _draw_shop_card(hovered: bool) -> void:
 		draw_string(BODY_FONT, Vector2(20, 262.0 + float(index) * 38.0 + lift), lines[index], HORIZONTAL_ALIGNMENT_CENTER, size.x - 40.0, 26, ink)
 	var status: String = "YOURS" if owned else price_tag
 	draw_string(FONT, Vector2(0, size.y - 46.0 + lift), status, HORIZONTAL_ALIGNMENT_CENTER, size.x, 40, Color("5f8b5a") if owned else Color("a85648"))
-
-
-func _draw_plate(lift: float, tint: Color) -> void:
-	var source_x: Array[float] = [20.0, 430.0, float(PLATE.get_width()) - 430.0, float(PLATE.get_width()) - 20.0]
-	var source_y: Array[float] = [110.0, 250.0, float(PLATE.get_height()) - 250.0, float(PLATE.get_height()) - 110.0]
-	var horizontal: float = minf(size.y * 0.48, size.x * 0.22)
-	var vertical: float = size.y * 0.34
-	var dest_x: Array[float] = [0.0, horizontal, size.x - horizontal, size.x]
-	var dest_y: Array[float] = [lift, lift + vertical, lift + size.y - vertical, lift + size.y]
-	for row: int in range(3):
-		for column: int in range(3):
-			var destination: Rect2 = Rect2(dest_x[column], dest_y[row], dest_x[column + 1] - dest_x[column], dest_y[row + 1] - dest_y[row])
-			var source: Rect2 = Rect2(source_x[column], source_y[row], source_x[column + 1] - source_x[column], source_y[row + 1] - source_y[row])
-			draw_texture_rect_region(PLATE, destination, source, tint)
 
 
 func _draw_icon(center: Vector2, radius: float) -> void:

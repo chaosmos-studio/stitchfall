@@ -79,6 +79,13 @@ const SETTINGS_STEP: float = 142.0
 const SETTINGS_ROW: Vector2 = Vector2(580, 128)
 # The painted pocket in the home painting's own pixels, which the menu centres in however the painting is cropped.
 const HOME_POCKET: Rect2 = Rect2(20, 80, 780, 760)
+# How much of the pocket's height the menu fills, the most it grows past its design size, and the least it keeps
+# from the screen's top and foot.
+const HOME_MENU_SHARE: float = 0.74
+const HOME_MENU_LARGEST: float = 1.25
+const HOME_MARGIN: float = 24.0
+# Where the dancing runner stands across Home, as a share of the width. Home's banner stands under it.
+const HOME_HERO_X: float = 0.735
 
 var root: Control
 var meter: ButtonMeter
@@ -287,22 +294,36 @@ func _ready() -> void:
 func _layout() -> void:
 	_layout_play()
 	toast.position.x = (root.size.x - toast.size.x) * 0.5
-	hero.position.x = root.size.x * 0.735
+	hero.position.x = root.size.x * HOME_HERO_X
 	var safe: Vector4 = _safe_insets()
 	home_settings.position = Vector2(root.size.x - safe.z - HUD_EDGE - home_settings.size.x, safe.y + HUD_EDGE)
-	# The menu centres in the painted pocket as the painting covers the screen (wider screens crop its top and foot),
-	# and shrinks toward its top, as a page does, until it ends a banner's clearance above the banner.
-	var art: Vector2 = HOME_SCENE.get_size()
-	var cover: float = maxf(root.size.x / art.x, root.size.y / art.y)
-	var pocket_x: float = (root.size.x - art.x * cover) * 0.5 + HOME_POCKET.get_center().x * cover
-	var menu_fit: float = clampf(banner_limit / (HOME_TILES_Y + HOME_TILE_HEIGHT), 0.6, 1.0)
-	home_menu.scale = Vector2.ONE * menu_fit
-	home_menu.position = Vector2(maxf(safe.x + 40.0, pocket_x - HOME_PLAY.size.x * 0.5 * menu_fit), 0.0)
+	_layout_home(safe)
 	for page: Control in [level_page, help_page, about_page, settings_page, pause_page, clear_page, chapter_page, stats_page, credits_page, wardrobe_page, shop_page, offer_page, update_page]:
 		var fit: float = page_fit(page)
 		page.scale = Vector2.ONE * fit
 		page.position.x = (root.size.x - 1920.0 * fit) * 0.5
 		_trim_cloth(page, fit)
+
+
+# Home's menu is sized to the painted pocket as the painting covers the screen (wider screens crop its top and
+# foot), HOME_MENU_SHARE of its height, and centred in it, inside the screen's safe part. Home's banner stands
+# under the dancer, beside the menu, so the menu keeps the pocket's whole height. Only when a narrow screen puts
+# the banner under the menu too does the menu end a banner's clearance above it.
+func _layout_home(safe: Vector4) -> void:
+	var art: Vector2 = HOME_SCENE.get_size()
+	var cover: float = maxf(root.size.x / art.x, root.size.y / art.y)
+	var origin: Vector2 = (root.size - art * cover) * 0.5
+	var pocket: Rect2 = Rect2(origin + HOME_POCKET.position * cover, HOME_POCKET.size * cover)
+	var top: float = maxf(pocket.position.y, safe.y + HOME_MARGIN)
+	var bottom: float = minf(pocket.end.y, root.size.y - safe.w - HOME_MARGIN)
+	var menu: Vector2 = Vector2(HOME_PLAY.size.x, HOME_TILES_Y + HOME_TILE_HEIGHT - HOME_LOGO.position.y)
+	var fit: float = clampf(minf((bottom - top) * HOME_MENU_SHARE / menu.y, pocket.size.x * 0.84 / menu.x), 0.6, HOME_MENU_LARGEST)
+	var left: float = maxf(safe.x + 40.0, pocket.get_center().x - menu.x * 0.5 * fit)
+	if StitchfallAds.banner_wanted() and StitchfallAds.banner_rect(HOME_HERO_X).position.x < left + menu.x * fit:
+		bottom = minf(bottom, banner_limit)
+		fit = minf(fit, clampf((bottom - top) / menu.y, 0.6, 1.0))
+	home_menu.scale = Vector2.ONE * fit
+	home_menu.position = Vector2(left, (top + bottom - menu.y * fit) * 0.5 - HOME_LOGO.position.y * fit)
 
 
 # The HUD around a room. On a wide phone the room is limited by the screen's height, so the meter and the pause
@@ -557,8 +578,7 @@ func _build_home() -> void:
 	home_menu.add_child(title)
 	# One thing to do here: play. It names the room it picks up from, so a returning player knows where they are.
 	home_play = _tag(home_menu, HOME_PLAY, "PLAY", "play", Color("e0a278"))
-	home_play.primary = true
-	home_play.caption_size = 62
+	home_play.caption_size = 72
 	home_play.pressed.connect(_begin_from_home)
 	var tiles: Array[Array] = [
 		["LEVELS", "levels", Color("dbe5d1"), show_levels],
@@ -568,14 +588,21 @@ func _build_home() -> void:
 	if StitchfallShop.on_play:
 		tiles.append(["SHOP", "bag", Color("f0c9a8"), show_shop])
 	var step: float = (HOME_PLAY.size.x + HOME_TILE_GAP) / float(tiles.size())
+	var row: Array[StitchedButton] = []
 	for index: int in range(tiles.size()):
 		var tile: Array = tiles[index]
 		var rect: Rect2 = Rect2(HOME_PLAY.position.x + step * index, HOME_TILES_Y, step - HOME_TILE_GAP, HOME_TILE_HEIGHT)
 		var button: StitchedButton = _tag(home_menu, rect, tile[0], tile[1], tile[2])
-		button.pause_action = true
 		button.caption_size = 30
 		var open: Callable = tile[3]
 		button.pressed.connect(func() -> void: open.call())
+		row.append(button)
+	# One size for the row, the one the longest word fits at, so the words match.
+	var shared: int = 30
+	for button: StitchedButton in row:
+		shared = mini(shared, button.stacked_word_size())
+	for button: StitchedButton in row:
+		button.caption_size = shared
 	# Settings, with the guide, sound and the rest, waits in the corner.
 	home_settings = _tag(home_page, Rect2(0, HUD_EDGE, 112, 112), "", "settings", Color("e4d0b1"))
 	home_settings.tooltip_text = "Settings"
@@ -583,7 +610,8 @@ func _build_home() -> void:
 	hero = AnimatedSprite2D.new()
 	hero.sprite_frames = _dance_frames()
 	hero.scale = Vector2.ONE * 0.92
-	hero.position = Vector2(1410, 574)
+	# High enough that Home's banner, under it, keeps clear of its feet.
+	hero.position = Vector2(1410, 524)
 	var material: ShaderMaterial = ShaderMaterial.new()
 	material.shader = CLEANUP_SHADER
 	hero.material = material
@@ -770,10 +798,10 @@ func _build_help() -> void:
 	goal.text = "Gather every button, then slip out through the zipper."
 	var keys: bool = not touch()
 	var moves: Array[PackedStringArray] = [
-		PackedStringArray(["MOVE", "Hold and slide left or right", "A or D", "move"]),
-		PackedStringArray(["JUMP", "Swipe up", "W or Space", "jump"]),
+		PackedStringArray(["MOVE", "Slide the way you want to go", "Arrows or WASD, on walls too", "move"]),
+		PackedStringArray(["JUMP", "Swipe up, or away from a wall", "W or Space, or away from a wall", "jump"]),
 		PackedStringArray(["TURN", "Tap to turn the room a quarter", "Shift", "shift"]),
-		PackedStringArray(["CROUCH", "Swipe down", "S", "crouch"]),
+		PackedStringArray(["CROUCH", "Swipe down, or into a wall", "S, or into a wall", "crouch"]),
 	]
 	for index: int in range(moves.size()):
 		var move: PackedStringArray = moves[index]
@@ -795,12 +823,10 @@ func _build_help() -> void:
 	var footer: Label = _label(help_page, Vector2(268, 726), Vector2(700, 48), 28, ACCENT)
 	footer.text = "Esc pauses. R retries." if keys else "A flower saves your place."
 	var practice: StitchedButton = _tag(help_page, Rect2(1000, 696, 410, 108), "PRACTICE", "move", Color("dbe5d1"))
-	practice.primary = true
 	practice.caption_size = 36
 	practice.subcaption = "The lessons again"
 	practice.pressed.connect(func() -> void: practice_pressed.emit())
 	var start: StitchedButton = _tag(help_page, Rect2(1430, 696, 240, 108), "PLAY", "play", Color("e0a278"))
-	start.primary = true
 	start.caption_size = 36
 	start.pressed.connect(func() -> void: begin_pressed.emit())
 
@@ -885,8 +911,9 @@ func _build_settings() -> void:
 		for index: int in range(entries.size()):
 			var entry: Array = entries[index]
 			var tag: StitchedButton = _tag(settings_page, Rect2(SETTINGS_X[column], SETTINGS_Y + index * SETTINGS_STEP, SETTINGS_ROW.x, SETTINGS_ROW.y), entry[1], entry[2], entry[3])
-			tag.primary = true
-			tag.caption_size = 38
+			tag.caption_size = 40
+			# A switch on the left's settings, and an arrow on the right's rows, which each open a page.
+			tag.arrow = column == 1
 			tag.pressed.connect(entry[4])
 			settings_tags[entry[0]] = tag
 	sound_buttons.append(settings_tags["sound"])
@@ -894,19 +921,19 @@ func _build_settings() -> void:
 	# Google's consent service says when a player must be able to change their ad consent, and then this takes
 	# the place a phone has no Fullscreen for.
 	var privacy: StitchedButton = _tag(settings_page, Rect2(SETTINGS_X[0], SETTINGS_Y + 3 * SETTINGS_STEP, SETTINGS_ROW.x, SETTINGS_ROW.y), "PRIVACY", "lock", Color("e4d0b1"))
-	privacy.primary = true
-	privacy.caption_size = 38
+	privacy.caption_size = 40
+	privacy.arrow = true
 	privacy.subcaption = "Ad choices"
 	privacy.pressed.connect(func() -> void: StitchfallAds.open_privacy_options())
 	privacy.visible = false
 	settings_tags["privacy"] = privacy
 	# Reset asks twice and sits on its own, below the rest, so it is never a slip of the thumb.
 	var reset: StitchedButton = _tag(settings_page, Rect2(SETTINGS_X[1] + SETTINGS_ROW.x - 320.0, SETTINGS_Y + 4 * SETTINGS_STEP + 30.0, 320, 96), "RESET", "restart", Color("e9c9bd"))
-	reset.primary = true
 	reset.caption_size = 34
 	reset.pressed.connect(_reset_progress)
 	settings_tags["reset"] = reset
-	var note: Label = _label(settings_page, Vector2(SETTINGS_X[0], SETTINGS_Y + 4 * SETTINGS_STEP + 52.0), Vector2(620, 50), 28, ACCENT)
+	# In from the cloth's corner knot.
+	var note: Label = _label(settings_page, Vector2(SETTINGS_X[0] + 56.0, SETTINGS_Y + 4 * SETTINGS_STEP + 52.0), Vector2(560, 50), 28, ACCENT)
 	note.text = "M changes sound. F goes fullscreen."
 	# A phone has no keys to name.
 	note.visible = not OS.has_feature("android")
@@ -919,9 +946,12 @@ func _refresh_settings() -> void:
 	settings_tags["sound"].glyph = "sound" if audio_enabled else "mute"
 	settings_tags["music"].glyph = "music" if progress.music else "music_off"
 	settings_tags["shake"].glyph = "shake" if progress.shake else "shake_off"
-	settings_tags["sound"].subcaption = "On" if audio_enabled else "Off"
-	settings_tags["music"].subcaption = "On" if progress.music else "Off"
-	settings_tags["shake"].subcaption = "On" if progress.shake else "Off"
+	settings_tags["sound"].switch_on = 1 if audio_enabled else 0
+	settings_tags["music"].switch_on = 1 if progress.music else 0
+	settings_tags["shake"].switch_on = 1 if progress.shake else 0
+	settings_tags["sound"].subcaption = "Taps and effects"
+	settings_tags["music"].subcaption = "The quiet tune"
+	settings_tags["shake"].subcaption = "When you come apart"
 	settings_tags["fullscreen"].subcaption = "Fill the screen"
 	settings_tags["help"].subcaption = "Moves, and a practice run"
 	settings_tags["stats"].subcaption = "Your stitches so far"
@@ -1000,14 +1030,14 @@ func _build_pause() -> void:
 	pause_home_button.pressed.connect(func() -> void: home_pressed.emit())
 	# Offered only after the runner keeps coming apart in one room. Resume and Retry stay beside it, so passing it
 	# by costs nothing.
-	skip_button = _tag(pause_page, Rect2(705, 742, 510, 84), "SKIP THIS ROOM", "next", Color("efd3b8"))
-	skip_button.caption_size = 34
+	skip_button = _tag(pause_page, Rect2(680, 728, 560, 104), "SKIP THIS ROOM", "next", Color("efd3b8"))
+	skip_button.caption_size = 36
 	skip_button.pressed.connect(func() -> void: skip_pressed.emit())
 	skip_button.visible = false
 	# The end of the campaign is the one place the game offers the Shop unasked, in Google Play's build, to a
 	# player without the Supporter pack, as the kit games' ending does.
-	finish_shop = _tag(pause_page, Rect2(705, 742, 510, 84), "THE SHOP", "bag", Color("f0c9a8"))
-	finish_shop.caption_size = 34
+	finish_shop = _tag(pause_page, Rect2(680, 728, 560, 104), "THE SHOP", "bag", Color("f0c9a8"))
+	finish_shop.caption_size = 36
 	finish_shop.pressed.connect(func() -> void: show_shop("finish"))
 	finish_shop.visible = false
 
@@ -1680,7 +1710,7 @@ func _show_screen(name: String) -> void:
 	shop_page.visible = name == "shop"
 	offer_page.visible = name == "offer"
 	update_page.visible = name == "update"
-	StitchfallAds.want_banner(name in StitchfallAds.BANNER_SCREENS)
+	StitchfallAds.want_banner(name in StitchfallAds.BANNER_SCREENS, HOME_HERO_X if name == "home" else 0.5)
 	if name in ["home", "levels", "wardrobe", "shop", "help", "settings", "about", "credits", "stats"]:
 		StitchfallAnalytics.screen(name)
 	home_page.visible = name == "home"

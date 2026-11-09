@@ -5,8 +5,9 @@ extends RefCounted
 # loaded simply does not show, so the game never waits for one, and nothing ever shows during play.
 #
 # - A banner on every page but play (BANNER_SCREENS), once StitchfallAdPacing.BANNER_AFTER rooms are sewn: a
-#   320 dp strip centred at the foot of the screen, clear of Android's gesture area. The page it sits under
-#   shrinks until every button keeps BUTTON_GAP_DP above it, by AdMob's accidental-click guidance.
+#   320 dp strip at the foot of the screen, clear of Android's gesture area: centred, or under the dancing runner
+#   on Home. The page it sits under shrinks until every button keeps BUTTON_GAP_DP above it, by AdMob's
+#   accidental-click guidance, and Home's menu, beside it rather than above it, keeps clear of it sideways.
 # - An ad between rooms only from Next on the clear card (maybe_interstitial), paced by StitchfallAdPacing.
 # - A rewarded video for one thing, skipping a room the runner keeps unravelling in (rewarded).
 # Android only. Debug builds always ask for Google's test units (scripts/android/admob.gd). The Supporter pack
@@ -52,6 +53,9 @@ static var _covers: int = 0
 static var _height: float = 0.0
 static var _wanted: bool = false
 static var _showing: bool = false
+# Where along the screen's width the banner's middle stands, as a share of it: the middle on most pages, and
+# under the dancing runner on Home, so Home's menu keeps the pocket's full height.
+static var _spot: float = 0.5
 static var _told: float = -1.0
 static var _stand_in: CanvasLayer
 
@@ -128,10 +132,15 @@ static func listen(callback: Callable) -> void:
 	_tell()
 
 
-# The hud says whether the page now open is one that carries the banner.
-static func want_banner(on: bool) -> void:
+# The hud says whether the page now open is one that carries the banner, and where along the foot it stands.
+static func want_banner(on: bool, spot: float = 0.5) -> void:
 	_page = on
+	_spot = spot
 	refresh()
+
+
+static func banner_spot() -> float:
+	return _spot
 
 
 # Works out from scratch whether the banner is on screen, and tells the backend and the hud. Everything that can
@@ -173,15 +182,24 @@ static func gap_dp(inset_dp: float) -> float:
 	return maxf(EDGE_DP, FLOOR_DP - inset_dp)
 
 
-# Where the banner stands, in design pixels of the root viewport: centred, its foot clear of the navigation.
-static func banner_rect() -> Rect2:
+# Where the banner stands, in design pixels of the root viewport: at its spot along the foot, clear of the
+# navigation below it and EDGE_DP inside the screen's sides.
+# `spot` asks where the banner would stand on a page that puts it there, rather than where it stands now.
+static func banner_rect(spot: float = -1.0) -> Rect2:
 	var view: Vector2 = _view()
 	var unit: float = per_dp()
 	var inset: float = inset_dp()
 	var high: float = maxf(_height, BANNER_HEIGHT_DP * unit)
 	var wide: float = BANNER_WIDTH_DP * unit
 	var bottom: float = view.y - (inset + gap_dp(inset)) * unit
-	return Rect2((view.x - wide) * 0.5, bottom - high, wide, high)
+	return Rect2(banner_left(view.x, wide, EDGE_DP * unit, spot), bottom - high, wide, high)
+
+
+# The banner's left edge on a screen `screen` wide, for a banner `wide` across that stays `edge` inside the sides.
+# In design pixels for the hud and in dp for AdMob's custom position, which is why it takes the units it is given.
+static func banner_left(screen: float, wide: float, edge: float, spot: float = -1.0) -> float:
+	var left: float = screen * (_spot if spot < 0.0 else spot) - wide * 0.5
+	return clampf(left, minf(edge, (screen - wide) * 0.5), maxf(screen - edge - wide, (screen - wide) * 0.5))
 
 
 # How far down a menu page may reach: BUTTON_GAP_DP above the banner while one is due, else the screen's foot.
