@@ -1528,6 +1528,14 @@ func _test_environment_forces() -> void:
 	await process_frame
 
 
+# The press of `action`, as a key or button sends it.
+static func _action_event(action: String) -> InputEventAction:
+	var event: InputEventAction = InputEventAction.new()
+	event.action = action
+	event.pressed = true
+	return event
+
+
 func _test_gesture_controls() -> void:
 	var game: Node2D = load("res://scenes/game/game.tscn").instantiate() as Node2D
 	game.audio_enabled = false
@@ -1633,12 +1641,22 @@ func _test_gesture_controls() -> void:
 	game._steer_from_keys()
 	_check("on the right wall the up key runs up it", (game._run_direction() * game.pilot.key_axis).is_equal_approx(Vector2.UP) and not game.pilot.touch_jump)
 	Input.action_release("screen_up")
+	game._unhandled_input(_action_event("screen_left"))
 	Input.action_press("screen_left")
 	game._steer_from_keys()
 	_check("on the right wall the left key jumps off it", game.pilot.touch_jump and game.pilot.key_axis == 0.0)
 	Input.action_release("screen_left")
 	game._steer_from_keys()
 	_check("letting go of the key cuts the jump short", game.pilot.key_jump_released)
+	# A tap pressed and let go between two physics frames: the press still jumps, and its letting go cuts it short.
+	game.pilot.touch_jump = false
+	game.pilot.key_jump_released = false
+	game._unhandled_input(_action_event("screen_left"))
+	game._steer_from_keys()
+	_check("a tap of the key away from the wall jumps even if let go before the next frame", game.pilot.touch_jump and game.pilot.key_jump_released)
+	game.pilot.touch_jump = false
+	game._unhandled_input(_action_event("screen_up"))
+	_check("a key along the wall does not jump", not game.pilot.touch_jump)
 	Input.action_press("screen_right")
 	game._steer_from_keys()
 	_check("on the right wall the right key crouches into it", game.pilot.key_crouch)

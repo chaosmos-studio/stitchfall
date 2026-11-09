@@ -115,6 +115,11 @@ const SPARK_REACH: float = 100.0
 # How much of a key or stick push must point away from the surface to jump, or into it to crouch. A diagonal is
 # 0.71 each way, so up and right together on the floor still run and jump at once.
 const KEY_ROLE: float = 0.5
+# Each screen direction's action and the way it points on the screen.
+const SCREEN_DIRECTIONS: Dictionary[String, Vector2] = {
+	"screen_left": Vector2.LEFT, "screen_right": Vector2.RIGHT, "screen_up": Vector2.UP, "screen_down": Vector2.DOWN,
+	"stick_left": Vector2.LEFT, "stick_right": Vector2.RIGHT, "stick_up": Vector2.UP, "stick_down": Vector2.DOWN,
+}
 # A slide must travel this far before it means anything, and be this much more along the surface than across it
 # to run.
 const SLIDE_MIN: float = 48.0
@@ -337,6 +342,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			hud.leave_offer()
 		elif hud.screen == "update":
 			hud.leave_update()
+	elif playing and is_instance_valid(pilot) and _jump_from_key(event):
+		pass
 	elif playing and event.is_action_pressed("shift_gravity"):
 		_shift(1)
 	elif playing and event.is_action_pressed("retry"):
@@ -423,12 +430,25 @@ func _steer_from_keys() -> void:
 	key_stale_into = key_stale_into and into
 	pilot.key_axis = clampf(push.dot(_run_direction()), -1.0, 1.0)
 	pilot.key_crouch = into and not key_stale_into
+	# The jump itself comes from the key's press (_jump_from_key), so a tap too quick for a physics frame still
+	# jumps. Here only its letting go is read, which cuts the jump short.
 	var pushing_away: bool = away and not key_stale_away
-	if pushing_away and not key_away_held:
-		pilot.queue_touch_jump()
-	elif key_away_held and not pushing_away:
+	if key_away_held and not pushing_away:
 		pilot.key_jump_released = true
 	key_away_held = pushing_away
+
+
+# A screen direction pressed that points away from the surface jumps at once, from the press itself. Reading it
+# from how far the keys are held, once a physics frame, misses a press let go before the next frame, which a
+# slow phone or browser makes likely.
+func _jump_from_key(event: InputEvent) -> bool:
+	for action: String in SCREEN_DIRECTIONS:
+		if event.is_action_pressed(action) and SCREEN_DIRECTIONS[action].dot(-gravity_direction) > KEY_ROLE:
+			pilot.queue_touch_jump()
+			key_away_held = true
+			key_stale_away = false
+			return true
+	return false
 
 
 # After the room turns, every held key and finger is read against the new surface, but a push that now points
