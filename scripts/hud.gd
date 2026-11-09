@@ -62,9 +62,11 @@ const TOUCH_SCALE: float = 1.2
 # where the banner stands.
 const HOME_LOGO: Rect2 = Rect2(20, 110, 600, 0)
 const HOME_PLAY: Rect2 = Rect2(0, 270, 640, 186)
-const HOME_TILES_Y: float = 482.0
-const HOME_TILE_HEIGHT: float = 192.0
-const HOME_TILE_GAP: float = 18.0
+# The rows under Play: where the first starts, each one's height and the gap between them.
+const HOME_ROWS_Y: float = 482.0
+const HOME_ROW_HEIGHT: float = 100.0
+const HOME_ROW_GAP: float = 14.0
+const HOME_ROW_CLOTH: Color = Color("ecdfc6")
 # The Levels page's five room patches, from this x, one every step, and how far a sideways swipe must travel to
 # turn the page.
 const LEVEL_TILES_X: float = 222.0
@@ -96,6 +98,8 @@ var panel: ColorRect
 var fabric: TextureRect
 var home_page: Control
 var home_menu: Control
+# Where Home's last row ends, in the menu's own space, which depends on whether the Shop is there.
+var home_menu_bottom: float = HOME_PLAY.end.y
 var home_play: StitchedButton
 var home_settings: StitchedButton
 var level_page: Control
@@ -321,7 +325,7 @@ func _layout_home(safe: Vector4) -> void:
 	var pocket: Rect2 = Rect2(origin + HOME_POCKET.position * cover, HOME_POCKET.size * cover)
 	var top: float = maxf(pocket.position.y, safe.y + HOME_MARGIN)
 	var bottom: float = minf(pocket.end.y, root.size.y - safe.w - HOME_MARGIN)
-	var menu: Vector2 = Vector2(HOME_PLAY.size.x, HOME_TILES_Y + HOME_TILE_HEIGHT - HOME_LOGO.position.y)
+	var menu: Vector2 = Vector2(HOME_PLAY.size.x, home_menu_bottom - HOME_LOGO.position.y)
 	var fit: float = clampf(minf((bottom - top) * HOME_MENU_SHARE / menu.y, pocket.size.x * 0.84 / menu.x), 0.6, HOME_MENU_LARGEST)
 	var left: float = maxf(safe.x + 40.0, pocket.get_center().x - menu.x * 0.5 * fit)
 	if StitchfallAds.banner_wanted() and StitchfallAds.banner_rect(HOME_HERO_X).position.x < left + menu.x * fit:
@@ -585,29 +589,26 @@ func _build_home() -> void:
 	home_play = _tag(home_menu, HOME_PLAY, "PLAY", "play", Color("e0a278"))
 	home_play.caption_size = 72
 	home_play.pressed.connect(_begin_from_home)
-	var tiles: Array[Array] = [
-		["LEVELS", "levels", Color("dbe5d1"), show_levels],
-		["WARDROBE", "wardrobe", Color("efd3b8"), show_wardrobe],
+	# Under it, the other places as slim rows the width of Play: a small patch, the word, a line and an arrow,
+	# like Settings' rows, so the menu reads as one list with Play at its head.
+	# One linen for every row, so only Play stands out.
+	var rows: Array[Array] = [
+		["LEVELS", "Pick any open room", "levels", HOME_ROW_CLOTH, show_levels],
+		["WARDROBE", "Runners, trails and fabrics", "wardrobe", HOME_ROW_CLOTH, show_wardrobe],
 	]
 	# Google Play's build sells packs and takes tips. The browser build has no shop.
 	if StitchfallShop.on_play:
-		tiles.append(["SHOP", "bag", Color("f0c9a8"), show_shop])
-	var step: float = (HOME_PLAY.size.x + HOME_TILE_GAP) / float(tiles.size())
-	var row: Array[StitchedButton] = []
-	for index: int in range(tiles.size()):
-		var tile: Array = tiles[index]
-		var rect: Rect2 = Rect2(HOME_PLAY.position.x + step * index, HOME_TILES_Y, step - HOME_TILE_GAP, HOME_TILE_HEIGHT)
-		var button: StitchedButton = _tag(home_menu, rect, tile[0], tile[1], tile[2])
-		button.caption_size = 30
-		var open: Callable = tile[3]
+		rows.append(["SHOP", "Packs and tips", "bag", HOME_ROW_CLOTH, show_shop])
+	for index: int in range(rows.size()):
+		var entry: Array = rows[index]
+		var rect: Rect2 = Rect2(HOME_PLAY.position.x, HOME_ROWS_Y + float(index) * (HOME_ROW_HEIGHT + HOME_ROW_GAP), HOME_PLAY.size.x, HOME_ROW_HEIGHT)
+		var button: StitchedButton = _tag(home_menu, rect, entry[0], entry[2], entry[3])
+		button.subcaption = entry[1]
+		button.caption_size = 36
+		button.arrow = true
+		var open: Callable = entry[4]
 		button.pressed.connect(func() -> void: open.call())
-		row.append(button)
-	# One size for the row, the one the longest word fits at, so the words match.
-	var shared: int = 30
-	for button: StitchedButton in row:
-		shared = mini(shared, button.stacked_word_size())
-	for button: StitchedButton in row:
-		button.caption_size = shared
+		home_menu_bottom = rect.end.y
 	# Settings, with the guide, sound and the rest, waits in the corner.
 	home_settings = _tag(home_page, Rect2(0, HUD_EDGE, 112, 112), "", "settings", Color("e4d0b1"))
 	home_settings.tooltip_text = "Settings"
