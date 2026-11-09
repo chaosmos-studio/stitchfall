@@ -7,6 +7,15 @@ one line, at most 500 characters in all. The release workflow turns it into the 
 bumps the patch.
 -->
 
+## 1.2.0
+
+- Every chapter now has its own painted world, seen whole behind the room.
+- Felt ledges, sewn buttons and a zipper pocket that unzips once every button is in.
+- The runner squashes and stretches, the room leans as it turns, and a "!" pops up when a room plays a trick.
+- A thread shows your slide, and slides start sooner.
+- A tidier Home: Play up top, everything else in one list.
+- The game opens on a sewn Chaosmos intro.
+
 ## 1.1.1
 
 - On a wall or the ceiling the controls turn with you: press or slide the way you want to go.
