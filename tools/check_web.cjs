@@ -8,33 +8,42 @@ const DESKTOP = { viewport: { width: 1280, height: 720 } };
 
 // The buttons the check presses, as hud.gd's Rect2(x, y, width, height) in the 1920 x 1080 design.
 const HUD = {
-  // _build_home: the browser build has no Shop, so its five rows are 88 apart.
-  home: { play: [146, 428, 560, 82], levels: [146, 516, 560, 82], guide: [146, 692, 560, 82], settings: [146, 780, 560, 82] },
-  // _build_help: Back, and the play tag that starts the room.
-  guide: { back: [1560, 130, 112, 105], start: [1490, 810, 145, 126] },
-  // _build_settings: tags four to a row, FULLSCREEN last in the first row and ABOUT third in the second.
-  settings: { back: [1420, 125, 105, 105], fullscreen: [1245, 250, 255, 270], about: [970, 550, 255, 270] },
+  // _build_home, in the menu's own space (HOME_PLAY and the tiles under it): the browser build has no Shop, so its
+  // two tiles share the Play patch's width. Settings is the corner patch, placed from the root's right edge.
+  home: { play: [0, 270, 640, 186], levels: [0, 482, 311, 192] },
+  // _build_help: Back to Settings, and PLAY, which starts the room.
+  guide: { back: [262, 118, 104, 104], start: [1430, 696, 240, 108] },
+  // _build_settings: two columns of rows from SETTINGS_X, SETTINGS_Y and SETTINGS_STEP. HOW TO PLAY opens the right
+  // column, FULLSCREEN ends the left and ABOUT the right.
+  settings: { back: [338, 120, 104, 104], help: [990, 262, 580, 128], fullscreen: [350, 688, 580, 128], about: [990, 688, 580, 128] },
   // _build_about: Back, which leads to Settings.
   about: { back: [1510, 138, 112, 105] },
-  // _build_levels: a chapter a page, Next beside Home, and the chapter's fifth room tile.
-  levels: { next: [1580, 102, 100, 101], fifthRoom: [1470, 330, 310, 360] },
+  // _build_levels: Next at the card's right edge, and the chapter's fifth room patch.
+  levels: { next: [1730, 410, 112, 112], fifthRoom: [1430, 296, 276, 360] },
   // _build_pause: HOME, right of RESUME.
   pause: { home: [1120, 500, 230, 255] },
 };
 
+// The home painting's size and its painted pocket's middle (HOME_SCENE, HOME_POCKET), which Home's menu centres in.
+const HOME_ART = { width: 1672, height: 941, pocket: 410 };
+
 // The 1920 x 1080 design is stretched with canvas_items and aspect expand, so a screen wider than 16:9 shows a root
-// wider than 1920. Home is laid out from the root's left edge, every other page is 1920 wide and centred in it, and
-// the pause tag (112 x 108 at y 18, 1.2 times larger on a touchscreen) keeps 28 from its right edge (hud.gd _layout).
-// The browser build carries no banner, so no page shrinks for one.
+// wider than 1920. Every page but Home is 1920 wide and centred in it. Home's menu centres in the painted pocket as
+// the painting covers the root, and Settings and the pause button keep HUD_EDGE from the right edge (hud.gd
+// _layout and _layout_play). The browser build carries no banner, so nothing shrinks for one.
 function screen({ width, height }, touch) {
   const scale = Math.min(width / 1920, height / 1080);
   const rootWidth = width / scale;
   const centre = ([x, y, w, h], left) => ({ x: (left + x + w / 2) * scale, y: (y + h / 2) * scale });
-  const tag = touch ? 1.2 : 1.0;
+  const cover = Math.max(rootWidth / HOME_ART.width, 1080 / HOME_ART.height);
+  const pocket = (rootWidth - HOME_ART.width * cover) / 2 + HOME_ART.pocket * cover;
+  const menuLeft = Math.max(40, pocket - 640 / 2);
+  const chip = touch ? 120 : 100;
   return {
-    home: rect => centre(rect, 0),
+    home: rect => centre(rect, menuLeft),
+    settings: () => centre([rootWidth - 14 - 112, 14, 112, 112], 0),
     page: rect => centre(rect, (rootWidth - 1920) / 2),
-    pause: () => centre([rootWidth - 28 - 112 * tag, 18, 112 * tag, 108 * tag], 0),
+    pause: () => centre([rootWidth - 14 - chip, 14, chip, chip], 0),
   };
 }
 
@@ -130,10 +139,15 @@ async function main() {
     await page.screenshot({ path: path.join(results, 'intro-air-early.png') });
     await page.waitForTimeout(5300);
     await page.screenshot({ path: path.join(results, 'intro-air-late.png') });
-    await tap(page, phone.home(HUD.home.play));
-    await page.screenshot({ path: path.join(results, 'first-play-guide.png') });
-    await tap(page, phone.page(HUD.guide.back));
-    await tap(page, phone.home(HUD.home.settings));
+    // Play plays at once, and the first room's coach teaches the moves in the room.
+    let marker = printed(page, 'STITCHFALL_START 0');
+    await tap(page, phone.home(HUD.home.play), 0);
+    await marker;
+    await page.waitForTimeout(1800);
+    await page.screenshot({ path: path.join(results, 'first-play-coach.png') });
+    await tap(page, phone.pause());
+    await tap(page, phone.page(HUD.pause.home));
+    await tap(page, phone.settings());
     await page.screenshot({ path: path.join(results, 'settings.png') });
     if (await page.evaluate(() => document.fullscreenEnabled)) {
       await tap(page, phone.page(HUD.settings.fullscreen), 0);
@@ -148,7 +162,7 @@ async function main() {
     await page.screenshot({ path: path.join(results, 'levels.png') });
     await tap(page, phone.page(HUD.levels.next));
     await page.screenshot({ path: path.join(results, 'levels-second.png') });
-    let marker = printed(page, 'STITCHFALL_START 9');
+    marker = printed(page, 'STITCHFALL_START 9');
     await tap(page, phone.page(HUD.levels.fifthRoom), 0);
     await marker.catch(error => { throw new Error(`Room 10 did not start from the Levels second page, so the seeded save may not have loaded: ${error}`); });
     await page.waitForTimeout(300);
@@ -156,7 +170,9 @@ async function main() {
     await page.screenshot({ path: path.join(results, 'pause.png') });
     await tap(page, phone.page(HUD.pause.home));
     await page.screenshot({ path: path.join(results, 'home-return.png') });
-    await tap(page, phone.home(HUD.home.guide));
+    // How to play lives in Settings.
+    await tap(page, phone.settings());
+    await tap(page, phone.page(HUD.settings.help));
     await page.screenshot({ path: path.join(results, 'help.png') });
     await page.waitForTimeout(650);
     await page.screenshot({ path: path.join(results, 'help-next.png') });
@@ -223,8 +239,7 @@ async function main() {
       await roomLoaded;
       await preview.waitForFunction(() => document.getElementById('loading')?.hidden, null, { timeout: 90000 });
       const started = printed(preview, `STITCHFALL_START ${room}`);
-      await tap(preview, phone.home(HUD.home.play));
-      await tap(preview, phone.page(HUD.guide.start), 0);
+      await tap(preview, phone.home(HUD.home.play), 0);
       await started;
       await preview.waitForTimeout(400);
       await preview.screenshot({ path: path.join(results, `${chapter}.png`) });
