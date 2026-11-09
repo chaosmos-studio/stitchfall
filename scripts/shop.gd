@@ -22,8 +22,8 @@ const STORE: String = "https://play.google.com/store/apps/details?id=com.shravan
 const UNREACHABLE: String = "Google Play is not reachable right now."
 const KEEP_ROW: String = "Yours to keep after one purchase"
 # Google Play draws its payment sheet itself, and on many phones holds it upright even over a landscape game. No
-# app can turn it, so the page before a purchase says so.
-const PAYMENT_NOTE: String = "Google Play takes the payment. On some phones its sheet opens upright."
+# app can turn it, so the page before a purchase says it comes next, in as few words as will do.
+const PAYMENT_NOTE: String = "Google Play's payment sheet comes next."
 
 # Captures and tests set it to stage either build anywhere.
 static var on_play: bool = OS.has_feature("android")

@@ -1317,7 +1317,7 @@ func _test_shop_page() -> void:
 	_check("once Play grants it, the page keeps Play's thanks and drops the button", not hud.offer_buy.visible and hud.offer_note.text == StitchfallShop.thanks(StitchfallMonetize.SUPPORTER_ID))
 	game.last_back_msec = -1000
 	game._notification(Node.NOTIFICATION_WM_GO_BACK_REQUEST)
-	_check("once the Supporter pack is owned the Complete pack goes, and the pack says so", hud.screen == "shop" and not hud.shop_cards["complete"].visible and hud.shop_cards["supporter"].owned and hud.shop_line.text.begins_with("You are a Supporter"))
+	_check("once the Supporter pack is owned the Complete pack goes, and the pack says so", hud.screen == "shop" and not hud.shop_cards["complete"].visible and hud.shop_cards["supporter"].owned and hud.shop_line.text.begins_with("Thank you"))
 	hud.shop_cards["supporter"].pressed.emit()
 	_check("an owned pack's page says it is yours", not hud.offer_buy.visible and hud.offer_note.text == "Supporter pack is yours. Thank you!")
 	hud.leave_offer()

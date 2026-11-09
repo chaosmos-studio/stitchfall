@@ -9,14 +9,13 @@ const DESKTOP = { viewport: { width: 1280, height: 720 } };
 // The buttons the check presses, as hud.gd's Rect2(x, y, width, height) in the 1920 x 1080 design.
 const HUD = {
   // _build_home, in the menu's own space (HOME_PLAY and the patches under it at HOME_PATCHES_Y): the browser build
-  // has no Shop, so Levels and Wardrobe are its two patches, centred under Play. Settings is the corner patch,
-  // placed from the root's right edge.
-  home: { play: [0, 270, 640, 186], levels: [170, 490, 128, 128] },
+  // has no Shop, so Levels, Wardrobe and Settings are its three patches, centred under Play.
+  home: { play: [0, 270, 640, 186], levels: [104, 490, 120, 120], settings: [416, 490, 120, 120] },
   // _build_help: Back to Settings, and PLAY, which starts the room.
   guide: { back: [262, 118, 104, 104], start: [1430, 696, 240, 108] },
   // _build_settings: two columns of rows from SETTINGS_X, SETTINGS_Y and SETTINGS_STEP. HOW TO PLAY opens the right
-  // column, FULLSCREEN ends the left and ABOUT the right.
-  settings: { back: [338, 120, 104, 104], help: [990, 262, 580, 128], fullscreen: [350, 688, 580, 128], about: [990, 688, 580, 128] },
+  // column and ABOUT ends it, and FULLSCREEN is the small card under the left one.
+  settings: { back: [338, 120, 104, 104], help: [990, 262, 580, 128], fullscreen: [350, 860, 360, 96], about: [990, 688, 580, 128] },
   // _build_about: Back, which leads to Settings.
   about: { back: [1510, 138, 112, 105] },
   // _build_levels: Next at the card's right edge, and the chapter's fifth room patch.
@@ -29,7 +28,7 @@ const HUD = {
 // it (HOME_MENU_SHARE, HOME_MENU_LARGEST, HOME_MARGIN, HOME_PLAY's width, and the menu's top and foot: HOME_LOGO's
 // y and the patches' foot, HOME_PATCHES_Y + HOME_PATCH).
 const HOME_ART = { width: 1672, height: 941, pocket: [20, 80, 780, 760] };
-const HOME_MENU = { share: 0.74, largest: 1.25, margin: 24, width: 640, top: 110, foot: 618 };
+const HOME_MENU = { share: 0.74, largest: 1.25, margin: 24, width: 640, top: 110, foot: 610 };
 
 // hud.gd _layout_home: where the menu's own space lands on a root `rootWidth` by 1080, and how much it is scaled.
 function homeMenu(rootWidth) {
@@ -47,8 +46,8 @@ function homeMenu(rootWidth) {
 
 // The 1920 x 1080 design is stretched with canvas_items and aspect expand, so a screen wider than 16:9 shows a root
 // wider than 1920. Every page but Home is 1920 wide and centred in it. Home's menu is sized to and centred in the
-// painted pocket as the painting covers the root, and Settings and the pause button keep HUD_EDGE from the right
-// edge (hud.gd _layout and _layout_play). The browser build carries no banner, so nothing shrinks for one.
+// painted pocket as the painting covers the root, and the pause button keeps HUD_EDGE from the right edge (hud.gd
+// _layout and _layout_play). The browser build carries no banner, so nothing shrinks for one.
 function screen({ width, height }, touch) {
   const scale = Math.min(width / 1920, height / 1080);
   const rootWidth = width / scale;
@@ -57,7 +56,6 @@ function screen({ width, height }, touch) {
   const chip = touch ? 120 : 100;
   return {
     home: ([x, y, w, h]) => ({ x: (menu.left + (x + w / 2) * menu.fit) * scale, y: (menu.top + (y + h / 2) * menu.fit) * scale }),
-    settings: () => centre([rootWidth - 14 - 112, 14, 112, 112], 0),
     page: rect => centre(rect, (rootWidth - 1920) / 2),
     pause: () => centre([rootWidth - 14 - chip, 14, chip, chip], 0),
   };
@@ -167,7 +165,7 @@ async function main() {
     await page.screenshot({ path: path.join(results, 'first-play-coach.png') });
     await tap(page, phone.pause());
     await tap(page, phone.page(HUD.pause.home));
-    await tap(page, phone.settings());
+    await tap(page, phone.home(HUD.home.settings));
     await page.screenshot({ path: path.join(results, 'settings.png') });
     if (await page.evaluate(() => document.fullscreenEnabled)) {
       await tap(page, phone.page(HUD.settings.fullscreen), 0);
@@ -191,7 +189,7 @@ async function main() {
     await tap(page, phone.page(HUD.pause.home));
     await page.screenshot({ path: path.join(results, 'home-return.png') });
     // How to play lives in Settings.
-    await tap(page, phone.settings());
+    await tap(page, phone.home(HUD.home.settings));
     await tap(page, phone.page(HUD.settings.help));
     await page.screenshot({ path: path.join(results, 'help.png') });
     await page.waitForTimeout(650);

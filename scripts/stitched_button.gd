@@ -50,6 +50,9 @@ const CAP_HEIGHT: float = 0.7
 const SWITCH_SIZE: Vector2 = Vector2(96, 52)
 const SWITCH_ON: Color = Color("6f9a64")
 const SWITCH_OFF: Color = Color("cbbda6")
+# A Shop card's price pill, and the pill once the pack is owned.
+const PILL: Color = Color("a85648")
+const PILL_OWNED: Color = Color("6f9a64")
 
 
 func _squeeze(to: float, seconds: float, trans: Tween.TransitionType, curve: Tween.EaseType) -> void:
@@ -275,7 +278,9 @@ func _draw_level_tile(hovered: bool) -> void:
 	elif stars >= 0:
 		for index: int in range(3):
 			StitchfallStarRow.draw_star(self, Vector2(size.x * 0.5 + float(index - 1) * 46.0, patch.size.y * 0.78 + lift), 19.0, index < stars, StitchfallStarRow.GOLD)
-	draw_string(BODY_FONT, Vector2(0, size.y - 8.0 + breath), "Locked" if locked else subcaption, HORIZONTAL_ALIGNMENT_CENTER, size.x, 32, faded)
+	# A shut room shows only its padlock, no word under it.
+	if not locked:
+		draw_string(BODY_FONT, Vector2(0, size.y - 8.0 + breath), subcaption, HORIZONTAL_ALIGNMENT_CENTER, size.x, 32, faded)
 	if next_up:
 		var tag: Rect2 = Rect2(size.x * 0.5 - 52.0, lift - 14.0, 104.0, 36.0)
 		draw_rect(tag, Color("a85648"))
@@ -290,16 +295,32 @@ func _draw_lock(center: Vector2) -> void:
 	draw_circle(center + Vector2(0, 6), 3.5, Color(cloth, 0.9))
 
 
+# A pack in the Shop as a felt card: its icon on a round patch, its name, one short line, and its price in a
+# bold pill at the foot, so the price is the second thing seen. Owned, the pill turns green and says so.
 func _draw_shop_card(hovered: bool) -> void:
 	var lift: float = -4.0 if hovered and not owned else 0.0
-	var tint: Color = cloth.lightened(0.1) if hovered and not owned else cloth
-	draw_texture_rect(ICON_PATCH, Rect2(Vector2(6, lift), Vector2(size.x - 12.0, size.y - 8.0)), false, tint)
-	_draw_icon(Vector2(size.x * 0.5, 104.0 + lift), 44.0)
-	draw_string(MENU_FONT, Vector2(0, 214.0 + lift), caption, HORIZONTAL_ALIGNMENT_CENTER, size.x, caption_size if caption_size > 0 else 40, ink)
-	for index: int in range(lines.size()):
-		draw_string(BODY_FONT, Vector2(20, 262.0 + float(index) * 38.0 + lift), lines[index], HORIZONTAL_ALIGNMENT_CENTER, size.x - 40.0, 26, ink)
-	var status: String = "YOURS" if owned else price_tag
-	draw_string(FONT, Vector2(0, size.y - 46.0 + lift), status, HORIZONTAL_ALIGNMENT_CENTER, size.x, 40, Color("5f8b5a") if owned else Color("a85648"))
+	var tint: Color = cloth.lightened(0.08) if hovered and not owned else cloth
+	var body: Rect2 = Rect2(0, lift, size.x, size.y - CARD_DROP)
+	var radius: float = 30.0
+	_draw_rounded(Rect2(0, CARD_DROP, body.size.x, body.size.y), radius, CARD_SHADOW)
+	_draw_rounded(body, radius, CARD_EDGE)
+	_draw_rounded(body.grow(-2.5), radius - 2.5, tint)
+	_draw_dashes(_rounded_outline(body.grow(-STITCH_INSET), radius - STITCH_INSET), Color("896b57", 0.7))
+	var disc: Vector2 = Vector2(size.x * 0.5, 96.0 + lift)
+	draw_circle(disc, 58.0, tint.darkened(0.12), true, -1.0, true)
+	_draw_dashes(_circle_outline(disc, 52.0), Color("896b57", 0.55))
+	_draw_icon(disc, 40.0)
+	var name_size: int = _fit(MENU_FONT, caption, caption_size if caption_size > 0 else 42, size.x - 48.0)
+	draw_string(MENU_FONT, Vector2(24, 206.0 + lift), caption, HORIZONTAL_ALIGNMENT_CENTER, size.x - 48.0, name_size, ink)
+	if not lines.is_empty():
+		var line_size: int = _fit(BODY_FONT, lines[0], 28, size.x - 48.0)
+		draw_string(BODY_FONT, Vector2(24, 250.0 + lift), lines[0], HORIZONTAL_ALIGNMENT_CENTER, size.x - 48.0, line_size, Color(ink, 0.8))
+	var pill: Rect2 = Rect2(28, body.end.y - 112.0, size.x - 56.0, 76.0)
+	var status: String = "YOURS" if owned else (price_tag if not price_tag.is_empty() else "BUY")
+	_draw_rounded(Rect2(pill.position + Vector2(0, 4), pill.size), 38.0, CARD_SHADOW)
+	_draw_rounded(pill, 38.0, PILL_OWNED if owned else PILL)
+	var price_size: int = _fit(BODY_FONT, status, 40, pill.size.x - 32.0)
+	draw_string(BODY_FONT, Vector2(pill.position.x + 16.0, pill.get_center().y + price_size * CAP_HEIGHT * 0.5), status, HORIZONTAL_ALIGNMENT_CENTER, pill.size.x - 32.0, price_size, Color("fff6e6"))
 
 
 func _draw_icon(center: Vector2, radius: float) -> void:

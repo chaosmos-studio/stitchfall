@@ -45,7 +45,7 @@ The camera then looks `((l − r) / 2, (t − b) / 2) / zoom` up and to the left
 
 Where the HUD goes decides the reserve, and the HUD tries both places and keeps the larger room:
 - **A strip along the top**, 138 pixels on a phone and 8 at the foot: on 16:9, 1920 by 1080, the height decides, `(1080 − 146) / 612 ≈ 1.53`, a little under the width's `(1920 − 16) / 1232 ≈ 1.55`.
-- **Two rails at the sides**, 142 pixels each: on 20:9, 2400 by 1080, a top strip would also give 1.53, but rails leave the full height, `(2400 − 284) / 1232 ≈ 1.72` against `(1080 − 16) / 612 ≈ 1.74`, so 1.72.
+- **One rail on the right**, 142 pixels, with the pause button, the meter and the counts in a column, and only an 8 pixel edge on the left: on 20:9, 2400 by 1080, a top strip would also give 1.53, but the rail leaves the full height, `(2400 − 150) / 1232 ≈ 1.83` against `(1080 − 16) / 612 ≈ 1.74`, so 1.74, and the room sits just in from the left with the spare width beside the rail.
 
 Against the old 1.4 everywhere, that is about 9% larger on a 16:9 phone and 23% larger on a 20:9 one, half as much area again.
 The zoom stops at 2, so a tablet does not blow the art up past its detail.

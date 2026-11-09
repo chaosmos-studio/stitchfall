@@ -41,6 +41,13 @@ func _ready() -> void:
 	# The first room's coach only when a picture is of it (0:coach), so other pictures of the room stay clean.
 	StitchfallCoach.enabled = args[2].split(",").has("0:coach")
 	StitchfallStudioIntro.enabled = false
+	# 0:prices fills in Play's prices as an Indian phone would show them, for pictures of the Shop.
+	if args[2].split(",").has("0:prices"):
+		for id: String in StitchfallShop.one_time_ids():
+			StitchfallShop.prices[id] = "₹199.00"
+		StitchfallShop.prices[StitchfallMonetize.COMPLETE_ID] = "₹349.00"
+		for tip: String in StitchfallMonetize.TIP_IDS:
+			StitchfallShop.prices[tip] = "₹49.00"
 	# 0:banner draws the banner's stand-in where a phone's banner would be, and 0:sewn=N starts with the first N
 	# rooms sewn, so the pages show the banner (it waits for a few sewn rooms) and some stars.
 	StitchfallAds.preview = args[2].split(",").has("0:banner")

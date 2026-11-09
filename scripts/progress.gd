@@ -23,6 +23,8 @@ var tips: int = 0
 var sound: bool = true
 var music: bool = true
 var shake: bool = true
+# The thread a sliding finger draws on the room (swipe_thread.gd), which a player may turn off.
+var thread: bool = true
 var unravels: int = 0
 var turns: int = 0
 var buttons: int = 0
@@ -88,6 +90,7 @@ func load_saved() -> void:
 	sound = file.get_value("settings", "sound", true)
 	music = file.get_value("settings", "music", true)
 	shake = file.get_value("settings", "shake", true)
+	thread = file.get_value("settings", "thread", true)
 	coached = file.get_value("settings", "coached", not best_stars.is_empty())
 
 
@@ -122,6 +125,7 @@ func save() -> void:
 	file.set_value("settings", "sound", sound)
 	file.set_value("settings", "music", music)
 	file.set_value("settings", "shake", shake)
+	file.set_value("settings", "thread", thread)
 	file.set_value("settings", "coached", coached)
 	file.save(path)
 

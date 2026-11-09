@@ -65,9 +65,16 @@ const HOME_PLAY: Rect2 = Rect2(0, 270, 640, 186)
 # The felt patches under Play (Levels, Wardrobe and Shop): how far down, their size, the gap between them and
 # their cloth. Shravan chose icons alone over rows of words on 10 November 2026.
 const HOME_PATCHES_Y: float = 490.0
-const HOME_PATCH: float = 128.0
-const HOME_PATCH_GAP: float = 44.0
+const HOME_PATCH: float = 120.0
+const HOME_PATCH_GAP: float = 36.0
 const HOME_PATCH_CLOTH: Color = Color("ecdfc6")
+# Each pack's one line in the Shop.
+const SHOP_LINES: Dictionary[String, String] = {
+	"complete": "All three, for less",
+	"supporter": "No ads, free skips",
+	"all_levels": "Every room, open now",
+	"wardrobe": "Every runner and fabric",
+}
 # The Levels page's five room patches, from this x, one every step, and how far a sideways swipe must travel to
 # turn the page.
 const LEVEL_TILES_X: float = 222.0
@@ -102,7 +109,6 @@ var home_menu: Control
 # Where Home's last row ends, in the menu's own space, which depends on whether the Shop is there.
 var home_menu_bottom: float = HOME_PLAY.end.y
 var home_play: StitchedButton
-var home_settings: StitchedButton
 var level_page: Control
 var level_buttons: Array[StitchedButton] = []
 var level_page_index: int = 0
@@ -282,6 +288,7 @@ func _ready() -> void:
 	swipe_thread = StitchfallSwipeThread.new()
 	root.add_child(swipe_thread)
 	swipe_thread.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	swipe_thread.visible = progress == null or progress.thread
 	# The first room's coach, over the room and under every page, which hides it while open.
 	coach_holder = Control.new()
 	coach_holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -306,7 +313,6 @@ func _layout() -> void:
 	toast.position.x = (root.size.x - toast.size.x) * 0.5
 	hero.position.x = root.size.x * HOME_HERO_X
 	var safe: Vector4 = _safe_insets()
-	home_settings.position = Vector2(root.size.x - safe.z - HUD_EDGE - home_settings.size.x, safe.y + HUD_EDGE)
 	_layout_home(safe)
 	for page: Control in [level_page, help_page, about_page, settings_page, pause_page, clear_page, chapter_page, stats_page, credits_page, wardrobe_page, shop_page, offer_page, update_page]:
 		var fit: float = page_fit(page)
@@ -345,7 +351,8 @@ func _layout_play() -> void:
 	var safe: Vector4 = _safe_insets()
 	var view: Vector2 = root.size
 	var rail: float = HUD_EDGE + chip + HUD_GAP
-	var rails: Vector4 = Vector4(safe.x + rail, safe.y + HUD_GAP, safe.z + rail, safe.w + HUD_GAP)
+	# One rail, on the right: the room keeps only a slim edge on the left, rather than a column of empty cloth.
+	var rails: Vector4 = Vector4(safe.x + HUD_GAP, safe.y + HUD_GAP, safe.z + rail, safe.w + HUD_GAP)
 	var band: Vector4 = Vector4(safe.x + HUD_GAP, safe.y + HUD_EDGE + chip + HUD_GAP * 0.5, safe.z + HUD_GAP, safe.w + HUD_GAP)
 	var before: Vector4 = play_reserve
 	play_rails = StitchfallLevels.fit_zoom(view, rails) > StitchfallLevels.fit_zoom(view, band) + 0.01
@@ -359,16 +366,18 @@ func _layout_play() -> void:
 	unravel_tag.scale = Vector2.ONE * grow
 	skip_hint.scale = Vector2.ONE * grow
 	if play_rails:
-		# Each rail is a column: the meter standing up with the unravel count under it, and the pause button with the
-		# skip's hint under it.
+		# The rail is one column under the pause button: the meter standing up, the unravel count, then the skip's
+		# hint when there is one.
+		var column: float = pause_button.position.x
+		var below: float = top + chip + 14.0
 		meter.size = Vector2(79, 205)
-		meter.position = Vector2(left + (chip - 79.0 * grow) * 0.5, top)
+		meter.position = Vector2(column + (chip - 79.0 * grow) * 0.5, below)
 		unravel_tag.size = Vector2(chip / grow, 58)
-		unravel_tag.position = Vector2(left, top + 205.0 * grow + 12.0)
+		unravel_tag.position = Vector2(column, below + 205.0 * grow + 12.0)
 		skip_hint.size = Vector2(chip / grow, 92)
 		skip_hint_label.size = Vector2(chip / grow - 16.0, 88)
 		skip_hint_label.text = SKIP_HINT.replace(" ", "\n")
-		skip_hint.position = Vector2(pause_button.position.x, top + chip + 12.0)
+		skip_hint.position = Vector2(column, below + 205.0 * grow + 12.0 + 58.0 * grow + 12.0)
 		room_label.position = Vector2((view.x - room_label.size.x) * 0.5, safe.y - 4.0)
 		room_label.add_theme_font_size_override("font_size", 28)
 		hint_back.position = Vector2((view.x - hint_back.size.x) * 0.5, safe.y + 54.0)
@@ -599,6 +608,8 @@ func _build_home() -> void:
 	# Google Play's build sells packs and takes tips. The browser build has no shop.
 	if StitchfallShop.on_play:
 		places.append(["Shop", "bag", show_shop])
+	# Settings last, in the row where it is seen, not in a corner.
+	places.append(["Settings", "settings", show_settings])
 	var across: float = float(places.size()) * HOME_PATCH + float(places.size() - 1) * HOME_PATCH_GAP
 	for index: int in range(places.size()):
 		var place: Array = places[index]
@@ -608,10 +619,6 @@ func _build_home() -> void:
 		var go: Callable = place[2]
 		patch.pressed.connect(func() -> void: go.call())
 		home_menu_bottom = spot.end.y
-	# Settings, with the guide, sound and the rest, waits in the corner.
-	home_settings = _tag(home_page, Rect2(0, HUD_EDGE, 112, 112), "", "settings", Color("e4d0b1"))
-	home_settings.tooltip_text = "Settings"
-	home_settings.pressed.connect(show_settings)
 	hero = AnimatedSprite2D.new()
 	hero.sprite_frames = _dance_frames()
 	hero.scale = Vector2.ONE * 0.92
@@ -731,7 +738,8 @@ func _set_level_page(value: int) -> void:
 	level_next.visible = level_page_index + 1 < StitchfallLevels.chapter_count()
 	level_kicker.text = "CHAPTER %d" % (level_page_index + 1)
 	level_heading.text = StitchfallLevels.chapter_name(level_page_index).to_upper()
-	level_line.text = StitchfallLevels.chapter_line(level_page_index)
+	# The chapter's line is said on its title card. Here the name and the rooms are enough.
+	level_line.text = ""
 	var badge: Texture2D = StitchfallLevels.chapter_badge(level_page_index)
 	level_badge.texture = badge
 	level_badge.visible = badge != null
@@ -802,11 +810,12 @@ func _build_help() -> void:
 	var goal: Label = _label(help_page, Vector2(400, 196), Vector2(1200, 50), 34, ACCENT)
 	goal.text = "Gather every button, then slip out through the zipper."
 	var keys: bool = not touch()
+	# A few words each: the gesture beside it shows the rest.
 	var moves: Array[PackedStringArray] = [
-		PackedStringArray(["MOVE", "Slide the way you want to go", "Arrows or WASD, on walls too", "move"]),
-		PackedStringArray(["JUMP", "Swipe up, or away from a wall", "W or Space, or away from a wall", "jump"]),
-		PackedStringArray(["TURN", "Tap to turn the room a quarter", "Shift", "shift"]),
-		PackedStringArray(["CROUCH", "Swipe down, or into a wall", "S, or into a wall", "crouch"]),
+		PackedStringArray(["MOVE", "Slide", "Arrows or WASD", "move"]),
+		PackedStringArray(["JUMP", "Swipe up", "W or Space", "jump"]),
+		PackedStringArray(["TURN", "Tap", "Shift", "shift"]),
+		PackedStringArray(["CROUCH", "Swipe down", "S", "crouch"]),
 	]
 	for index: int in range(moves.size()):
 		var move: PackedStringArray = moves[index]
@@ -825,11 +834,11 @@ func _build_help() -> void:
 		gesture.position = Vector2(356, 13)
 		gesture.kind = move[3]
 		card.add_child(gesture)
+	# The one rule the cards cannot show: on a wall or the ceiling, the moves follow the screen.
 	var footer: Label = _label(help_page, Vector2(268, 726), Vector2(700, 48), 28, ACCENT)
-	footer.text = "Esc pauses. R retries." if keys else "A flower saves your place."
+	footer.text = "On a wall, push the way you want to go."
 	var practice: StitchedButton = _tag(help_page, Rect2(1000, 696, 410, 108), "PRACTICE", "move", Color("dbe5d1"))
 	practice.caption_size = 36
-	practice.subcaption = "The lessons again"
 	practice.pressed.connect(func() -> void: practice_pressed.emit())
 	var start: StitchedButton = _tag(help_page, Rect2(1430, 696, 240, 108), "PLAY", "play", Color("e0a278"))
 	start.caption_size = 36
@@ -846,11 +855,11 @@ func _build_about() -> void:
 	_tag(about_page, Rect2(1510, 138, 112, 105), "", "back", Color("e5d5bc")).pressed.connect(show_settings)
 	var note: Label = _label(about_page, Vector2(380, 250), Vector2(790, 230), 33, INK)
 	note.vertical_alignment = VERTICAL_ALIGNMENT_TOP
-	note.text = "Stitchfall is a platformer sewn from cloth. Turn the whole room a quarter at a time, gather its buttons, and slip out through the zipper. Every room hides one trick, so look twice."
+	note.text = "Turn the room, gather the buttons, slip out through the zipper. Every room hides one trick."
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	var studio: Label = _label(about_page, Vector2(380, 505), Vector2(790, 80), 30, INK)
 	studio.vertical_alignment = VERTICAL_ALIGNMENT_TOP
-	studio.text = "Made by Chaosmos, a small studio making clever little games, one at a time."
+	studio.text = "Made by Chaosmos."
 	studio.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	var version: Label = _label(about_page, Vector2(380, 600), Vector2(790, 46), 28, ACCENT, true)
 	version.text = "Version %s" % version_name()
@@ -903,7 +912,7 @@ func _build_settings() -> void:
 		["sound", "SOUND", "sound", Color("e8d8bd"), _toggle_sound],
 		["music", "MUSIC", "music", Color("dbe5d1"), _toggle_music],
 		["shake", "SHAKE", "shake", Color("efd3b8"), _toggle_shake],
-		["fullscreen", "FULLSCREEN", "fullscreen", Color("e4d0b1"), _toggle_fullscreen],
+		["thread", "THREAD", "move", Color("e4d0b1"), _toggle_thread],
 	]
 	var right: Array = [
 		["help", "HOW TO PLAY", "help", Color("e0a278"), show_help],
@@ -922,13 +931,15 @@ func _build_settings() -> void:
 			tag.pressed.connect(entry[4])
 			settings_tags[entry[0]] = tag
 	sound_buttons.append(settings_tags["sound"])
-	settings_tags["fullscreen"].visible = not OS.has_feature("android")
-	# Google's consent service says when a player must be able to change their ad consent, and then this takes
-	# the place a phone has no Fullscreen for.
-	var privacy: StitchedButton = _tag(settings_page, Rect2(SETTINGS_X[0], SETTINGS_Y + 3 * SETTINGS_STEP, SETTINGS_ROW.x, SETTINGS_ROW.y), "PRIVACY", "lock", Color("e4d0b1"))
-	privacy.caption_size = 40
-	privacy.arrow = true
-	privacy.subcaption = "Ad choices"
+	# Under the rows, a small card on the left: Fullscreen where there is a window to fill, or Privacy when
+	# Google's consent service says a player must be able to change their ad consent. A phone has no window.
+	var corner: Rect2 = Rect2(SETTINGS_X[0], SETTINGS_Y + 4 * SETTINGS_STEP + 30.0, 360, 96)
+	var fullscreen: StitchedButton = _tag(settings_page, corner, "FULLSCREEN", "fullscreen", Color("e4d0b1"))
+	fullscreen.caption_size = 32
+	fullscreen.pressed.connect(_toggle_fullscreen)
+	settings_tags["fullscreen"] = fullscreen
+	var privacy: StitchedButton = _tag(settings_page, corner, "PRIVACY", "lock", Color("e4d0b1"))
+	privacy.caption_size = 32
 	privacy.pressed.connect(func() -> void: StitchfallAds.open_privacy_options())
 	privacy.visible = false
 	settings_tags["privacy"] = privacy
@@ -937,11 +948,6 @@ func _build_settings() -> void:
 	reset.caption_size = 34
 	reset.pressed.connect(_reset_progress)
 	settings_tags["reset"] = reset
-	# In from the cloth's corner knot.
-	var note: Label = _label(settings_page, Vector2(SETTINGS_X[0] + 56.0, SETTINGS_Y + 4 * SETTINGS_STEP + 52.0), Vector2(560, 50), 28, ACCENT)
-	note.text = "M changes sound. F goes fullscreen."
-	# A phone has no keys to name.
-	note.visible = not OS.has_feature("android")
 
 
 # Shows each switch's state on its row, and puts the reset back to asking once.
@@ -954,20 +960,14 @@ func _refresh_settings() -> void:
 	settings_tags["sound"].switch_on = 1 if audio_enabled else 0
 	settings_tags["music"].switch_on = 1 if progress.music else 0
 	settings_tags["shake"].switch_on = 1 if progress.shake else 0
-	settings_tags["sound"].subcaption = "Taps and effects"
-	settings_tags["music"].subcaption = "The quiet tune"
-	settings_tags["shake"].subcaption = "When you come apart"
-	settings_tags["fullscreen"].subcaption = "Fill the screen"
-	settings_tags["help"].subcaption = "Moves, and a practice run"
-	settings_tags["stats"].subcaption = "Your stitches so far"
-	settings_tags["credits"].subcaption = "Who made it, and with what"
-	settings_tags["about"].subcaption = "Version %s" % version_name()
+	settings_tags["thread"].switch_on = 1 if progress.thread else 0
+	swipe_thread.visible = progress.thread
 	settings_tags["privacy"].visible = StitchfallAds.privacy_options_required()
 	settings_tags["fullscreen"].visible = not OS.has_feature("android") and not settings_tags["privacy"].visible
 	settings_tags["shop"].visible = StitchfallShop.on_play
 	reset_armed = false
 	settings_tags["reset"].caption = "RESET"
-	settings_tags["reset"].subcaption = "Start over"
+	settings_tags["reset"].subcaption = ""
 	for tag: StitchedButton in settings_tags.values():
 		tag.queue_redraw()
 
@@ -975,6 +975,12 @@ func _refresh_settings() -> void:
 func _toggle_music() -> void:
 	progress.music = not progress.music
 	music_toggled.emit(progress.music)
+	_refresh_settings()
+
+
+func _toggle_thread() -> void:
+	progress.thread = not progress.thread
+	progress.save()
 	_refresh_settings()
 
 
@@ -995,7 +1001,7 @@ func _reset_progress() -> void:
 	progress_reset.emit()
 	_refresh_settings()
 	settings_tags["reset"].caption = "DONE"
-	settings_tags["reset"].subcaption = "A fresh start"
+	settings_tags["reset"].subcaption = ""
 	settings_tags["reset"].queue_redraw()
 	_dress_dancers()
 
@@ -1272,16 +1278,27 @@ func _build_credits() -> void:
 	heading.add_theme_font_override("font", FONT_DISPLAY)
 	heading.text = "CREDITS"
 	_tag(credits_page, Rect2(1510, 125, 112, 105), "", "back", Color("e5d5bc")).pressed.connect(show_settings)
-	var body: Label = _label(credits_page, Vector2(320, 250), Vector2(1280, 690), 31, INK)
-	body.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	# The words scroll inside the card, so however small a phone makes the page above its banner, nothing runs
+	# out of the cloth. A finger drags them, and the bar stays hidden.
+	var scroll: ScrollContainer = ScrollContainer.new()
+	scroll.position = Vector2(320, 250)
+	scroll.size = Vector2(1300, 640)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	credits_page.add_child(scroll)
+	var body: Label = Label.new()
+	body.custom_minimum_size = Vector2(1270, 0)
+	body.mouse_filter = Control.MOUSE_FILTER_PASS
+	body.add_theme_font_override("font", regular_font)
+	body.add_theme_font_size_override("font_size", 31)
+	body.add_theme_color_override("font_color", INK)
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	body.add_theme_constant_override("line_spacing", 8)
+	scroll.add_child(body)
 	body.text = "\n".join([
 		"Made by Shravan Goswami at Chaosmos, with the help of AI tools.",
 		"",
-		"The stitched world, the runners, the props and the icons were made for this game.",
-		"The sound effects and the music were synthesized for this game.",
-		"Darn and Threadline are original Chaosmos fonts, under the SIL Open Font License.",
+		"Darn and Threadline are original Chaosmos fonts, and the opening's wordmark is Bricolage Grotesque, all under the SIL Open Font License.",
 		"Built with the Godot Engine, under the MIT license. Copyright (c) 2014-present Godot Engine contributors, (c) 2007-2014 Juan Linietsky and Ariel Manzur.",
 		"",
 		"Thank you to everyone who plays, and to GitHub Game Off.",
@@ -1350,12 +1367,13 @@ func _build_shop() -> void:
 		var id: String = ids[index]
 		var card: StitchedButton = _tag(shop_page, Rect2(0, 258, 400, 470), StitchfallShop.card_title(id), StitchfallShop.glyph(id), cloths[index])
 		card.shop_card = true
-		card.lines = StitchfallShop.rows(id)
+		# One line each: what it is for. The offer page after it says the rest.
+		card.lines = PackedStringArray([SHOP_LINES.get(id, "")])
 		card.tooltip_text = ""
 		card.pressed.connect(show_offer.bind(id, "shop"))
 		shop_cards[id] = card
 	var jar: Label = _label(shop_page, Vector2(176, 742), Vector2(1250, 50), 30, INK, true)
-	jar.text = "Tip jar. Say thanks as often as you like. A tip opens nothing new."
+	jar.text = "Tip jar"
 	for index: int in range(StitchfallMonetize.TIP_IDS.size()):
 		var tip_id: String = StitchfallMonetize.TIP_IDS[index]
 		var tip: StitchedButton = _tag(shop_page, Rect2(170 + index * 212, 800, 200, 82), "TIP", "", Color("e8d8bd"))
@@ -1389,7 +1407,7 @@ func leave_shop() -> void:
 
 # The Complete pack shows only while none of it is owned, or once it is, and the cards centre on the cloth.
 func _fill_shop() -> void:
-	shop_line.text = "You are a Supporter. Thank you for helping me make the next game." if StitchfallShop.ads_off(progress) else "Every room opens by playing. These help me make the next game."
+	shop_line.text = "Thank you for supporting the next game." if StitchfallShop.ads_off(progress) else "Every room opens by playing too."
 	var shown: Array[StitchedButton] = []
 	for id: String in shop_cards:
 		var card: StitchedButton = shop_cards[id]
