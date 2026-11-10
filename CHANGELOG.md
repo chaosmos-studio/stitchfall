@@ -7,6 +7,10 @@ one line, at most 500 characters in all. The release workflow turns it into the 
 bumps the patch.
 -->
 
+## 1.2.4
+
+- The intro now hands over to the home screen quicker.
+
 ## 1.2.3
 
 - A bigger Wardrobe you can read on a phone, with every fabric and unravel shown full size.

@@ -35,14 +35,15 @@ const STYLES: Dictionary[String, String] = {
 const HOLD: float = 0.75
 const FADE: float = 0.35
 const SKIP_FADE: float = 0.18
-# In a game the word holds less, then the back fades into Home over BACK_GO while the word falls FALL of the
-# screen's height in FALL_TIME and lands with a bounce. WORD_GO_AT after the hold the word fades, over WORD_GO.
+# In a game the word holds less, then the back fades into Home over BACK_GO while the word drops FALL of the
+# screen's height in FALL_TIME, speeding up as it goes, and fades from WORD_GO_AT over WORD_GO. Home is whole as soon
+# as the back has gone, so the word must be gone by then too: a word left over a loaded Home reads as a stall.
 const REVEAL_HOLD: float = 0.5
-const BACK_GO: float = 0.45
-const FALL: float = 0.045
-const FALL_TIME: float = 0.55
-const WORD_GO_AT: float = 0.5
-const WORD_GO: float = 0.3
+const BACK_GO: float = 0.32
+const FALL: float = 0.06
+const FALL_TIME: float = 0.34
+const WORD_GO_AT: float = 0.04
+const WORD_GO: float = 0.28
 # The launch screen's mark: the width of its ring in dp. Android draws a splash icon 288 dp square, and
 # tools/make_splash.gd draws the mark this wide in it. It gives way to the style over LAUNCH_FADE, shrinking to
 # LAUNCH_SHRINK of its size.
@@ -186,7 +187,8 @@ func _process(delta: float) -> void:
 		if after >= 0.0:
 			_give_way()
 		back.modulate.a = 1.0 - ChaosmosIntroStyle.out_cubic(ChaosmosIntroStyle.span(after, 0.0, BACK_GO))
-		front.position.y = ChaosmosIntroStyle.out_bounce(ChaosmosIntroStyle.span(after, 0.0, FALL_TIME)) * FALL * size.y
+		var drop: float = ChaosmosIntroStyle.span(after, 0.0, FALL_TIME)
+		front.position.y = drop * drop * FALL * size.y
 		front.modulate.a = 1.0 - ChaosmosIntroStyle.span(after, WORD_GO_AT, WORD_GO_AT + WORD_GO)
 		over = end + WORD_GO_AT + WORD_GO
 	else:

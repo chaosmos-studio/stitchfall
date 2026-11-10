@@ -60,7 +60,20 @@ static func event(name: StringName, params: Dictionary = {}) -> void:
 	if sink.is_valid():
 		sink.call(name, params)
 	if _counting:
-		_firebase.call("log_event", String(name), params)
+		_firebase.call("log_event", String(name), for_ga(params))
+
+
+# Parameters GA4 reports as custom dimensions, which it fills only from text: sent as numbers they arrive as
+# "(not set)". Stars, seconds and counts stay numbers, for their metrics.
+const AS_TEXT: Array[String] = ["level", "success", "room"]
+
+
+static func for_ga(params: Dictionary) -> Dictionary:
+	var sent: Dictionary = params.duplicate()
+	for key: String in AS_TEXT:
+		if sent.has(key):
+			sent[key] = str(sent[key])
+	return sent
 
 
 # Rooms reach Analytics numbered from 1, as players see them.
