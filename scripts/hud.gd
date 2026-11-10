@@ -75,6 +75,26 @@ const SHOP_LINES: Dictionary[String, String] = {
 	"all_levels": "Every room, open now",
 	"wardrobe": "Every runner and fabric",
 }
+# The Wardrobe fills the screen's safe part, above the banner while one is due, instead of shrinking a fixed page,
+# so a wide phone's width goes to bigger pieces. Three columns: the heading over the kinds, the pieces, and the
+# runner dancing over the Wardrobe pack's price. In view pixels: the cloth's margin from the screen's edge, how
+# large its painted border is drawn, how far in from the cloth's edge the parts start, and the gap between them.
+const WARDROBE_MARGIN: float = 16.0
+const WARDROBE_CLOTH_SCALE: float = 0.6
+const WARDROBE_CLOTH_EDGE: int = 190
+const WARDROBE_INSET: Vector2 = Vector2(80, 62)
+const WARDROBE_GAP: float = 24.0
+# The kinds' column and the dancer's column, as shares of the cloth's inside, and their narrowest and widest.
+const WARDROBE_KINDS: Vector3 = Vector3(0.18, 290.0, 400.0)
+const WARDROBE_DANCER: Vector3 = Vector3(0.23, 300.0, 440.0)
+# A piece's tile is never larger than this, and a kind has at most this many pieces.
+const WARDROBE_TILE_LARGEST: float = 340.0
+const WARDROBE_SLOTS: int = 8
+# The heights of the heading's row, of a kind's tab at most, of the corner buttons and of the pack's price card.
+const WARDROBE_HEAD: float = 96.0
+const WARDROBE_TAB: float = 108.0
+const WARDROBE_CORNER: float = 100.0
+const WARDROBE_PACK: float = 190.0
 # The Levels page's five room patches, from this x, one every step, and how far a sideways swipe must travel to
 # turn the page.
 const LEVEL_TILES_X: float = 222.0
@@ -171,9 +191,10 @@ var wardrobe_kind: String = "runner"
 var wardrobe_tabs: Dictionary[String, StitchedButton] = {}
 var wardrobe_tiles: Array[StitchfallItemTile] = []
 var wardrobe_preview: AnimatedSprite2D
-var wardrobe_name: Label
-var wardrobe_line: Label
-var wardrobe_note: Label
+var wardrobe_cloth: NinePatchRect
+var wardrobe_heading: Label
+var wardrobe_home: StitchedButton
+var wardrobe_stars: StitchedButton
 var wardrobe_buy: StitchedButton
 var wardrobe_shop: StitchedButton
 var shop_page: Control
@@ -314,11 +335,12 @@ func _layout() -> void:
 	hero.position.x = root.size.x * HOME_HERO_X
 	var safe: Vector4 = _safe_insets()
 	_layout_home(safe)
-	for page: Control in [level_page, help_page, about_page, settings_page, pause_page, clear_page, chapter_page, stats_page, credits_page, wardrobe_page, shop_page, offer_page, update_page]:
+	for page: Control in [level_page, help_page, about_page, settings_page, pause_page, clear_page, chapter_page, stats_page, credits_page, shop_page, offer_page, update_page]:
 		var fit: float = page_fit(page)
 		page.scale = Vector2.ONE * fit
 		page.position.x = (root.size.x - 1920.0 * fit) * 0.5
 		_trim_cloth(page, fit)
+	_layout_wardrobe(safe)
 
 
 # Home's menu is sized to the painted pocket as the painting covers the screen (wider screens crop its top and
@@ -424,7 +446,8 @@ func _banner_page(page: Control) -> bool:
 # A menu page that carries the banner shrinks from its top until everything on it ends BUTTON_GAP_DP above the
 # banner, so no button sits near the ad. Every other page, and every page without a banner, keeps its size.
 func page_fit(page: Control) -> float:
-	if not _banner_page(page):
+	# The Wardrobe lays itself out in the room it has (_layout_wardrobe), so it never shrinks.
+	if not _banner_page(page) or page == wardrobe_page:
 		return 1.0
 	var bottom: float = 0.0
 	# The clear card slides in as one piece, so its parts are measured inside it.
@@ -1309,47 +1332,125 @@ func _build_credits() -> void:
 		body.text += "\n\n" + "In the Android app: the Godot AdMob Plugin by Poing Studios, Godot Google Play Billing by the Godot Engine contributors and Godotx Firebase by Paulo Coutinho, each under the MIT license, and Google's Mobile Ads SDK, User Messaging Platform, Play Billing Library, Play In-App Review and Updates and Analytics for Firebase, under Google's terms."
 
 
-# The wardrobe: a dancing preview on the left, a tab per kind of piece, and the pieces as tiles.
+# The wardrobe: the heading over a tab per kind of piece, the pieces as tiles, and the runner dancing in what it
+# wears over the Wardrobe pack's price. Its parts are placed by _layout_wardrobe.
 func _build_wardrobe() -> void:
 	wardrobe_page = _page()
-	_cloth_page(wardrobe_page, Rect2(65, 50, 1790, 970))
-	var heading: Label = _label(wardrobe_page, Vector2(255, 95), Vector2(700, 105), 77, INK, true)
-	heading.add_theme_font_override("font", FONT_DISPLAY)
-	heading.text = "WARDROBE"
-	_tag(wardrobe_page, Rect2(1700, 100, 100, 101), "", "home", Color("e5d5bc")).pressed.connect(show_home)
+	# The painted cloth as a nine-patch, so its knotted corners and border keep their shape at any size.
+	wardrobe_cloth = NinePatchRect.new()
+	wardrobe_cloth.texture = PAUSE_CLOTH
+	wardrobe_cloth.patch_margin_left = WARDROBE_CLOTH_EDGE
+	wardrobe_cloth.patch_margin_top = WARDROBE_CLOTH_EDGE
+	wardrobe_cloth.patch_margin_right = WARDROBE_CLOTH_EDGE
+	wardrobe_cloth.patch_margin_bottom = WARDROBE_CLOTH_EDGE
+	wardrobe_cloth.scale = Vector2.ONE * WARDROBE_CLOTH_SCALE
+	wardrobe_cloth.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	wardrobe_page.add_child(wardrobe_cloth)
+	wardrobe_heading = _label(wardrobe_page, Vector2.ZERO, Vector2(WARDROBE_KINDS.z, WARDROBE_HEAD), 77, INK, true)
+	wardrobe_heading.add_theme_font_override("font", FONT_DISPLAY)
+	wardrobe_heading.text = "WARDROBE"
+	wardrobe_home = _tag(wardrobe_page, Rect2(Vector2.ZERO, Vector2.ONE * WARDROBE_CORNER), "", "home", Color("e5d5bc"))
+	wardrobe_home.pressed.connect(show_home)
+	# The stars earned, which open trails, unravels and buttons: a felt chip, not a button.
+	wardrobe_stars = _tag(wardrobe_page, Rect2(0, 0, 220, WARDROBE_CORNER - 8.0), "0", "star", Color("efe3cd"))
+	wardrobe_stars.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	wardrobe_stars.focus_mode = Control.FOCUS_NONE
+	wardrobe_stars.caption_size = 46
 	wardrobe_preview = AnimatedSprite2D.new()
-	wardrobe_preview.position = Vector2(390, 520)
 	var material: ShaderMaterial = ShaderMaterial.new()
 	material.shader = CLEANUP_SHADER
 	wardrobe_preview.material = material
 	wardrobe_page.add_child(wardrobe_preview)
-	wardrobe_name = _label(wardrobe_page, Vector2(160, 760), Vector2(470, 56), 40, INK, true)
-	wardrobe_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	wardrobe_line = _label(wardrobe_page, Vector2(160, 815), Vector2(470, 100), 28, ACCENT)
-	wardrobe_line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	wardrobe_line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	for index: int in range(StitchfallLooks.KINDS.size()):
 		var kind: String = StitchfallLooks.KINDS[index]
-		var tab: StitchedButton = _tag(wardrobe_page, Rect2(680 + index * 225, 205, 215, 84), StitchfallLooks.KIND_NAMES[index].to_upper(), "", Color("e5d5bc"))
-		tab.caption_size = 30
+		var tab: StitchedButton = _tag(wardrobe_page, Rect2(0, 0, WARDROBE_KINDS.y, WARDROBE_TAB), StitchfallLooks.KIND_NAMES[index].to_upper(), "", Color("e5d5bc"))
 		tab.pressed.connect(_show_kind.bind(kind))
 		wardrobe_tabs[kind] = tab
-	for slot: int in range(8):
+	for slot: int in range(WARDROBE_SLOTS):
 		var tile: StitchfallItemTile = StitchfallItemTile.new()
-		tile.position = Vector2(690 + (slot % 4) * 275, 305 + (slot / 4) * 268)
-		tile.size = Vector2(255, 255)
 		tile.pressed.connect(_choose_piece.bind(slot))
 		tile.pressed.connect(_tap)
 		wardrobe_page.add_child(tile)
 		wardrobe_tiles.append(tile)
-	wardrobe_note = _label(wardrobe_page, Vector2(690, 838), Vector2(600, 72), 27, ACCENT)
-	wardrobe_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	wardrobe_buy = _tag(wardrobe_page, Rect2(1300, 836, 270, 78), "WARDROBE PACK", "", Color("e0a278"))
-	wardrobe_buy.caption_size = 28
+	wardrobe_buy = _tag(wardrobe_page, Rect2(0, 0, WARDROBE_DANCER.y, WARDROBE_PACK), "WARDROBE PACK", "wardrobe", Color("f0dcc0"))
+	wardrobe_buy.price_card = true
 	wardrobe_buy.pressed.connect(func() -> void: show_offer(StitchfallMonetize.WARDROBE_ID, "wardrobe"))
-	wardrobe_shop = _tag(wardrobe_page, Rect2(1600, 832, 90, 86), "", "bag", Color("efd3b8"))
+	wardrobe_shop = _tag(wardrobe_page, Rect2(Vector2.ZERO, Vector2.ONE * WARDROBE_CORNER), "", "bag", Color("efd3b8"))
 	wardrobe_shop.tooltip_text = "Shop"
 	wardrobe_shop.pressed.connect(func() -> void: show_shop("wardrobe"))
+
+
+# Places the Wardrobe's parts in the screen's safe part, above the banner while one is due (see WARDROBE_MARGIN).
+func _layout_wardrobe(safe: Vector4) -> void:
+	wardrobe_page.scale = Vector2.ONE
+	wardrobe_page.position = Vector2.ZERO
+	var view: Vector2 = root.size
+	var banner: bool = StitchfallAds.banner_wanted()
+	var cloth: Rect2 = Rect2(safe.x + WARDROBE_MARGIN, safe.y + WARDROBE_MARGIN, view.x - safe.x - safe.z - WARDROBE_MARGIN * 2.0, view.y - safe.y - safe.w - WARDROBE_MARGIN * 2.0)
+	if banner:
+		cloth.size.y = minf(cloth.size.y, StitchfallAds.banner_rect().position.y - CLOTH_GAP_DP * StitchfallAds.per_dp() - cloth.position.y)
+	wardrobe_cloth.position = cloth.position
+	wardrobe_cloth.size = cloth.size / WARDROBE_CLOTH_SCALE
+	wardrobe_cloth.set_meta(&"cloth", cloth)
+	var inner: Rect2 = cloth.grow_individual(-WARDROBE_INSET.x, -WARDROBE_INSET.y, -WARDROBE_INSET.x, -WARDROBE_INSET.y)
+	if banner:
+		inner.size.y = minf(inner.size.y, StitchfallAds.content_limit() - inner.position.y)
+	# The kinds' column: the heading, as large as fits, then a tab for each kind.
+	var kinds_wide: float = clampf(inner.size.x * WARDROBE_KINDS.x, WARDROBE_KINDS.y, WARDROBE_KINDS.z)
+	var heading_size: int = 77
+	while heading_size > 40 and FONT_DISPLAY.get_string_size(wardrobe_heading.text, HORIZONTAL_ALIGNMENT_LEFT, -1, heading_size).x > kinds_wide:
+		heading_size -= 1
+	wardrobe_heading.add_theme_font_size_override("font_size", heading_size)
+	wardrobe_heading.position = inner.position
+	wardrobe_heading.size = Vector2(kinds_wide, WARDROBE_HEAD)
+	var count: int = StitchfallLooks.KINDS.size()
+	var tab_gap: float = 14.0
+	var tabs_top: float = inner.position.y + WARDROBE_HEAD + WARDROBE_GAP * 0.5
+	var tab_high: float = minf(WARDROBE_TAB, (inner.end.y - tabs_top - tab_gap * (count - 1)) / count)
+	for index: int in range(count):
+		var tab: StitchedButton = wardrobe_tabs[StitchfallLooks.KINDS[index]]
+		tab.position = Vector2(inner.position.x, tabs_top + index * (tab_high + tab_gap))
+		tab.size = Vector2(kinds_wide, tab_high)
+		tab.caption_size = int(minf(42.0, tab_high * 0.42))
+	# The dancer's column: the stars, the Shop and Home along its top, the pack's price card at its foot, and the
+	# runner dancing between them.
+	var dancer_wide: float = clampf(inner.size.x * WARDROBE_DANCER.x, WARDROBE_DANCER.y, WARDROBE_DANCER.z)
+	var column: float = inner.end.x - dancer_wide
+	wardrobe_home.position = Vector2(inner.end.x - WARDROBE_CORNER, inner.position.y)
+	wardrobe_home.size = Vector2.ONE * WARDROBE_CORNER
+	wardrobe_shop.position = Vector2(wardrobe_home.position.x - WARDROBE_GAP * 0.5 - WARDROBE_CORNER, inner.position.y)
+	wardrobe_shop.size = Vector2.ONE * WARDROBE_CORNER
+	var stars_end: float = (wardrobe_shop.position.x if wardrobe_shop.visible else wardrobe_home.position.x) - WARDROBE_GAP * 0.5
+	wardrobe_stars.position = Vector2(column, inner.position.y + 4.0)
+	wardrobe_stars.size = Vector2(minf(stars_end - column, 230.0), WARDROBE_CORNER - 8.0)
+	var dance_top: float = inner.position.y + WARDROBE_CORNER + WARDROBE_GAP * 0.5
+	var dance_end: float = inner.end.y
+	if wardrobe_buy.visible:
+		wardrobe_buy.position = Vector2(column, inner.end.y - WARDROBE_PACK)
+		wardrobe_buy.size = Vector2(dancer_wide, WARDROBE_PACK)
+		dance_end = wardrobe_buy.position.y - WARDROBE_GAP * 0.5
+	if wardrobe_preview.sprite_frames != null:
+		var frame: Vector2 = wardrobe_preview.sprite_frames.get_frame_texture("dance", 0).get_size()
+		wardrobe_preview.scale = Vector2.ONE * minf((dance_end - dance_top) / frame.y, dancer_wide / frame.x)
+		wardrobe_preview.position = Vector2(column + dancer_wide * 0.5, (dance_top + dance_end) * 0.5)
+	# The pieces between, in four columns or three, whichever lets this kind's tiles be larger.
+	var grid: Rect2 = Rect2(inner.position.x + kinds_wide + WARDROBE_GAP, inner.position.y, column - inner.position.x - kinds_wide - WARDROBE_GAP * 2.0, inner.size.y)
+	var pieces: int = clampi(StitchfallLooks.items(wardrobe_kind).size(), 1, WARDROBE_SLOTS)
+	var columns: int = 4
+	var tile: float = 0.0
+	for across: int in [4, 3]:
+		var rows: int = ceili(float(pieces) / float(across))
+		var side: float = minf((grid.size.x - WARDROBE_GAP * (across - 1)) / across, (grid.size.y - WARDROBE_GAP * (rows - 1)) / rows)
+		if side > tile + 0.5:
+			tile = side
+			columns = across
+	tile = floorf(minf(tile, WARDROBE_TILE_LARGEST))
+	var down: int = ceili(float(pieces) / float(columns))
+	var block: Vector2 = Vector2(columns * tile + (columns - 1) * WARDROBE_GAP, down * tile + (down - 1) * WARDROBE_GAP)
+	var corner: Vector2 = (grid.position + (grid.size - block) * 0.5).round()
+	for slot: int in range(wardrobe_tiles.size()):
+		wardrobe_tiles[slot].position = corner + Vector2(slot % columns, slot / columns) * (tile + WARDROBE_GAP)
+		wardrobe_tiles[slot].size = Vector2(tile, tile)
 
 
 # The Shop, Google Play's build only: the packs as felt cards with Play's prices, the tip jar and Restore.
@@ -1565,35 +1666,33 @@ func _show_kind(kind: String) -> void:
 	var on_play: bool = StitchfallShop.on_play
 	wardrobe_buy.visible = on_play and not StitchfallShop.has_pack(progress)
 	wardrobe_shop.visible = on_play
-	var price: String = StitchfallShop.price(StitchfallMonetize.WARDROBE_ID)
-	wardrobe_buy.caption = "WARDROBE PACK" if price.is_empty() else "WARDROBE  %s" % price
+	wardrobe_buy.price_tag = StitchfallShop.price(StitchfallMonetize.WARDROBE_ID)
 	wardrobe_buy.queue_redraw()
-	_say("You have %d stars. Every piece is free here in the browser." % progress.total_stars() if not on_play else "You have %d stars. Stars open trails, unravels and buttons." % progress.total_stars())
+	wardrobe_stars.caption = str(progress.total_stars())
+	wardrobe_stars.queue_redraw()
 	_show_worn()
+	_layout_wardrobe(_safe_insets())
 
 
 func _show_worn() -> void:
-	var runner: Dictionary = StitchfallLooks.find(_runner())
-	wardrobe_name.text = runner["name"]
-	wardrobe_line.text = runner["line"]
 	wardrobe_preview.sprite_frames = _dance_frames()
-	var height: float = wardrobe_preview.sprite_frames.get_frame_texture("dance", 0).get_size().y
-	wardrobe_preview.scale = Vector2.ONE * 0.7 * 650.0 / height
 	wardrobe_preview.play("dance")
 
 
+# A locked pack piece opens the pack's page, and a piece that stars open says how many.
 func _choose_piece(slot: int) -> void:
 	var item: Dictionary = StitchfallLooks.items(wardrobe_kind)[slot]
 	if not StitchfallShop.is_open(item, progress):
-		_say("%s comes with the Wardrobe pack." % item["name"] if bool(item["paid"]) else "%s opens at %d stars. You have %d." % [item["name"], int(item["stars"]), progress.total_stars()])
+		if bool(item["paid"]):
+			show_offer(StitchfallMonetize.WARDROBE_ID, "wardrobe")
+		else:
+			_say("%s opens at %d stars." % [item["name"], int(item["stars"])])
 		return
 	progress.wear[wardrobe_kind] = item["id"]
 	progress.save()
 	wardrobe_changed.emit()
 	_show_kind(wardrobe_kind)
 	_dress_dancers()
-	if wardrobe_kind != "runner":
-		_say("Wearing %s." % item["name"])
 
 
 # A line from the page or from Google Play, on the page it belongs to, or on any other page, a toast that fades.
@@ -1607,8 +1706,6 @@ func _say(text: String) -> void:
 			offer_note.text = text
 		"pause":
 			pause_body.text = text
-		"wardrobe":
-			wardrobe_note.text = text
 		"levels":
 			level_note.text = text
 			level_note.visible = true
@@ -1633,9 +1730,7 @@ func _toast(text: String) -> void:
 func refresh_store() -> void:
 	match screen:
 		"wardrobe":
-			var note: String = wardrobe_note.text
 			_show_kind(wardrobe_kind)
-			wardrobe_note.text = note
 		"shop":
 			_fill_shop()
 		"offer":

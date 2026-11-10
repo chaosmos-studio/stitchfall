@@ -32,6 +32,8 @@ var shop_card: bool = false
 var lines: PackedStringArray = PackedStringArray()
 var price_tag: String = ""
 var owned: bool = false
+# A pack's buy button: its icon, its name and its price in a pill as big as the card allows.
+var price_card: bool = false
 # A Settings row's switch: -1 for none, else 0 off and 1 on. A row that opens a page shows a small arrow instead.
 var switch_on: int = -1
 var arrow: bool = false
@@ -91,6 +93,8 @@ func _draw() -> void:
 		_draw_level_tile(hovered)
 	elif shop_card:
 		_draw_shop_card(hovered)
+	elif price_card:
+		_draw_price_card(hovered)
 	elif caption.is_empty():
 		var lift: float = -3.0 if hovered else 0.0
 		draw_texture_rect(ICON_PATCH, Rect2(Vector2(0, lift), size), false, cloth.lightened(0.13) if hovered else cloth)
@@ -321,6 +325,40 @@ func _draw_shop_card(hovered: bool) -> void:
 	_draw_rounded(pill, 38.0, PILL_OWNED if owned else PILL)
 	var price_size: int = _fit(BODY_FONT, status, 40, pill.size.x - 32.0)
 	draw_string(BODY_FONT, Vector2(pill.position.x + 16.0, pill.get_center().y + price_size * CAP_HEIGHT * 0.5), status, HORIZONTAL_ALIGNMENT_CENTER, pill.size.x - 32.0, price_size, Color("fff6e6"))
+
+
+# The felt card with the pack's icon on a round patch at the left, and beside it the pack's name over its price in a
+# pill taking most of the card's height, so the price is read before anything else. The price is drawn twice, the
+# first time as a thick outline in its own colour, which makes it bold.
+func _draw_price_card(hovered: bool) -> void:
+	var lift: float = -3.0 if hovered and not owned else 0.0
+	var body: Rect2 = Rect2(0, lift, size.x, size.y - CARD_DROP)
+	var radius: float = minf(body.size.y * 0.22, 30.0)
+	var tint: Color = cloth.lightened(0.08) if hovered and not owned else cloth
+	_draw_rounded(Rect2(0, CARD_DROP, body.size.x, body.size.y), radius, CARD_SHADOW)
+	_draw_rounded(body, radius, CARD_EDGE)
+	_draw_rounded(body.grow(-2.5), radius - 2.5, tint)
+	_draw_dashes(_rounded_outline(body.grow(-STITCH_INSET), maxf(radius - STITCH_INSET, 4.0)), Color("896b57", 0.7))
+	var pad: float = clampf(body.size.y * 0.09, 10.0, 18.0)
+	var inside: Rect2 = body.grow(-(STITCH_INSET + pad))
+	var disc: float = minf(inside.size.y, inside.size.x * 0.3)
+	var disc_centre: Vector2 = Vector2(inside.position.x + disc * 0.5, inside.get_center().y)
+	draw_circle(disc_centre, disc * 0.5, tint.darkened(0.12), true, -1.0, true)
+	_draw_dashes(_circle_outline(disc_centre, disc * 0.5 - 6.0), Color("896b57", 0.55))
+	_draw_icon(disc_centre, disc * 0.29)
+	var left: float = inside.position.x + disc + pad
+	var room: float = inside.end.x - left
+	var word: int = _fit(MENU_FONT, caption, caption_size if caption_size > 0 else int(inside.size.y * 0.24), room)
+	var pill_height: float = inside.size.y - word * 1.05 - pad * 0.6
+	var pill: Rect2 = Rect2(left, inside.end.y - pill_height, room, pill_height)
+	draw_string(MENU_FONT, Vector2(left, inside.position.y + word * CAP_HEIGHT + 2.0), caption, HORIZONTAL_ALIGNMENT_CENTER, room, word, ink)
+	var status: String = "YOURS" if owned else (price_tag if not price_tag.is_empty() else "BUY")
+	_draw_rounded(Rect2(pill.position + Vector2(0, 4), pill.size), pill.size.y * 0.5, CARD_SHADOW)
+	_draw_rounded(pill, pill.size.y * 0.5, PILL_OWNED if owned else PILL)
+	var price_size: int = _fit(BODY_FONT, status, int(pill.size.y * 0.62), pill.size.x - pill.size.y * 0.6)
+	var base: Vector2 = Vector2(pill.position.x, pill.get_center().y + price_size * CAP_HEIGHT * 0.5)
+	draw_string_outline(BODY_FONT, base, status, HORIZONTAL_ALIGNMENT_CENTER, pill.size.x, price_size, 3, Color("fff6e6"))
+	draw_string(BODY_FONT, base, status, HORIZONTAL_ALIGNMENT_CENTER, pill.size.x, price_size, Color("fff6e6"))
 
 
 func _draw_icon(center: Vector2, radius: float) -> void:

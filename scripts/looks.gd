@@ -147,17 +147,17 @@ static func draw_button(canvas: CanvasItem, center: Vector2, radius: float, colo
 		canvas.draw_circle(center + Vector2.from_angle(float(hole) * TAU / 4.0 + PI * 0.25) * radius * 0.39, radius * 0.12, ink)
 
 
-# A short wavy length of a trail's thread, for its wardrobe tile.
-static func draw_trail_sample(canvas: CanvasItem, from: Vector2, to: Vector2, item: Dictionary) -> void:
+# A short wavy length of a trail's thread, for its wardrobe tile: waves `wave` high, `width` thick, `alpha` faded.
+static func draw_trail_sample(canvas: CanvasItem, from: Vector2, to: Vector2, item: Dictionary, wave: float = 14.0, width: float = 5.0, alpha: float = 1.0) -> void:
 	var colours: Array = item["colours"]
 	if colours.is_empty():
 		return
 	var points: PackedVector2Array = PackedVector2Array()
 	for step: int in range(25):
 		var t: float = float(step) / 24.0
-		points.append(from.lerp(to, t) + Vector2(0, sin(t * TAU * 1.5) * 14.0))
+		points.append(from.lerp(to, t) + Vector2(0, sin(t * TAU * 1.5) * wave))
 	for index: int in range(points.size() - 1):
 		if bool(item.get("dashed", false)) and index % 2 == 1:
 			continue
 		var colour: Color = colours[index * colours.size() / (points.size() - 1)]
-		canvas.draw_line(points[index], points[index + 1], colour, 5.0, true)
+		canvas.draw_line(points[index], points[index + 1], Color(colour, alpha), width, true)

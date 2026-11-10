@@ -37,14 +37,7 @@ func scatter(courier: StitchfallCourier, style: Dictionary = {}) -> void:
 			tween.tween_property(piece, "position", piece.position + direction, LIFE).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 			tween.tween_property(piece, "rotation", piece.rotation + float(column - 1) * 0.8 + float(row % 2) * 0.35, LIFE)
 			tween.tween_property(piece, "modulate:a", 0.0, LIFE).set_delay(0.2)
-	for index: int in range(BITS):
-		var angle: float = float(index) * TAU / float(BITS) + sin(float(index) * 7.0) * 0.2
-		bits.append({
-			"angle": angle,
-			"reach": 95.0 + float(index % 4) * 18.0,
-			"spin": float(index % 5 - 2) * 3.0,
-			"colour": colours[index % colours.size()],
-		})
+	bits = make_bits(colours)
 
 
 func _process(delta: float) -> void:
@@ -53,29 +46,60 @@ func _process(delta: float) -> void:
 
 
 func _draw() -> void:
-	var t: float = minf(age / LIFE, 1.0)
+	draw_burst(self, Vector2.ZERO, shape, bits, minf(age / LIFE, 1.0))
+
+
+# The burst's bits, the same for every unravel in a style: the way each flies, how far, its spin and its colour.
+static func make_bits(palette: Array) -> Array[Dictionary]:
+	var made: Array[Dictionary] = []
+	for index: int in range(BITS):
+		var angle: float = float(index) * TAU / float(BITS) + sin(float(index) * 7.0) * 0.2
+		made.append({
+			"angle": angle,
+			"reach": 95.0 + float(index % 4) * 18.0,
+			"spin": float(index % 5 - 2) * 3.0,
+			"colour": palette[index % palette.size()],
+		})
+	return made
+
+
+# The burst `t` of the way through its life (0 to 1) around `centre`, fading from `hold` of the way on. The
+# wardrobe's tiles draw it with the bits flying `reach` times as far and `grow` times as big as in a room, `alpha`
+# faded, and `outlined` in ink so pale bits still read on the pale felt.
+static func draw_burst(canvas: CanvasItem, centre: Vector2, style_shape: String, burst: Array[Dictionary], t: float, reach: float = 1.0, grow: float = 1.0, alpha: float = 1.0, hold: float = 0.2, outlined: bool = false) -> void:
 	var out: float = 1.0 - (1.0 - t) * (1.0 - t)
-	var fade: float = clampf(1.0 - (t - 0.2) / 0.8, 0.0, 1.0)
-	for bit: Dictionary in bits:
+	var fade: float = clampf(1.0 - (t - hold) / (1.0 - hold), 0.0, 1.0) * alpha
+	var ink: Color = Color("493a37", fade)
+	var edge: Color = Color("493a37", fade * 0.55)
+	for bit: Dictionary in burst:
 		var direction: Vector2 = Vector2.from_angle(bit["angle"])
-		var centre: Vector2 = direction * float(bit["reach"]) * out
+		var at: Vector2 = centre + direction * float(bit["reach"]) * reach * out
 		var colour: Color = Color(bit["colour"], fade)
 		var turn: float = float(bit["spin"]) * t
-		match shape:
+		match style_shape:
 			"button":
-				draw_circle(centre, 8.0, Color("493a37", fade))
-				draw_circle(centre, 6.5, colour)
-				draw_circle(centre + Vector2(-2, -2).rotated(turn), 1.3, Color("493a37", fade))
-				draw_circle(centre + Vector2(2, 2).rotated(turn), 1.3, Color("493a37", fade))
+				canvas.draw_circle(at, 8.0 * grow, ink)
+				canvas.draw_circle(at, 6.5 * grow, colour)
+				canvas.draw_circle(at + Vector2(-2, -2).rotated(turn) * grow, 1.3 * grow, ink)
+				canvas.draw_circle(at + Vector2(2, 2).rotated(turn) * grow, 1.3 * grow, ink)
 			"petal":
-				draw_set_transform(centre, bit["angle"] + turn, Vector2(1.0, 0.55))
-				draw_circle(Vector2.ZERO, 9.0, colour)
-				draw_set_transform(Vector2.ZERO)
+				canvas.draw_set_transform(at, float(bit["angle"]) + turn, Vector2(1.0, 0.55))
+				if outlined:
+					canvas.draw_circle(Vector2.ZERO, 9.0 * grow + 3.0, edge)
+				canvas.draw_circle(Vector2.ZERO, 9.0 * grow, colour)
+				canvas.draw_set_transform(Vector2.ZERO)
 			"star":
-				StitchfallStarRow.draw_star(self, centre, 9.0, true, colour)
+				if outlined:
+					StitchfallStarRow.draw_star(canvas, at, 9.0 * grow + 3.0, true, edge)
+				StitchfallStarRow.draw_star(canvas, at, 9.0 * grow, true, colour)
 			"snip":
-				draw_set_transform(centre, turn, Vector2.ONE)
-				draw_rect(Rect2(-8, -3, 16, 6), colour)
-				draw_set_transform(Vector2.ZERO)
+				canvas.draw_set_transform(at, turn, Vector2.ONE * grow)
+				if outlined:
+					canvas.draw_rect(Rect2(-9.5, -4.5, 19, 9), edge)
+				canvas.draw_rect(Rect2(-8, -3, 16, 6), colour)
+				canvas.draw_set_transform(Vector2.ZERO)
 			_:
-				draw_line(centre - direction * (31.0 + float(int(bit["reach"]) % 3) * 8.0) * (1.0 - t * 0.5), centre, colour, 2.0, true)
+				var tail: float = (31.0 + float(int(bit["reach"]) % 3) * 8.0) * (1.0 - t * 0.5) * reach
+				if outlined:
+					canvas.draw_line(at - direction * tail, at, edge, 2.0 * grow + 3.0, true)
+				canvas.draw_line(at - direction * tail, at, colour, 2.0 * grow, true)
