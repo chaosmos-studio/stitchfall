@@ -9,9 +9,10 @@ extends RefCounted
 #   on Home. The page it sits under shrinks until every button keeps BUTTON_GAP_DP above it, by AdMob's
 #   accidental-click guidance, and Home's menu, beside it rather than above it, keeps clear of it sideways.
 # - An ad between rooms only from Next on the clear card (maybe_interstitial), paced by StitchfallAdPacing.
-# - A rewarded video for one thing, skipping a room the runner keeps unravelling in (rewarded).
+# - A rewarded video for one thing, skipping a room the runner keeps unravelling in (rewarded), and only when a
+#   real video is loaded. With none (house ads standing in, offline, no fill, an ad blocker) the skip is free.
 # Android only. Debug builds always ask for Google's test units (scripts/android/admob.gd). The Supporter pack
-# turns all of it off for good. The studio's house ads fill in whenever AdMob has nothing to give.
+# turns all of it off for good. The studio's house banner fills in whenever AdMob has no banner to give.
 
 const ADMOB_SCRIPT: String = "res://scripts/android/admob.gd"
 const BANNER_WIDTH_DP: float = 320.0
@@ -99,18 +100,8 @@ static func live() -> bool:
 	return is_instance_valid(_backend) and not supporter()
 
 
-static func rewards() -> bool:
-	return live()
-
-
 static func video_ready() -> bool:
 	return live() and _backend.video_ready()
-
-
-# How a reward is earned, for the line that offers one: a video when AdMob has one ready, and otherwise a quick
-# game of the studio's.
-static func watch() -> String:
-	return "Watch a video" if video_ready() else "Try a quick game"
 
 
 static func now() -> float:
@@ -161,7 +152,7 @@ static func banner_wanted() -> bool:
 	return _wanted
 
 
-# A full-screen moment (the house ads' quick game) hides the banner while it is open.
+# A full-screen moment (the studio intro) hides the banner while it is open.
 static func cover(on: bool) -> void:
 	_covers = maxi(_covers + (1 if on else -1), 0)
 	refresh()
@@ -245,26 +236,26 @@ static func room_cleared() -> void:
 	_since += 1
 
 
-# `on_unavailable` runs when nothing can play (offline, no fill, consent refused, no game to show). An ad closed
-# early runs neither callback.
-static func rewarded(on_reward: Callable, on_unavailable: Callable, place: String = "skip") -> void:
-	if _busy or not live() or not _backend.ready_to_show(StitchfallAdBackend.REWARDED):
-		on_unavailable.call()
+# Plays a video and gives the reward once it is watched through. With no video to play (house ads standing in,
+# offline, no fill, consent refused, an ad blocker) the reward is simply given, since nothing would earn from
+# asking. Only a video closed early gives nothing.
+static func rewarded(on_reward: Callable, place: String = "skip") -> void:
+	if _busy:
+		return
+	if not video_ready() or not _backend.ready_to_show(StitchfallAdBackend.REWARDED):
+		if on_reward.is_valid():
+			on_reward.call()
 		return
 	_busy = true
-	var kind: String = "video" if _backend.video_ready() else "quick_game"
 	_backend.present(StitchfallAdBackend.REWARDED)
 	var result: Array = await _backend.finished
 	_busy = false
 	var shown: bool = result[1]
 	if shown:
 		_last_fullscreen = now()
-		StitchfallAnalytics.event(&"ad_shown", {"kind": kind, "place": place})
-	if bool(result[2]):
-		if on_reward.is_valid():
-			on_reward.call()
-	elif not shown and on_unavailable.is_valid():
-		on_unavailable.call()
+		StitchfallAnalytics.event(&"ad_shown", {"kind": "video", "place": place})
+	if (bool(result[2]) or not shown) and on_reward.is_valid():
+		on_reward.call()
 
 
 # UMP says whether the player must be able to change their consent. Settings shows Privacy choices only then.
@@ -280,11 +271,6 @@ static func open_privacy_options() -> void:
 static func match_sound() -> void:
 	if live():
 		_backend.match_sound(progress == null or progress.sound)
-
-
-# Android's back closes the quick game standing in for a video, if one is open, and says so.
-static func back() -> bool:
-	return StitchfallHouseAds.close_card()
 
 
 static func stop() -> void:

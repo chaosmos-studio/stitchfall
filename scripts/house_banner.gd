@@ -11,6 +11,8 @@ const TAG_FONT: FontFile = preload("res://assets/fonts/Threadline-Woven.ttf")
 const INK: Color = Color("493a37")
 const CLOTH: Color = Color("f5e8d1")
 const EDGE: Color = Color("947a65")
+# Stitchfall has one look, light linen, so the other games come in their light colours.
+const DARK: bool = false
 # Seconds before the next game, while the banner stays on screen.
 const TURN: float = 24.0
 # How far a press may move and still be a tap.
@@ -19,6 +21,7 @@ const SLOP: float = 18.0
 var game: Dictionary = {}
 var _icon: Texture2D
 var _thread: Color = EDGE
+var _tag: String = ""
 var _shown_at: float = 0.0
 var _clock: float = 0.0
 var _from: Vector2 = Vector2.ZERO
@@ -32,7 +35,9 @@ func _init() -> void:
 func show_game(next: Dictionary) -> void:
 	game = next
 	_icon = load(String(next["icon"])) as Texture2D
-	_thread = StitchfallHouseGames.style(String(next["name"]))["accent"]
+	var look: Dictionary = StitchfallHouseGames.style(String(next["name"]), DARK)
+	_thread = look["accent"]
+	_tag = look["tag"]
 	_shown_at = _clock
 	queue_redraw()
 
@@ -81,7 +86,6 @@ func _draw() -> void:
 	var tag: Rect2 = Rect2(Vector2(w - h * 1.55, h * 0.18), Vector2(h * 1.3, h * 0.64))
 	var room: float = tag.position.x - text_x - h * 0.15
 	draw_string(NAME_FONT, Vector2(text_x, h * 0.47), String(game["name"]), HORIZONTAL_ALIGNMENT_LEFT, room, int(h * 0.34), INK)
-	var tagline: String = StitchfallHouseGames.style(String(game["name"]))["tag"]
-	draw_string(LINE_FONT, Vector2(text_x, h * 0.78), tagline, HORIZONTAL_ALIGNMENT_LEFT, room, int(h * 0.22), Color(INK, 0.75))
+	draw_string(LINE_FONT, Vector2(text_x, h * 0.78), _tag, HORIZONTAL_ALIGNMENT_LEFT, room, int(h * 0.22), Color(INK, 0.75))
 	draw_texture_rect(PATCH, tag, false, _thread.lightened(0.35))
 	draw_string(TAG_FONT, Vector2(tag.position.x, tag.get_center().y + h * 0.11), "GET", HORIZONTAL_ALIGNMENT_CENTER, tag.size.x, int(h * 0.3), INK)

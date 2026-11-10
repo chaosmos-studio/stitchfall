@@ -25,7 +25,7 @@ func set_banner(_on: bool) -> void:
 	pass
 
 
-# Whether the rewarded ad that would play now is a real video, for the buttons' wording.
+# Whether a rewarded video is loaded and would play now. Without one, StitchfallAds gives the reward for nothing.
 func video_ready() -> bool:
 	return false
 

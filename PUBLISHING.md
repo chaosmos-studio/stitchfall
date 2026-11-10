@@ -211,8 +211,8 @@ the landscape game (Play's own window, which no app can turn). The game is lands
 ## Ads (AdMob, 1.2 to 1.5)
 
 The app and its three units are made (ids in the table at the top). Each debug build loads Google's test units
-whatever `monetize.gd` says. Until AdMob approves the account, and whenever it has no ad to give, the house ads
-stand in: a banner for another Chaosmos game, and a quick game in place of the skip video.
+whatever `monetize.gd` says. Until AdMob approves the account, and whenever it has no banner to give, the house
+banner stands in for another Chaosmos game. Nothing stands in for a video: with none loaded, the skip is free.
 
 - The banner: Levels, Wardrobe, Credits and Stats only (never Settings or About), once 3 rooms are sewn, a 320 dp strip
   centred at the foot of the screen, 48 dp clear of the screen's edge. The page above it shrinks so every button

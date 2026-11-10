@@ -254,8 +254,8 @@ func _notification(what: int) -> void:
 	if what != NOTIFICATION_WM_GO_BACK_REQUEST or Time.get_ticks_msec() - last_back_msec < BACK_ONE_PRESS_MS:
 		return
 	last_back_msec = Time.get_ticks_msec()
-	# The quick game standing in for a video closes first, and an ad on its way holds everything else.
-	if StitchfallAds.back() or StitchfallAds.is_busy() or advancing:
+	# An ad on its way holds everything else.
+	if StitchfallAds.is_busy() or advancing:
 		return
 	if playing:
 		_on_pause()
@@ -1079,15 +1079,16 @@ func _skip_line() -> String:
 		return ""
 	if _skip_cost() == StitchfallAdPacing.Skip.FREE:
 		return "Stuck? You can skip this room."
-	return "Stuck? %s to skip this room. Skips are free with the Supporter pack." % StitchfallAds.watch()
+	return "Stuck? Watch a video to skip this room. Skips are free with the Supporter pack."
 
 
+# Free unless a real video is loaded: with house ads standing in, or AdMob with nothing to play, nobody is asked.
 func _skip_cost() -> StitchfallAdPacing.Skip:
-	return StitchfallAdPacing.skip_cost(StitchfallAds.supporter(), StitchfallAds.rewards())
+	return StitchfallAdPacing.skip_cost(StitchfallAds.supporter(), StitchfallAds.video_ready())
 
 
-# Skipping is the opt-in. A video, or the quick game standing in for one, plays first unless the skip is free,
-# and with nothing to play the room stays as it is, Resume and Retry beside it.
+# Skipping is the opt-in. A video plays first unless the skip is free. One that fails to play skips anyway, and one
+# closed early leaves the room as it is, Resume and Retry beside it.
 func _on_skip() -> void:
 	if advancing or hud.screen != "pause" or _skip_line().is_empty():
 		return
@@ -1095,9 +1096,12 @@ func _on_skip() -> void:
 		_skip_room("free")
 		return
 	advancing = true
-	StitchfallAds.rewarded(func() -> void: _skip_room("video"), func() -> void:
+	var skipped: Array[bool] = [false]
+	await StitchfallAds.rewarded(func() -> void:
+		skipped[0] = true
+		_skip_room("video"))
+	if not skipped[0]:
 		advancing = false
-		hud._say("Nothing to play right now. Try again in a moment."))
 
 
 # A skipped room keeps no stars, opens the next one and counts no clear, so it brings no ad between rooms.

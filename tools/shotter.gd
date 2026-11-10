@@ -36,8 +36,6 @@ func _ready() -> void:
 			scene._on_begin()
 			scene.room_deaths = StitchfallAdPacing.SKIP_AFTER
 			scene._on_pause()
-		elif args[3] == "quick_game":
-			StitchfallHouseAds.open_card(StitchfallStudio.others()[0])
 		elif args[3].begins_with("show_"):
 			scene.hud.call(args[3])
 	for i: int in range(frames):

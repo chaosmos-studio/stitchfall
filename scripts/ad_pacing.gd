@@ -38,6 +38,7 @@ static func skip_offered(unravels: int, has_next: bool, next_open: bool) -> bool
 	return unravels >= SKIP_AFTER and has_next and not next_open
 
 
-# A Supporter skips free, and so does anyone with no ads to watch (the browser, a phone without the plugin).
-static func skip_cost(supporter: bool, rewards: bool) -> Skip:
-	return Skip.FREE if supporter or not rewards else Skip.VIDEO
+# A Supporter skips free, and so does anyone with no video loaded to watch (the browser, house ads standing in for
+# AdMob, offline, no fill, an ad blocker).
+static func skip_cost(supporter: bool, video: bool) -> Skip:
+	return Skip.FREE if supporter or not video else Skip.VIDEO

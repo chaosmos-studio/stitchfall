@@ -1,17 +1,16 @@
 class_name StitchfallHouseAds
 extends StitchfallAdBackend
 
-# The studio's own ads, as the kit's HouseAds: a banner for another of its games where an ad's banner would be, a
-# quick game of one in place of a rewarded video, which the player may close at once and still earns the reward,
-# and no interstitials at all. Nothing is fetched, so both are always ready. They fill in under AdMob whenever it
-# has nothing to give, and stand in for it while StitchfallMonetize.ADMOB is false. Standing in on Android, they
-# still ask Google's consent service whether this phone needs consent, since Analytics waits on that answer.
+# The studio's own ads, as the kit's HouseAds: a banner for another of its games where an ad's banner would be, and
+# nothing else. No ad between rooms and no stand-in for a video: with no video to play, StitchfallAds gives the
+# reward for nothing. The banner fills in under AdMob whenever it has none, and stands in for it while
+# StitchfallMonetize.ADMOB is false. Standing in on Android, they still ask Google's consent service whether this
+# phone needs consent, since Analytics waits on that answer.
 
 const CONSENT_SCRIPT: String = "res://scripts/android/consent.gd"
 
-# The game the next banner or quick game shows: they take turns.
+# The game the next banner shows: they take turns.
 static var _turn: int = 0
-static var _card: StitchfallHouseCard
 
 # False when filling in under AdMob, which asks for consent itself.
 var consent: bool = true
@@ -25,40 +24,11 @@ func _ready() -> void:
 		add_child(load(CONSENT_SCRIPT).new() as Node)
 
 
-func ready_to_show(kind: StringName) -> bool:
-	return kind == REWARDED and not StitchfallStudio.others().is_empty() and not is_instance_valid(_card)
-
-
-func present(kind: StringName) -> void:
-	if not ready_to_show(kind):
-		finished.emit.call_deferred(kind, false, false)
-		return
-	var card: StitchfallHouseCard = open_card(next_game())
-	await card.closed
-	finished.emit(kind, true, true)
-
-
 static func next_game() -> Dictionary:
 	var games: Array[Dictionary] = StitchfallStudio.others()
 	var game: Dictionary = games[_turn % games.size()]
 	_turn += 1
 	return game
-
-
-static func open_card(game: Dictionary) -> StitchfallHouseCard:
-	_card = StitchfallHouseCard.new()
-	_card.game = game
-	_card.closed.connect(func() -> void: StitchfallAds.cover(false), CONNECT_ONE_SHOT)
-	StitchfallAds.cover(true)
-	(Engine.get_main_loop() as SceneTree).root.add_child.call_deferred(_card)
-	return _card
-
-
-static func close_card() -> bool:
-	if not is_instance_valid(_card) or _card.is_queued_for_deletion():
-		return false
-	_card.close()
-	return true
 
 
 # Each page that shows the banner shows the next game.

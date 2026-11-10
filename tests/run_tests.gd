@@ -184,7 +184,7 @@ func _test_pacing() -> void:
 	_check("never between rooms for a Supporter", not StitchfallAdPacing.interstitial_due(60, 9, 9999.0, -1.0, true))
 	_check("a skip waits for 5 unravels in the room", StitchfallAdPacing.SKIP_AFTER == 5 and not StitchfallAdPacing.skip_offered(4, true, false) and StitchfallAdPacing.skip_offered(5, true, false))
 	_check("no skip from the last room, or into a room already open", not StitchfallAdPacing.skip_offered(9, false, false) and not StitchfallAdPacing.skip_offered(9, true, true))
-	_check("a skip is free for a Supporter and wherever no ads play, and a video otherwise",
+	_check("a skip is free for a Supporter and wherever no video is loaded, and a video otherwise",
 		StitchfallAdPacing.skip_cost(true, true) == StitchfallAdPacing.Skip.FREE and StitchfallAdPacing.skip_cost(false, false) == StitchfallAdPacing.Skip.FREE
 		and StitchfallAdPacing.skip_cost(false, true) == StitchfallAdPacing.Skip.VIDEO)
 
@@ -255,7 +255,7 @@ func _test_consent_rule() -> void:
 	for status: int in [0, 2, 3]:
 		_check("consent status %d counts nothing" % status, not StitchfallAnalytics.counts(status, false))
 	_check("nothing is counted off Android", not StitchfallAnalytics.counting())
-	_check("no ads start off Android", not StitchfallAds.live() and not StitchfallAds.rewards() and not StitchfallAds.privacy_options_required())
+	_check("no ads start off Android", not StitchfallAds.live() and not StitchfallAds.video_ready() and not StitchfallAds.privacy_options_required())
 
 
 func _test_play_core() -> void:
@@ -743,8 +743,9 @@ func _test_play_games_pages() -> void:
 func _test_house_ads() -> void:
 	var backend: StitchfallHouseAds = StitchfallHouseAds.new()
 	root.add_child(backend)
-	_check("house ads never show an ad between rooms, and always have a game to give a reward",
-		not backend.ready_to_show(StitchfallAdBackend.INTERSTITIAL) and backend.ready_to_show(StitchfallAdBackend.REWARDED))
+	_check("house ads are a banner only: nothing between rooms and nothing standing in for a video",
+		not backend.ready_to_show(StitchfallAdBackend.INTERSTITIAL) and not backend.ready_to_show(StitchfallAdBackend.REWARDED)
+		and not backend.video_ready())
 	var heights: Array[float] = []
 	backend.banner_changed.connect(func(h: float) -> void: heights.append(h))
 	backend.set_banner(true)
@@ -753,24 +754,16 @@ func _test_house_ads() -> void:
 	_check("and gives the room back when ads stop", heights.size() == 2 and is_zero_approx(heights[1]))
 	backend.free()
 	_check("every studio game has its icon", StitchfallStudio.others().all(func(game: Dictionary) -> bool: return ResourceLoader.exists(String(game["icon"]))))
-	var cleared: Array[String] = []
+	var styled: Array[String] = []
 	for game: Dictionary in StitchfallStudio.others():
-		var board: Control = StitchfallHouseGames.make(String(game["name"]))
-		root.add_child(board)
-		var fresh: bool = not board.call("is_solved")
-		board.call("play_through")
-		if fresh and board.call("is_solved"):
-			cleared.append(String(game["name"]))
-		board.free()
-	_check("every quick game starts unsolved and its winning moves clear it (%s)" % ", ".join(cleared), cleared.size() == StitchfallStudio.others().size())
-	var card: StitchfallHouseCard = StitchfallHouseAds.open_card(StitchfallStudio.others()[0])
-	await process_frame
-	var closed: Array[bool] = [false]
-	card.closed.connect(func() -> void: closed[0] = true)
-	_check("the quick game has GET and CONTINUE", card.get_button.caption == "GET" and card.continue_button.caption == "CONTINUE")
-	_check("Android's back closes the quick game", StitchfallAds.back() and closed[0])
-	await process_frame
-	_check("and with none open, back goes on to the page", not StitchfallAds.back())
+		var name: String = game["name"]
+		var light: Dictionary = StitchfallHouseGames.style(name, false)
+		var dark: Dictionary = StitchfallHouseGames.style(name, true)
+		if StitchfallHouseGames.STYLES.has(name) and light["accent"] != dark["accent"] and not String(light["tag"]).is_empty():
+			styled.append(name)
+	_check("every studio game has a line and a light and a dark colour for the banner (%s)" % ", ".join(styled),
+		styled.size() == StitchfallStudio.others().size())
+	_check("Stitchfall's light linen shows the other games in their light colours", not StitchfallHouseBanner.DARK)
 
 
 func _test_back_gesture() -> void:
@@ -951,8 +944,9 @@ func _test_unravel_holds_the_zipper() -> void:
 	await process_frame
 
 
-# Five unravels in a room offer a skip on the pause page. It opens the next room without stars, free off Android
-# and for a Supporter, after the video otherwise, and with nothing to play the room simply stays.
+# Five unravels in a room offer a skip on the pause page. It opens the next room without stars: after a video when
+# one is loaded, and free off Android, for a Supporter and whenever no video is loaded. Only a video closed early
+# leaves the room as it was.
 func _test_skip() -> void:
 	var game: Node2D = _game()
 	await process_frame
@@ -987,10 +981,27 @@ func _test_skip() -> void:
 	game._on_pause()
 	_check("a Supporter skips free", game._skip_cost() == StitchfallAdPacing.Skip.FREE and not game.hud.pause_body.text.contains("video"))
 	StitchfallShop.grant(game.progress, StitchfallMonetize.SUPPORTER_ID, false)
+	var early: _VideoAds = _VideoAds.new()
+	early.earned = false
+	StitchfallAds.use(early)
+	await game._on_skip()
+	_check("a video closed early leaves the room as it was, paused", early.presented.size() == 1 and game.level_index == 2
+		and game.hud.screen == "pause" and not game.advancing)
+	var failing: _VideoAds = _VideoAds.new()
+	failing.shows = false
+	StitchfallAds.use(failing)
+	await game._on_skip()
+	await process_frame
+	_check("a video that fails to play skips anyway", game.level_index == 3 and game.progress.skipped.has(2))
 	StitchfallAds.use(_NoAds.new())
+	game.room_deaths = 5
+	game._on_pause()
+	_check("with no video loaded (house ads, offline, no fill) the skip is free and names no video",
+		game._skip_cost() == StitchfallAdPacing.Skip.FREE and game.hud.pause_body.text.contains("skip this room")
+		and not game.hud.pause_body.text.contains("video"))
 	game._on_skip()
 	await process_frame
-	_check("with nothing to play the room stays, paused, and says so", game.level_index == 2 and game.hud.screen == "pause" and not game.advancing and game.hud.pause_body.text.begins_with("Nothing to play"))
+	_check("and skips at once", game.level_index == 4 and game.progress.skipped.has(3))
 	game.room_deaths = 0
 	game._on_begin()
 	game._on_pause()
@@ -1813,9 +1824,12 @@ func _test_stitchfall_playthrough() -> void:
 	await process_frame
 
 
-# Stands in for AdMob with a video always ready, and an ad between rooms when asked to have one.
+# Stands in for AdMob with a video always ready, and an ad between rooms when asked to have one. A video can be
+# closed early (not earned) or fail to play at all (not shown).
 class _VideoAds extends StitchfallAdBackend:
 	var interstitials: bool = false
+	var earned: bool = true
+	var shows: bool = true
 	var presented: Array[StringName] = []
 
 	func ready_to_show(kind: StringName) -> bool:
@@ -1826,10 +1840,10 @@ class _VideoAds extends StitchfallAdBackend:
 
 	func present(kind: StringName) -> void:
 		presented.append(kind)
-		finished.emit.call_deferred(kind, true, true)
+		finished.emit.call_deferred(kind, shows, shows and earned)
 
 
-# Live, but with nothing to play: offline, no fill and no studio game to stand in.
+# Live, but with no video loaded: house ads standing in, offline or no fill.
 class _NoAds extends StitchfallAdBackend:
 	pass
 

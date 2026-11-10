@@ -7,6 +7,11 @@ one line, at most 500 characters in all. The release workflow turns it into the 
 bumps the patch.
 -->
 
+## 1.2.5
+
+- No more quick-game ads. When no video is ready, skipping a room is free.
+- The banner shows our other games in their light colours, to match the linen.
+
 ## 1.2.4
 
 - The intro now hands over to the home screen quicker.
