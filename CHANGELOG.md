@@ -7,6 +7,10 @@ one line, at most 500 characters in all. The release workflow turns it into the 
 bumps the patch.
 -->
 
+## 1.2.6
+
+- The intro now folds itself into a dot and opens onto your home screen.
+
 ## 1.2.5
 
 - No more quick-game ads. When no video is ready, skipping a room is free.

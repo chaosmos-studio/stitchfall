@@ -5,7 +5,9 @@ extends Control
 # or a key skips it. Add it full screen and wait for `finished`.
 #
 # It draws in two layers, the back (the sky, cloth or glass a style plays on) and the style over it. In a game the
-# back goes first, so the game's Home shows through while the word falls a little way onto it, lands, and fades.
+# word leaves first, on its own back: it swells, then spins and squeezes into the studio's mark until only a coral
+# dot is left. The dot opens into a ring that grows across the screen, and the game's Home shows through the hole
+# it cuts in the back. The word is never drawn over Home.
 # On Android it opens on the mark the system's launch screen was showing, at the same place and size, so the
 # launch goes from that mark straight into the beat.
 #
@@ -35,15 +37,23 @@ const STYLES: Dictionary[String, String] = {
 const HOLD: float = 0.75
 const FADE: float = 0.35
 const SKIP_FADE: float = 0.18
-# In a game the word holds less, then the back fades into Home over BACK_GO while the word drops FALL of the
-# screen's height in FALL_TIME, speeding up as it goes, and fades from WORD_GO_AT over WORD_GO. Home is whole as soon
-# as the back has gone, so the word must be gone by then too: a word left over a loaded Home reads as a stall.
-const REVEAL_HOLD: float = 0.5
-const BACK_GO: float = 0.32
-const FALL: float = 0.06
-const FALL_TIME: float = 0.34
-const WORD_GO_AT: float = 0.04
-const WORD_GO: float = 0.28
+# In a game the word holds less, then swells by SWELL_BY over SWELL, and squeezes into the ring of its first o over
+# COLLAPSE, turning by TWIST radians as it goes. The coral dot left behind grows to POP of the ring's size, then
+# opens over OPEN into a coral ring EDGE of the screen's width thick, thinning as it grows past the corners, with
+# Home showing inside it. A word left over a loaded Home reads as a stall, so the word is gone before Home shows.
+const REVEAL_HOLD: float = 0.45
+const SWELL: float = 0.1
+const SWELL_BY: float = 0.06
+const COLLAPSE: float = 0.22
+const TWIST: float = -0.6
+const POP: float = 0.55
+const OPEN: float = 0.42
+# The dot pops this long before it starts to open.
+const POP_WAIT: float = 0.04
+const EDGE: float = 0.05
+# A skipped intro in a game collapses and opens this much faster, rather than fading over Home.
+const SKIP_SPEED: float = 1.8
+const IRIS: Shader = preload("res://intro/iris.gdshader")
 # The launch screen's mark: the width of its ring in dp. Android draws a splash icon 288 dp square, and
 # tools/make_splash.gd draws the mark this wide in it. It gives way to the style over LAUNCH_FADE, shrinking to
 # LAUNCH_SHRINK of its size.
@@ -75,6 +85,13 @@ class ChaosmosLaunch extends Control:
 		intro.draw_launch(self)
 
 
+class ChaosmosOpening extends Control:
+	var intro: ChaosmosIntro
+
+	func _draw() -> void:
+		intro.draw_opening(self)
+
+
 @export var style_name: String = "fill"
 @export var dark: bool = false
 # Off in the preview renders, so a recording plays every frame of the style.
@@ -102,6 +119,12 @@ var viewport: SubViewport
 var stage: ChaosmosStage
 var veil: ColorRect
 var cover: ChaosmosLaunch
+# In a game: the coral dot and ring the word leaves through, and where they are now, in this control's units.
+var opening: ChaosmosOpening
+var pivot: Vector2 = Vector2.ZERO
+var dot: float = 0.0
+var hole: float = 0.0
+var rim: float = 0.0
 
 
 func _ready() -> void:
@@ -141,6 +164,13 @@ func _ready() -> void:
 	veil = ColorRect.new()
 	veil.color = Color(style.background(), 0.0)
 	_fill(veil)
+	if reveal:
+		var iris: ShaderMaterial = ShaderMaterial.new()
+		iris.shader = IRIS
+		back.material = iris
+		opening = ChaosmosOpening.new()
+		opening.intro = self
+		_fill(opening)
 	if launch:
 		cover = ChaosmosLaunch.new()
 		cover.intro = self
@@ -164,7 +194,12 @@ func hold() -> float:
 
 
 func total() -> float:
-	return style.settle() + hold() + (WORD_GO_AT + WORD_GO if reveal else FADE)
+	return style.settle() + hold() + (leaving() if reveal else FADE)
+
+
+# How long a game's intro takes to leave once it has held: the collapse, then the opening.
+static func leaving() -> float:
+	return SWELL + COLLAPSE + POP_WAIT + OPEN
 
 
 func _process(delta: float) -> void:
@@ -176,21 +211,20 @@ func _process(delta: float) -> void:
 		(frame.material as ShaderMaterial).set_shader_parameter("snap", frame.stretch_shrink > 1)
 		stage.size = Vector2(viewport.size)
 	var over: float
-	if ending >= 0.0:
+	if reveal:
+		# Skipped, it leaves at once, and quicker.
+		var start: float = style.settle() + hold()
+		var speed: float = 1.0
+		if ending >= 0.0:
+			start = minf(start, ending)
+			speed = SKIP_SPEED
+		_leave((clock - start) * speed)
+		over = start + leaving() / speed
+	elif ending >= 0.0:
 		# Skipped: everything goes at once, quickly.
 		var gone: float = ChaosmosIntroStyle.span(clock, ending, ending + SKIP_FADE)
 		modulate.a = 1.0 - gone
 		over = ending + SKIP_FADE
-	elif reveal:
-		var end: float = style.settle() + hold()
-		var after: float = clock - end
-		if after >= 0.0:
-			_give_way()
-		back.modulate.a = 1.0 - ChaosmosIntroStyle.out_cubic(ChaosmosIntroStyle.span(after, 0.0, BACK_GO))
-		var drop: float = ChaosmosIntroStyle.span(after, 0.0, FALL_TIME)
-		front.position.y = drop * drop * FALL * size.y
-		front.modulate.a = 1.0 - ChaosmosIntroStyle.span(after, WORD_GO_AT, WORD_GO_AT + WORD_GO)
-		over = end + WORD_GO_AT + WORD_GO
 	else:
 		var end2: float = style.settle() + hold()
 		veil.color = Color(style.background(), ChaosmosIntroStyle.span(clock, end2, end2 + FADE))
@@ -211,6 +245,45 @@ func _give_way() -> void:
 	if not gave_way:
 		gave_way = true
 		giving_way.emit()
+
+
+# A game's intro leaving, `after` seconds into it: the word collapses into the ring of its first o, a coral dot pops
+# where it went, and opens into a ring with Home inside it.
+func _leave(after: float) -> void:
+	var mark: ChaosmosWordmark = ChaosmosWordmark.new()
+	mark.fit(size)
+	pivot = mark.ring_centre()
+	var grow: float = 1.0 + SWELL_BY * ChaosmosIntroStyle.out_cubic(ChaosmosIntroStyle.span(after, 0.0, SWELL))
+	var squeeze: float = ChaosmosIntroStyle.span(after, SWELL, SWELL + COLLAPSE)
+	var pull: float = squeeze * squeeze * squeeze
+	front.pivot_offset = pivot
+	front.scale = Vector2.ONE * grow * (1.0 - pull)
+	front.rotation = TWIST * pull
+	front.visible = squeeze < 1.0
+	var gone: float = SWELL + COLLAPSE
+	dot = ChaosmosWordmark.O_RADIUS * mark.unit * POP * ChaosmosIntroStyle.out_back(
+		ChaosmosIntroStyle.span(after, gone - 0.06, gone + 0.08))
+	var open: float = ChaosmosIntroStyle.span(after, gone + POP_WAIT, gone + POP_WAIT + OPEN)
+	if open > 0.0:
+		_give_way()
+	var reach: float = maxf(pivot.length(), (size - pivot).length())
+	reach = maxf(reach, maxf(Vector2(size.x - pivot.x, pivot.y).length(), Vector2(pivot.x, size.y - pivot.y).length()))
+	hole = ChaosmosIntroStyle.out_cubic(open) * (reach + EDGE * size.x)
+	rim = maxf(dot, hole + EDGE * size.x * (1.0 - 0.7 * open))
+	var iris: ShaderMaterial = back.material as ShaderMaterial
+	iris.set_shader_parameter("centre", pivot)
+	iris.set_shader_parameter("radius", hole)
+	opening.queue_redraw()
+
+
+# The coral dot, and once it opens, the coral band between the hole and the rim.
+func draw_opening(canvas: Control) -> void:
+	if rim <= 0.0:
+		return
+	if hole <= 0.5:
+		canvas.draw_circle(pivot, rim, ChaosmosWordmark.CORAL, true, -1.0, true)
+		return
+	canvas.draw_arc(pivot, (hole + rim) * 0.5, 0.0, TAU, 160, ChaosmosWordmark.CORAL, rim - hole, true)
 
 
 func draw_stage(canvas: Control) -> void:
