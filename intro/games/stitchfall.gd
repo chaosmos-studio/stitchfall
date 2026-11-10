@@ -59,12 +59,16 @@ func _order(index: int) -> float:
 	return float(index) if index < 3 else float(index) + 1.0
 
 
-func draw(canvas: CanvasItem, t: float, view: Vector2) -> void:
-	if lines.is_empty():
-		_make_lines()
+# The linen the word is sewn into.
+func draw_back(canvas: CanvasItem, _t: float, view: Vector2) -> void:
 	var art: Vector2 = LINEN.get_size()
 	var cover: float = maxf(view.x / art.x, view.y / art.y)
 	canvas.draw_texture_rect(LINEN, Rect2((view - art * cover) * Vector2(0.5, 0.85), art * cover), false)
+
+
+func draw(canvas: CanvasItem, t: float, view: Vector2) -> void:
+	if lines.is_empty():
+		_make_lines()
 	var needle_at: Vector2 = Vector2.INF
 	var needle_along: Vector2 = Vector2.RIGHT
 	for index: int in range(ChaosmosWordmark.LETTERS.size()):

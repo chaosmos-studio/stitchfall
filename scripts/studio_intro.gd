@@ -28,11 +28,15 @@ static func play(host: Node, done: Callable, muted: bool = false) -> void:
 	intro.style_name = STYLE
 	intro.reveal = true
 	intro.muted = muted
+	# On Android it opens on the launch screen's mark, over the launch screen's colour (the boot splash's).
+	intro.launch = OS.has_feature("android")
+	intro.launch_color = ProjectSettings.get_setting("application/boot_splash/bg_color", Color.WHITE)
 	layer.add_child(intro)
 	intro.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	StitchfallAds.cover(true)
+	# The banner comes back with Home, while the word is still fading over it.
+	intro.giving_way.connect(func() -> void: StitchfallAds.cover(false))
 	intro.finished.connect(func() -> void:
-		StitchfallAds.cover(false)
 		layer.queue_free()
 		print("STITCHFALL_INTRO_DONE")
 		done.call())

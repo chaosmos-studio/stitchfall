@@ -29,9 +29,22 @@ func background() -> Color:
 	return paper
 
 
+# True for a style that draws in big pixels at some point (Pixel), which the intro then draws through a
+# SubViewport it can shrink.
+func pixel_art() -> bool:
+	return false
+
+
 # How many screen pixels make one of the stage's pixels at time `t`. Only Pixel asks for more than one.
 func pixel(_t: float) -> int:
 	return 1
+
+
+# What the style plays on: its sky, cloth or glass, behind everything `draw` adds. In a game the intro lets this go
+# first, so the game's Home shows through while the word stays a moment longer. A style that draws its own
+# background here leaves it out of `draw`.
+func draw_back(canvas: CanvasItem, _t: float, view: Vector2) -> void:
+	canvas.draw_rect(Rect2(Vector2.ZERO, view), background())
 
 
 func draw(_canvas: CanvasItem, _t: float, _view: Vector2) -> void:

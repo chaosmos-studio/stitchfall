@@ -7,6 +7,12 @@ one line, at most 500 characters in all. The release workflow turns it into the 
 bumps the patch.
 -->
 
+## 1.2.3
+
+- A bigger Wardrobe you can read on a phone, with every fabric and unravel shown full size.
+- The Wardrobe pack's price sits on a big felt card that is easy to tap.
+- No more blank screen at launch. Stitchfall opens on the Chaosmos mark, and the sewn intro now settles gently into Home.
+
 ## 1.2.2
 
 - Opens straight into the sewn intro, then Home, with nothing flashing before it.
