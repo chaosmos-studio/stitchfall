@@ -269,7 +269,8 @@ func _leave(after: float) -> void:
 	var reach: float = maxf(pivot.length(), (size - pivot).length())
 	reach = maxf(reach, maxf(Vector2(size.x - pivot.x, pivot.y).length(), Vector2(pivot.x, size.y - pivot.y).length()))
 	hole = ChaosmosIntroStyle.out_cubic(open) * (reach + EDGE * size.x)
-	rim = maxf(dot, hole + EDGE * size.x * (1.0 - 0.7 * open))
+	# Nothing but the dot until the opening starts: the band exists only once there is a hole for it to edge.
+	rim = dot if open <= 0.0 else maxf(dot, hole + EDGE * size.x * (1.0 - 0.7 * open))
 	var iris: ShaderMaterial = back.material as ShaderMaterial
 	iris.set_shader_parameter("centre", pivot)
 	iris.set_shader_parameter("radius", hole)
