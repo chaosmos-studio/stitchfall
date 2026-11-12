@@ -7,6 +7,10 @@ one line, at most 500 characters in all. The release workflow turns it into the 
 bumps the patch.
 -->
 
+## 1.2.8
+
+- The Play patch now shows the next room's name clearly.
+
 ## 1.2.7
 
 - Fixed the intro, which showed a big dot over the first letter o.
