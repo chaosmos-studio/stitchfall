@@ -1960,7 +1960,7 @@ func set_room_label(chapter_title: String, number: int, room_name: String) -> vo
 
 # Home's Play leads to the room loaded now, so it names it the way the Levels page numbers it.
 func set_next_room(index: int, room_name: String) -> void:
-	home_play.subcaption = "Room %d · %s" % [index + 1, room_name]
+	home_play.subcaption = "Room %d   %s" % [index + 1, room_name]
 	home_play.queue_redraw()
 
 
