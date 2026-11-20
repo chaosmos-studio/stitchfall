@@ -104,27 +104,19 @@ jobs:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # Two of this repository's deploys never run at once. A push from another repository can still land first, and
-    # force: false with attempt-limit makes the action rebase onto it and try again.
+    # Two of this repository's deploys never run at once, so an older build never lands after a newer one.
     concurrency:
-      group: studio-site
+      group: deploy-web
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: stitchfall-web
           path: build/web
-      # The studio site's gh-pages serves chaosmos.studio. This writes only stitchfall/play/, which the site's own
-      # deploy leaves alone (its clean-exclude), the way every other game publishes its browser version.
+      # Its own Worker serves chaosmos.studio/stitchfall/play/, the way every game serves its browser version.
       - name: Publish to chaosmos.studio/stitchfall/play/
-        uses: JamesIves/github-pages-deploy-action@fa24774553152dd7873cd16ebd8d959b010c5445 # v4.9.0
+        uses: chaosmos-studio/.github/actions/deploy-web@main
         with:
-          repository-name: chaosmos-studio/chaosmos-studio.github.io
-          ssh-key: ${{ secrets.SITE_DEPLOY_KEY }}
-          branch: gh-pages
-          folder: build/web
-          target-folder: stitchfall/play
-          force: false
-          attempt-limit: 10
-          commit-message: Update Stitchfall's web build
+          worker: stitchfall-play
+          paths: stitchfall/play=build/web
+          cloudflare-api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
