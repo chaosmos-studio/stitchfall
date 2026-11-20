@@ -104,7 +104,6 @@ jobs:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # Two of this repository's deploys never run at once, so an older build never lands after a newer one.
     concurrency:
       group: deploy-web
       cancel-in-progress: false
@@ -113,7 +112,6 @@ jobs:
         with:
           name: stitchfall-web
           path: build/web
-      # Its own Worker serves chaosmos.studio/stitchfall/play/, the way every game serves its browser version.
       - name: Publish to chaosmos.studio/stitchfall/play/
         uses: chaosmos-studio/.github/actions/deploy-web@main
         with:
