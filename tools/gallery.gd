@@ -8,8 +8,7 @@ extends Node
 # Steps: a route's steps (shift, +action, -action), levels to open the level select, hud=<method>[/<arg>] to
 # open a page, wear=<kind>/<piece> to dress the runner, 0:play to show the Google Play build's pages, 0:touch to
 # draw the HUD as a phone does (run with --resolution at a phone's shape, such as 1200x540 for 20:9), 0:coach to
-# let the first room's coach teach (it is off otherwise), 0:banner to draw the banner's stand-in, 0:sewn=N to
-# start with the first N rooms sewn, shot to
+# let the first room's coach teach (it is off otherwise), 0:sewn=N to start with the first N rooms sewn, shot to
 # save the frame, and snap to save it as <name>_<frame>, for choosing a moment among several.
 # The PNG lands in user://gallery/<name>.png.
 
@@ -48,9 +47,7 @@ func _ready() -> void:
 		StitchfallShop.prices[StitchfallMonetize.COMPLETE_ID] = "₹349.00"
 		for tip: String in StitchfallMonetize.TIP_IDS:
 			StitchfallShop.prices[tip] = "₹49.00"
-	# 0:banner draws the banner's stand-in where a phone's banner would be, and 0:sewn=N starts with the first N
-	# rooms sewn, so the pages show the banner (it waits for a few sewn rooms) and some stars.
-	StitchfallAds.preview = args[2].split(",").has("0:banner")
+	# 0:sewn=N starts with the first N rooms sewn, so the pages show some stars.
 	for token: String in args[2].split(","):
 		if token.begins_with("0:sewn="):
 			var seeded: StitchfallProgress = StitchfallProgress.new()

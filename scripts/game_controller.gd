@@ -62,8 +62,7 @@ var last_start_msec: int = -1000
 var room_begun: bool = false
 # The room Play picked up at launch, so a cloud save arriving a moment later can move it on.
 var launch_room: int = -1
-# Set while Next or a skip is on its way to the next room, past an ad or Play's review card, so a second press
-# does nothing.
+# Set while Next is on its way to the next room, past Play's review card, so a second press does nothing.
 var advancing: bool = false
 var room: Node2D
 var world: StitchfallWorldView
@@ -154,7 +153,6 @@ func _ready() -> void:
 	music.volume_db = MUSIC_DB
 	add_child(music)
 	progress.load_saved()
-	StitchfallAds.progress = progress
 	audio_enabled = audio_enabled and progress.sound
 	music.stream_paused = not progress.music
 	hud = HUD_SCRIPT.new() as StitchfallHud
@@ -177,7 +175,6 @@ func _ready() -> void:
 	hud.coach.finished.connect(_on_coached)
 	hud.practice_pressed.connect(_on_practice)
 	_start_store()
-	StitchfallAds.start()
 	StitchfallAnalytics.start()
 	StitchfallPlayCore.start(_offer_update)
 	StitchfallPlayGames.start(progress, _on_cloud_restore)
@@ -197,7 +194,7 @@ func _ready() -> void:
 
 
 # The Android build sells its packs and takes tips through Google Play's billing plugin. The browser build has
-# neither, so it loads none of it. Ads, Analytics, Play's review card and updates, and Play Games start after it,
+# neither, so it loads none of it. Analytics, Play's review card and updates, and Play Games start after it,
 # and each does nothing off Android.
 func _start_store() -> void:
 	if not OS.has_feature("android") or not Engine.has_singleton("GodotGooglePlayBilling"):
@@ -254,8 +251,8 @@ func _notification(what: int) -> void:
 	if what != NOTIFICATION_WM_GO_BACK_REQUEST or Time.get_ticks_msec() - last_back_msec < BACK_ONE_PRESS_MS:
 		return
 	last_back_msec = Time.get_ticks_msec()
-	# An ad on its way holds everything else.
-	if StitchfallAds.is_busy() or advancing:
+	# The next room on its way, after Play's review card, holds everything else.
+	if advancing:
 		return
 	if playing:
 		_on_pause()
@@ -298,7 +295,7 @@ func _fit_camera() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if StitchfallAds.is_busy() or advancing:
+	if advancing:
 		return
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.physical_keycode == KEY_M:
@@ -973,7 +970,6 @@ func _clear_room() -> void:
 	last_result = progress.record(level_index, room_time, room_deaths, par)
 	StitchfallAnalytics.room_cleared(level_index, int(last_result["stars"]), room_deaths)
 	StitchfallPlayGames.room_sewn(level_index, int(last_result["stars"]), room_deaths, room_time)
-	StitchfallAds.room_cleared()
 	print("STITCHFALL_CLEAR ", level_index, " ", last_result["stars"])
 	_play_sound("zip")
 	_buzz(BUZZ_CLEAR)
@@ -1018,9 +1014,8 @@ func _sew_shut(index: int, par: float) -> void:
 	hud.show_clear(card)
 
 
-# Next on the clear card is the one place an ad between rooms may come, and only when the next room is not a
-# chapter's first, whose title card no ad may stand beside. As Next leaves a chapter's last room past a
-# milestone, Play's review card comes instead.
+# Next on the clear card goes on to the next room. As Next leaves a chapter's last room past a milestone, Play's
+# review card comes first.
 func _on_next() -> void:
 	if advancing:
 		return
@@ -1035,7 +1030,7 @@ func _on_next() -> void:
 	if milestone > 0:
 		StitchfallPlayCore.ask(progress, milestone, _advance)
 	else:
-		StitchfallAds.maybe_interstitial(_advance, chapter_next)
+		_advance()
 
 
 # Opens the room after this one, on its chapter's title card when it starts a chapter.
@@ -1071,43 +1066,20 @@ func _on_pause() -> void:
 	hud.show_pause(_skip_line())
 
 
-# The pause page's offer to skip this room, saying what it costs, or "" while none is offered.
+# The pause page's offer to skip this room, or "" while none is offered.
 func _skip_line() -> String:
 	var has_next: bool = level_index + 1 < StitchfallLevels.count()
 	var next_open: bool = has_next and StitchfallShop.room_open(progress, level_index + 1)
-	if not StitchfallAdPacing.skip_offered(room_deaths, has_next, next_open):
+	if not StitchfallSkip.offered(room_deaths, has_next, next_open):
 		return ""
-	if _skip_cost() == StitchfallAdPacing.Skip.FREE:
-		return "Stuck? You can skip this room."
-	return "Stuck? Watch a video to skip this room. Skips are free with the Supporter pack."
+	return "Stuck? You can skip this room."
 
 
-# Free unless a real video is loaded: with house ads standing in, or AdMob with nothing to play, nobody is asked.
-func _skip_cost() -> StitchfallAdPacing.Skip:
-	return StitchfallAdPacing.skip_cost(StitchfallAds.supporter(), StitchfallAds.video_ready())
-
-
-# Skipping is the opt-in. A video plays first unless the skip is free. One that fails to play skips anyway, and one
-# closed early leaves the room as it is, Resume and Retry beside it.
+# A skipped room keeps no stars, opens the next one and counts no clear.
 func _on_skip() -> void:
 	if advancing or hud.screen != "pause" or _skip_line().is_empty():
 		return
-	if _skip_cost() == StitchfallAdPacing.Skip.FREE:
-		_skip_room("free")
-		return
-	advancing = true
-	var skipped: Array[bool] = [false]
-	await StitchfallAds.rewarded(func() -> void:
-		skipped[0] = true
-		_skip_room("video"))
-	if not skipped[0]:
-		advancing = false
-
-
-# A skipped room keeps no stars, opens the next one and counts no clear, so it brings no ad between rooms.
-func _skip_room(cost: String) -> void:
-	advancing = false
-	StitchfallAnalytics.skipped(level_index, room_deaths, cost)
+	StitchfallAnalytics.skipped(level_index, room_deaths)
 	progress.play_time += room_time
 	progress.skip(level_index)
 	StitchfallPlayGames.progressed()
@@ -1136,7 +1108,6 @@ func _on_sound_toggled(enabled: bool) -> void:
 	audio_enabled = enabled
 	progress.sound = enabled
 	progress.save()
-	StitchfallAds.match_sound()
 	if not enabled:
 		for voice: AudioStreamPlayer in voices:
 			voice.stop()

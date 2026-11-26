@@ -26,8 +26,10 @@ class _FirebaseBuild extends EditorExportPlugin:
 		"google_analytics_adid_collection_enabled",
 		"google_analytics_ssaid_collection_enabled",
 	]
-	## Analytics' ad attribution through Android's Privacy Sandbox, which nothing here uses.
+	## The advertising id, which Analytics' libraries ask for, and their ad attribution through Android's Privacy
+	## Sandbox: the game carries no ads, so nothing may read either.
 	const UNUSED_PERMISSIONS: PackedStringArray = [
+		"com.google.android.gms.permission.AD_ID",
 		"android.permission.ACCESS_ADSERVICES_ATTRIBUTION",
 		"android.permission.ACCESS_ADSERVICES_AD_ID",
 	]

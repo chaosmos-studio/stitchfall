@@ -5,16 +5,22 @@ extends RefCounted
 # where they give up, from room starts, clears, unravels and skips. Android only, so the browser build counts
 # nothing.
 #
-# Counting waits for Google's consent service (UMP) to say no consent is needed here, so the EEA, the UK and
-# Switzerland are never counted. Nothing counted serves ads: every advertising signal stays denied, and
-# addons/firebase_build keeps the advertising id out of the build. Debug builds never count.
+# Counting happens only where no consent is needed, and nothing is asked: the EEA, the UK and Switzerland are never
+# counted. The region is a guess from the phone's own settings, never its location: a clock on Europe's time zones,
+# with a locale that names a European country, no country, or the US English many phones keep. So a European phone
+# set to US English is not counted, and an Indian phone set to UK English is. Nothing counted serves ads: every
+# advertising signal stays denied, and addons/firebase_build keeps the advertising id and its permission out of the
+# build. Debug builds never count.
 
 const FIREBASE_CORE: String = "GodotxFirebaseCore"
 const FIREBASE: String = "GodotxFirebaseAnalytics"
-# Read from the AdMob plugin's singleton rather than its classes, which the browser build leaves out.
-const CONSENT: String = "PoingGodotAdMobConsentInformation"
-# UMP's ConsentStatus.NOT_REQUIRED.
-const CONSENT_NOT_REQUIRED: int = 1
+# The EEA (the EU, Iceland, Liechtenstein and Norway), the UK and Switzerland, as ISO 3166 codes.
+const CONSENT_REGIONS: PackedStringArray = [
+	"AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GR", "HU", "IE", "IT", "LV", "LT", "LU", "MT",
+	"NL", "PL", "PT", "RO", "SK", "SI", "ES", "SE", "IS", "LI", "NO", "GB", "CH",
+]
+# Europe's UTC offsets through the year, in minutes: the Azores in winter to Finland in summer.
+const EUROPE_BIAS: Vector2i = Vector2i(-60, 180)
 
 # For the robots: hears every event as (name, params), counted or not.
 static var sink: Callable = Callable()
@@ -31,24 +37,31 @@ static func start() -> void:
 		Engine.get_singleton(FIREBASE_CORE).call("initialize")
 	_firebase = Engine.get_singleton(FIREBASE)
 	_firebase.call("initialize")
-	refresh()
-
-
-# Firebase keeps the choice across launches, so it is set either way. Every way through the consent message calls
-# this, from scripts/android/admob.gd or scripts/android/consent.gd.
-static func refresh() -> void:
-	if _firebase == null:
-		return
-	var status: int = 0
-	if Engine.has_singleton(CONSENT):
-		status = int(Engine.get_singleton(CONSENT).call("get_consent_status"))
-	_counting = counts(status, OS.is_debug_build())
+	var bias: int = int(Time.get_time_zone_from_system().get("bias", 0))
+	_counting = counts(consent_needed(OS.get_locale(), bias), OS.is_debug_build())
+	# Firebase keeps the choice across launches, so it is set either way.
 	_firebase.call("set_consent", {"analytics_storage": "granted" if _counting else "denied"})
 	_firebase.call("set_analytics_collection_enabled", _counting)
 
 
-static func counts(consent_status: int, debug: bool) -> bool:
-	return consent_status == CONSENT_NOT_REQUIRED and not debug
+static func counts(needs_consent: bool, debug: bool) -> bool:
+	return not needs_consent and not debug
+
+
+static func consent_needed(locale: String, bias_minutes: int) -> bool:
+	if bias_minutes < EUROPE_BIAS.x or bias_minutes > EUROPE_BIAS.y:
+		return false
+	var region: String = country(locale)
+	return region == "" or region == "US" or CONSENT_REGIONS.has(region)
+
+
+# The region of a locale such as "en_GB" or "sr_Latn_RS", or "" when it names none.
+static func country(locale: String) -> String:
+	var parts: PackedStringArray = locale.split("_")
+	for i: int in range(parts.size() - 1, 0, -1):
+		if parts[i].length() == 2:
+			return parts[i].to_upper()
+	return ""
 
 
 static func counting() -> bool:
@@ -90,8 +103,8 @@ static func unravelled(index: int, count: int) -> void:
 	event(&"room_unravel", {"room": index + 1, "count": count})
 
 
-static func skipped(index: int, unravels: int, cost: String) -> void:
-	event(&"room_skip", {"room": index + 1, "unravels": unravels, "seconds": _seconds(), "cost": cost})
+static func skipped(index: int, unravels: int) -> void:
+	event(&"room_skip", {"room": index + 1, "unravels": unravels, "seconds": _seconds()})
 
 
 # A pack or a tip that Google Play has confirmed. Play's own purchase events reach Firebase too, with the price.
