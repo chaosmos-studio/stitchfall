@@ -12,5 +12,5 @@ What matters most here:
   does not describe;
 - a way for the browser version to load code from anywhere other than chaosmos.studio.
 
-The Firebase configuration in `google-services.json` and the AdMob ids in `scripts/monetize.gd` ship inside every
+The Firebase configuration in `google-services.json` and the product ids in `scripts/monetize.gd` ship inside every
 copy of the Android app, so they are not secrets. The Firebase key only works from the studio's own signed apps.
