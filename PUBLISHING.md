@@ -37,7 +37,7 @@ Play Console, and the OAuth consent screen on `chaosmos-stitchfall` (step 6 unde
 
 - **CI** (`.github/workflows/ci.yml`), on every push and pull request: the tests (run with `--fixed-fps 60`, about
   a minute) and the browser build with its phone check (`tools/check_web.cjs`) side by side. A push to `main` that
-  passes both publishes the browser build to `chaosmos.studio/stitchfall/play/`, from its own Cloudflare Worker
+  passes both publishes the browser build to `chaosmos.studio/games/stitchfall/play/`, from its own Cloudflare Worker
   (`stitchfall-play`) through the studio's `deploy-web` action with the `CLOUDFLARE_API_TOKEN` secret, as every
   other game does.
 - **Android** (`.github/workflows/release-android.yml`): a new version at the top of `CHANGELOG.md` pushed to

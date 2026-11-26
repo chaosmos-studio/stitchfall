@@ -1,7 +1,7 @@
 name: CI
 
 # Every push and pull request runs the tests and builds the browser version with its phone check, side by side.
-# A push to main that passes both publishes the browser version to chaosmos.studio/stitchfall/play/.
+# A push to main that passes both publishes the browser version to chaosmos.studio/games/stitchfall/play/.
 on:
   pull_request:
   push:
@@ -112,9 +112,9 @@ jobs:
         with:
           name: stitchfall-web
           path: build/web
-      - name: Publish to chaosmos.studio/stitchfall/play/
+      - name: Publish to chaosmos.studio/games/stitchfall/play/
         uses: chaosmos-studio/.github/actions/deploy-web@main
         with:
           worker: stitchfall-play
-          paths: stitchfall/play=build/web
+          paths: games/stitchfall/play=build/web
           cloudflare-api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
