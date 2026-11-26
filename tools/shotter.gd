@@ -8,17 +8,13 @@ func _ready() -> void:
 	var scene_path: String = args[0] if args.size() > 0 else "res://scenes/game/game.tscn"
 	var frames: int = int(args[1]) if args.size() > 1 else 120
 	var out_name: String = args[2] if args.size() > 2 else "shot"
-	# Google Play's build is staged with "play", and the menu banner as a phone would show it with "banner".
+	# Google Play's build is staged with "play".
 	StitchfallShop.on_play = args.has("play")
-	StitchfallAds.preview = args.has("banner")
 	# Play Games' buttons are staged with "games", by a stand-in that is signed in and sends nothing.
 	if args.has("games"):
 		StitchfallPlayGames.use(_SignedIn.new())
 	var scene: Node = load(scene_path).instantiate()
 	add_child(scene)
-	if args.has("banner"):
-		for room: int in range(3):
-			scene.progress.best_stars[room] = maxi(scene.progress.stars(room), 1)
 	if args.size() > 3:
 		if args[3] == "start":
 			scene._on_begin()
@@ -34,7 +30,7 @@ func _ready() -> void:
 			scene._on_begin()
 		elif args[3] == "skip":
 			scene._on_begin()
-			scene.room_deaths = StitchfallAdPacing.SKIP_AFTER
+			scene.room_deaths = StitchfallSkip.AFTER
 			scene._on_pause()
 		elif args[3].begins_with("show_"):
 			scene.hud.call(args[3])

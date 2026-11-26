@@ -2,8 +2,8 @@ class_name StitchfallStudioIntro
 extends RefCounted
 
 # A cold start opens on the studio's beat: the Chaosmos wordmark sewn onto the game's linen (res://intro/, made
-# and previewed in studio/chaosmos-intro and copied here by its tools/install.sh, so never edited here). The
-# banner stays covered while it plays, and a tap skips it. It plays once a launch, never headless (the tests and
+# and previewed in studio/chaosmos-intro and copied here by its tools/install.sh, so never edited here). A tap
+# skips it. It plays once a launch, never headless (the tests and
 # the route proofs) and never in the capture tool.
 
 # The game's beat, at the one path the studio's install tool writes for every game.
@@ -33,9 +33,6 @@ static func play(host: Node, done: Callable, muted: bool = false) -> void:
 	intro.launch_color = ProjectSettings.get_setting("application/boot_splash/bg_color", Color.WHITE)
 	layer.add_child(intro)
 	intro.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	StitchfallAds.cover(true)
-	# The banner comes back with Home, while the word is still fading over it.
-	intro.giving_way.connect(func() -> void: StitchfallAds.cover(false))
 	intro.finished.connect(func() -> void:
 		layer.queue_free()
 		print("STITCHFALL_INTRO_DONE")

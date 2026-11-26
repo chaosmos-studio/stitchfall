@@ -383,10 +383,6 @@ jobs:
           if grep -q '^firebase/enable_analytics=true$' export_presets.cfg; then
             "$SDK_TOOLS/aapt2" dump resources "$APK" | grep "string/google_app_id"
           fi
-          if [ -d addons/admob ] && unzip -l "$APK" | grep -E "addons/admob/(gdscript/sample|assets|internal/mock)/"; then
-            echo "the APK carries parts of the AdMob plugin its export filter should leave out" >&2
-            exit 1
-          fi
 
       - name: Verify the AAB
         run: |
@@ -411,30 +407,49 @@ jobs:
           test "$(manifest /manifest/uses-sdk/@android:targetSdkVersion)" = 36
           echo "MIN_SDK=$(manifest /manifest/uses-sdk/@android:minSdkVersion)" >> "$GITHUB_ENV"
           has_permission() { [[ " $permissions " == *" $1 "* ]] || { echo "missing permission $1" >&2; return 1; }; }
-          if [ -d addons/admob ]; then
-            app_id="$(manifest "/manifest/application/meta-data[@android:name='com.google.android.gms.ads.APPLICATION_ID']/@android:value")"
-            echo "AdMob APPLICATION_ID: ${app_id:-missing}"
-            [[ "$app_id" =~ ^ca-app-pub-[0-9]{16}~[0-9]{10}$ ]]
-            has_permission android.permission.INTERNET
-            has_permission com.google.android.gms.permission.AD_ID
-          fi
           if [ -d addons/GodotGooglePlayBilling ]; then
             has_permission com.android.vending.BILLING
           fi
-          # Firebase starts with collection off and never reads the advertising id or the device id. The kit's
-          # Analytics turns collection on only where UMP says no consent is needed.
+          # The game has no ads, and Play's Ads and Advertising ID answers say so: no ad SDK, no ad app id and no
+          # advertising id permission may come back with a plugin or a library update.
+          for permission in com.google.android.gms.permission.AD_ID android.permission.ACCESS_ADSERVICES_ATTRIBUTION \
+              android.permission.ACCESS_ADSERVICES_AD_ID; do
+            if [[ " $permissions " == *" $permission "* ]]; then
+              echo "::error::the bundle asks for $permission, but the game has no ads: addons/firebase_build removes it" >&2
+              exit 1
+            fi
+          done
+          app_id="$(manifest "/manifest/application/meta-data[@android:name='com.google.android.gms.ads.APPLICATION_ID']/@android:value")"
+          if [ -n "$app_id" ]; then
+            echo "::error::the bundle carries the AdMob app id $app_id, but the game has no ads" >&2
+            exit 1
+          fi
+          # R8 renames most classes, so the manifest's components (AdMob's AdActivity, an ads plugin's registration) are
+          # the surest sign of an ad SDK, then its files and any class names R8 kept.
+          components="$(manifest "/manifest/application/*/@android:name" | xargs)"
+          if grep -oiE '[^ ]*(com\.google\.android\.gms\.ads\.|com\.google\.android\.libraries\.ads\.|com\.google\.android\.ump|admob|unity3d|levelplay|intermission|ironsource|applovin)[^ ]*' <<< "$components"; then
+            echo "::error::the bundle's manifest registers an ad SDK, but the game has no ads" >&2
+            exit 1
+          fi
+          ad_sdks='META-INF/com\.google\.android\.gms_play-services-ads|META-INF/com\.google\.android\.ump_|com\.unity3d\.ads|unity-ads|ironsource|applovin|META-INF/com\.facebook\.android_audience'
+          if unzip -l "$AAB" | grep -iE "$ad_sdks"; then
+            echo "::error::the bundle carries an ad SDK, but the game has no ads" >&2
+            exit 1
+          fi
+          ad_classes='Lcom/google/android/gms/ads/(MobileAds|AdView|AdRequest|interstitial|rewarded)|Lcom/google/android/ump/|Lcom/unity3d/(ads|mediation|services)/|Lcom/ironsource/|Lcom/applovin/|Lcom/poingstudios/'
+          if unzip -p "$AAB" 'base/dex/*.dex' | grep -aoE "$ad_classes" | sort -u | grep .; then
+            echo "::error::the bundle's code carries ad SDK classes, but the game has no ads" >&2
+            exit 1
+          fi
+          # Firebase starts with collection off and never reads the advertising id or the device id, and every ad
+          # signal stays denied. The game's Analytics turns collection on only where no consent is needed.
           if grep -q '^firebase/enable_analytics=true$' export_presets.cfg; then
             for key in firebase_analytics_collection_enabled google_analytics_default_allow_ad_storage \
+                google_analytics_default_allow_ad_user_data google_analytics_default_allow_ad_personalization_signals \
                 google_analytics_adid_collection_enabled google_analytics_ssaid_collection_enabled; do
               value="$(manifest "/manifest/application/meta-data[@android:name='$key']/@android:value")"
               echo "$key: ${value:-missing}"
               test "$value" = false
-            done
-            for unused in android.permission.ACCESS_ADSERVICES_ATTRIBUTION android.permission.ACCESS_ADSERVICES_AD_ID; do
-              if [[ " $permissions " == *" $unused "* ]]; then
-                echo "$unused should have been removed by addons/firebase_build" >&2
-                exit 1
-              fi
             done
           fi
           unzip -l "$AAB" | grep "lib/.*/libgodot_android.so"

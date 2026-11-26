@@ -1,10 +1,11 @@
 class_name StitchfallShop
 extends RefCounted
 
-# What is sold, and where. The browser build cannot take payments, so there it sells nothing, every piece of the
-# Wardrobe is free and it has no ads. The Android build sells three packs and the Complete pack holding all three,
-# and takes tips, through Google Play (the ids in StitchfallMonetize):
-# - the Supporter pack turns the banner and the ads between rooms off for good and makes skipping a room free;
+# What is sold, and where. The browser build cannot take payments, so there it sells nothing and every piece of the
+# Wardrobe is free. The Android build sells three packs and the Complete pack holding all three, and takes tips,
+# through Google Play (the ids in StitchfallMonetize):
+# - the Supporter pack opens nothing: it helps make the next game, and the game thanks a Supporter (before 1.3.0 it
+#   also turned the ads off, and its buyers keep everything they had);
 # - Every room opens every room at once;
 # - the Wardrobe pack opens every runner and fabric.
 # Play's Payments policy forbids pointing players to any other way to pay, so the Android build never links to
@@ -62,7 +63,7 @@ static func has(progress: StitchfallProgress, id: String) -> bool:
 	return owns(progress, id) or (parts().has(id) and owns(progress, StitchfallMonetize.COMPLETE_ID))
 
 
-static func ads_off(progress: StitchfallProgress) -> bool:
+static func supporter(progress: StitchfallProgress) -> bool:
 	return has(progress, StitchfallMonetize.SUPPORTER_ID)
 
 
@@ -106,10 +107,8 @@ static func restore() -> String:
 	return UNREACHABLE
 
 
-# A tip counts one more. A pack is kept or taken away, which is how a refund reaches the game. Turning the
-# Supporter pack on or off stops or starts the game's ads.
+# A tip counts one more. A pack is kept or taken away, which is how a refund reaches the game.
 static func grant(progress: StitchfallProgress, id: String, owned: bool) -> void:
-	var quiet: bool = ads_off(progress)
 	if is_tip(id):
 		progress.tips += 1
 	elif owned:
@@ -117,11 +116,6 @@ static func grant(progress: StitchfallProgress, id: String, owned: bool) -> void
 	else:
 		progress.owned.erase(id)
 	progress.save()
-	if progress == StitchfallAds.progress and ads_off(progress) != quiet:
-		if ads_off(progress):
-			StitchfallAds.stop()
-		else:
-			StitchfallAds.start()
 
 
 static func price(id: String) -> String:
@@ -184,9 +178,9 @@ static func pitch(id: String) -> String:
 static func details(id: String) -> PackedStringArray:
 	match id:
 		StitchfallMonetize.COMPLETE_ID:
-			return PackedStringArray(["The Supporter pack: no ads, free skips", "Every room, open now", "The Wardrobe pack: every runner and fabric", KEEP_ROW])
+			return PackedStringArray(["The Supporter pack", "Every room, open now", "The Wardrobe pack: every runner and fabric", KEEP_ROW])
 		StitchfallMonetize.SUPPORTER_ID:
-			return PackedStringArray(["No banner on the menus", "No ads between rooms", "Skip any room for free", KEEP_ROW])
+			return PackedStringArray(["Helps me make the next game", "A thank-you in the game"])
 		StitchfallMonetize.LEVELS_ID:
 			return PackedStringArray(["Every room open now", "Play them in any order", "Stars still earned by sewing each room", KEEP_ROW])
 		StitchfallMonetize.WARDROBE_ID:
@@ -211,7 +205,7 @@ static func rows(id: String) -> PackedStringArray:
 		StitchfallMonetize.COMPLETE_ID:
 			return PackedStringArray(["All three, for less", "Supporter pack", "Every room", "Wardrobe pack"])
 		StitchfallMonetize.SUPPORTER_ID:
-			return PackedStringArray(["No banner", "No ads between rooms", "Free room skips", "Helps the next game"])
+			return PackedStringArray(["Helps the next game", "A thank-you"])
 		StitchfallMonetize.LEVELS_ID:
 			return PackedStringArray(["Every room open now", "Play in any order", "Stars still earned"])
 		StitchfallMonetize.WARDROBE_ID:

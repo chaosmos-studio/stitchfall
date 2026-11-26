@@ -7,6 +7,11 @@ one line, at most 500 characters in all. The release workflow turns it into the 
 bumps the patch.
 -->
 
+## 1.3.0
+
+- No more ads.
+- Skipping a room is always free.
+
 ## 1.2.8
 
 - The Play patch now shows the next room's name clearly.

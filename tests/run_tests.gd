@@ -4,11 +4,8 @@ extends SceneTree
 # CI greps for "0 failed", so keep that wording.
 
 const InputMapGen: GDScript = preload("res://tools/make_input_map.gd")
-const ADMOB_SETTINGS: GDScript = preload("res://addons/admob/internal/services/project_settings_service.gd")
-const APP_ID_SETTING: String = "admob/general/android/app_id"
 const PLUGINS: PackedStringArray = [
 	"res://addons/GodotGooglePlayBilling/plugin.cfg",
-	"res://addons/admob/plugin.cfg",
 	"res://addons/godotx_firebase/plugin.cfg",
 	"res://addons/firebase_build/plugin.cfg",
 	"res://addons/play_core/plugin.cfg",
@@ -30,7 +27,8 @@ func _run() -> void:
 	_test_android_build()
 	_test_plugins_and_ids()
 	_test_shrink_rules()
-	_test_pacing()
+	_test_skip_rule()
+	_test_no_ads()
 	_test_products()
 	_test_consent_rule()
 	_test_play_core()
@@ -40,13 +38,11 @@ func _run() -> void:
 	_test_cloud_save()
 	await _test_play_games_backend()
 	await _test_play_games_pages()
-	await _test_house_ads()
 	await _test_back_gesture()
 	await _test_moments()
 	await _test_unravel_holds_the_zipper()
 	await _test_skip()
-	await _test_next_brings_the_ad()
-	await _test_banner_keeps_clear()
+	await _test_next_goes_on()
 	await _test_shop_page()
 	await _test_shop_and_skip_entry_points()
 	_test_input_map_is_wired()
@@ -82,28 +78,24 @@ func _test_android_build() -> void:
 		var options: String = "%s.options" % found.get(name, "")
 		var out: String = str(presets.get_value(found.get(name, ""), "exclude_filter"))
 		_check("%s is com.shravangoswami.stitchfall, Gradle-built for API 36" % name, presets.get_value(options, "package/unique_name") == "com.shravangoswami.stitchfall" and presets.get_value(options, "gradle_build/use_gradle_build") == true and presets.get_value(options, "gradle_build/target_sdk") == "36")
-		_check("%s may use the network for ads, and vibrates, and carries the changelog" % name, presets.get_value(options, "permissions/vibrate") == true and presets.get_value(options, "permissions/internet") == true and "CHANGELOG.md" in str(presets.get_value(found.get(name, ""), "include_filter")))
+		_check("%s may use the network, and vibrates, and carries the changelog" % name, presets.get_value(options, "permissions/vibrate") == true and presets.get_value(options, "permissions/internet") == true and "CHANGELOG.md" in str(presets.get_value(found.get(name, ""), "include_filter")))
 		_check("%s builds Firebase Core and Analytics only, starting with collection off" % name, presets.get_value(options, "firebase/enable_core") == true and presets.get_value(options, "firebase/enable_analytics") == true and presets.get_value(options, "firebase/enable_crashlytics") == false and presets.get_value(options, "firebase/enable_messaging") == false and presets.get_value(options, "firebase/privacy_safe_defaults") == true and presets.get_value(options, "firebase/android_config_file") == "res://google-services.json")
 		var left_out: bool = true
-		for pattern: String in ["addons/admob/gdscript/sample/*", "addons/admob/csharp/*", "addons/admob/docs/*", "addons/admob/skills/*", "addons/admob/assets/*", "addons/admob/internal/mock/*", "addons/godotx_firebase/*", "addons/firebase_build/*", "addons/shrink_build/*", "addons/play_core/*"]:
+		for pattern: String in ["addons/godotx_firebase/*", "addons/firebase_build/*", "addons/shrink_build/*", "addons/play_core/*"]:
 			left_out = left_out and pattern in out
-		_check("%s leaves the plugins' samples, docs and editor-only scripts out" % name, left_out)
+		_check("%s leaves the plugins' editor-only scripts out" % name, left_out)
 	_check("the AAB preset builds an app bundle", presets.get_value("%s.options" % found.get("Android AAB", ""), "gradle_build/export_format") == 1)
 	_check("back does not quit the game by itself", not ProjectSettings.get_setting("application/config/quit_on_go_back", true))
 
 
-# Every plugin enabled, through tools/configure_android.gd, with the binaries a build needs already in place, and
-# the manifest's AdMob app id the one the code names. The plugin falls back to Google's test app when the setting
-# is unset, as this mirrors.
+# Every plugin enabled, through tools/configure_android.gd, with the binaries a build needs already in place.
 func _test_plugins_and_ids() -> void:
 	var enabled: PackedStringArray = ProjectSettings.get_setting("editor_plugins/enabled", PackedStringArray())
 	var configure: String = FileAccess.get_file_as_string("res://tools/configure_android.gd")
 	for plugin: String in PLUGINS:
 		_check("%s is enabled, and configure_android keeps it so" % plugin, enabled.has(plugin) and configure.contains(plugin) and FileAccess.file_exists(plugin))
-	_check("the AdMob and billing binaries are in place, so no build downloads them",
-		FileAccess.file_exists("res://addons/admob/android/bin/ads/libs/poing-godot-admob-ads-release.aar")
-		and FileAccess.file_exists("res://addons/admob/android/bin/package.gd")
-		and FileAccess.file_exists("res://addons/GodotGooglePlayBilling/bin/release/GodotGooglePlayBilling-release.aar"))
+	_check("the billing binaries are in place, so no build downloads them",
+		FileAccess.file_exists("res://addons/GodotGooglePlayBilling/bin/release/GodotGooglePlayBilling-release.aar"))
 	for module: String in ["firebase_core", "firebase_analytics"]:
 		for build: String in ["release", "debug"]:
 			_check("android/%s/%s.%s.aar is in place" % [module, module, build], FileAccess.file_exists("res://android/%s/%s.%s.aar" % [module, module, build]))
@@ -113,24 +105,10 @@ func _test_plugins_and_ids() -> void:
 	for client: Variant in services.get("client", []):
 		packages.append(String(((client as Dictionary)["client_info"] as Dictionary)["android_client_info"]["package_name"]))
 	_check("google-services.json has the Stitchfall app", packages.has("com.shravangoswami.stitchfall"))
-	var setting: String = ProjectSettings.get_setting(APP_ID_SETTING, ADMOB_SETTINGS.ANDROID_DEFAULT_APP_ID)
-	_check("the manifest's AdMob app id is StitchfallMonetize.APP_ID (%s)" % setting, setting == StitchfallMonetize.APP_ID)
-	var app: RegEx = RegEx.create_from_string("^ca-app-pub-\\d{16}~\\d{10}$")
-	var unit: RegEx = RegEx.create_from_string("^ca-app-pub-\\d{16}/\\d{10}$")
-	_check("the app id is an AdMob app id", app.search(StitchfallMonetize.APP_ID) != null)
-	var units: Array[String] = [StitchfallMonetize.BANNER_ID, StitchfallMonetize.INTERSTITIAL_ID, StitchfallMonetize.REWARDED_ID]
-	for id: String in units:
-		_check("%s is an AdMob unit id" % id, unit.search(id) != null)
-	_check("each placement has its own unit", units[0] != units[1] and units[1] != units[2] and units[0] != units[2])
-	var google_test: String = "ca-app-pub-3940256099942544"
-	_check("the release ids are the studio's, not Google's test publisher", not StitchfallMonetize.APP_ID.begins_with(google_test) and not units.any(func(id: String) -> bool: return id.begins_with(google_test)))
 	# Only a phone ever runs these, so a mistake in one would otherwise show first on a phone.
 	for path: String in _scripts("res://scripts/android"):
 		var script: GDScript = load(path) as GDScript
 		_check("%s compiles against the plugins" % path.get_file(), script != null and script.can_instantiate())
-	var admob: String = FileAccess.get_file_as_string("res://scripts/android/admob.gd")
-	_check("a debug build always asks for Google's test units", admob.contains("OS.is_debug_build()") and admob.contains("TEST_BANNER if debug") and admob.contains("TEST_INTERSTITIAL if debug") and admob.contains("TEST_REWARDED if debug"))
-	_check("ads are rated PG at most", admob.contains("MAX_AD_CONTENT_RATING_PG"))
 	_check("the products are the kit's ids", StitchfallMonetize.SUPPORTER_ID == "supporter" and StitchfallMonetize.LEVELS_ID == "all_levels" and StitchfallMonetize.WARDROBE_ID == "wardrobe" and StitchfallMonetize.COMPLETE_ID == "complete" and StitchfallMonetize.TIP_IDS == PackedStringArray(["tip_1", "tip_2", "tip_5", "tip_10", "tip_20", "tip_50"]))
 
 
@@ -166,27 +144,29 @@ func _scripts(folder: String) -> Array[String]:
 	return found
 
 
-# The kit's numbers, then each rule on its edge with every other rule met.
-func _test_pacing() -> void:
-	_check("the banner waits for 3 rooms sewn", StitchfallAdPacing.BANNER_AFTER == 3 and not StitchfallAdPacing.banner_due(2, false) and StitchfallAdPacing.banner_due(3, false))
-	_check("never a banner for a Supporter", not StitchfallAdPacing.banner_due(99, true))
-	_check("the between-room pacing is 12 rooms, every 4, 4 minutes apart, 3 minutes in",
-		StitchfallAdPacing.INTERSTITIAL_AFTER == 12 and StitchfallAdPacing.INTERSTITIAL_EVERY == 4
-		and is_equal_approx(StitchfallAdPacing.FULLSCREEN_GAP, 240.0) and is_equal_approx(StitchfallAdPacing.LAUNCH_GAP, 180.0))
-	var ok: Callable = func(sewn: int, since: int, now: float, last: float) -> bool:
-		return StitchfallAdPacing.interstitial_due(sewn, since, now, last, false)
-	_check("due once every rule is met", ok.call(12, 4, 180.0, -1.0))
-	_check("never before 12 rooms are sewn", not ok.call(11, 40, 9999.0, -1.0))
-	_check("never before 4 clears this session", not ok.call(60, 3, 9999.0, -1.0))
-	_check("never in the first 3 minutes after launch", not ok.call(60, 9, 179.9, -1.0))
-	_check("never within 4 minutes of a full-screen ad", not ok.call(60, 9, 1000.0, 1000.0 - 239.9))
-	_check("due 4 minutes after one", ok.call(60, 9, 1000.0, 1000.0 - 240.0))
-	_check("never between rooms for a Supporter", not StitchfallAdPacing.interstitial_due(60, 9, 9999.0, -1.0, true))
-	_check("a skip waits for 5 unravels in the room", StitchfallAdPacing.SKIP_AFTER == 5 and not StitchfallAdPacing.skip_offered(4, true, false) and StitchfallAdPacing.skip_offered(5, true, false))
-	_check("no skip from the last room, or into a room already open", not StitchfallAdPacing.skip_offered(9, false, false) and not StitchfallAdPacing.skip_offered(9, true, true))
-	_check("a skip is free for a Supporter and wherever no video is loaded, and a video otherwise",
-		StitchfallAdPacing.skip_cost(true, true) == StitchfallAdPacing.Skip.FREE and StitchfallAdPacing.skip_cost(false, false) == StitchfallAdPacing.Skip.FREE
-		and StitchfallAdPacing.skip_cost(false, true) == StitchfallAdPacing.Skip.VIDEO)
+# The skip's rule on its edges.
+func _test_skip_rule() -> void:
+	_check("a skip waits for 5 unravels in the room", StitchfallSkip.AFTER == 5 and not StitchfallSkip.offered(4, true, false) and StitchfallSkip.offered(5, true, false))
+	_check("no skip from the last room, or into a room already open", not StitchfallSkip.offered(9, false, false) and not StitchfallSkip.offered(9, true, true))
+
+
+# Stitchfall has no ads: no ads plugin, no ad ids, and the advertising id's permission is taken out of the build
+# (the release workflow checks the built manifest too).
+func _test_no_ads() -> void:
+	for plugin: String in ProjectSettings.get_setting("editor_plugins/enabled", PackedStringArray()):
+		_check("%s is no ads plugin" % plugin, not plugin.to_lower().contains("admob") and not plugin.to_lower().contains("intermission")
+			and not plugin.to_lower().contains("unity"))
+	for dir: String in ["res://addons/admob", "res://addons/intermission"]:
+		_check("%s is gone" % dir, not DirAccess.dir_exists_absolute(dir))
+	_check("no AdMob app id is set", not ProjectSettings.has_setting("admob/general/android/app_id"))
+	var monetize: Dictionary = (load("res://scripts/monetize.gd") as GDScript).get_script_constant_map()
+	for key: String in monetize:
+		_check("monetize.gd's %s is no ad id" % key, not str(monetize[key]).begins_with("ca-app-pub-"))
+	var firebase_build: String = FileAccess.get_file_as_string("res://addons/firebase_build/plugin.gd")
+	_check("the build takes the advertising id's permission out",
+		firebase_build.contains("\"com.google.android.gms.permission.AD_ID\"") and firebase_build.contains("tools:node=\"remove\""))
+	for row: String in StitchfallShop.details(StitchfallMonetize.SUPPORTER_ID) + StitchfallShop.rows(StitchfallMonetize.SUPPORTER_ID):
+		_check("the Supporter pack promises nothing about ads (%s)" % row, RegEx.create_from_string("\\bads?\\b").search(row.to_lower()) == null)
 
 
 # What each product gives, kept across a reload, with the Complete pack holding the other three.
@@ -195,10 +175,10 @@ func _test_products() -> void:
 	progress.reset()
 	var was_on_play: bool = StitchfallShop.on_play
 	StitchfallShop.on_play = true
-	_check("nothing is owned at the start", not StitchfallShop.ads_off(progress) and not StitchfallShop.levels_open(progress) and not StitchfallShop.has_pack(progress) and StitchfallShop.offers_complete(progress))
+	_check("nothing is owned at the start", not StitchfallShop.supporter(progress) and not StitchfallShop.levels_open(progress) and not StitchfallShop.has_pack(progress) and StitchfallShop.offers_complete(progress))
 	_check("a locked room stays locked", not StitchfallShop.room_open(progress, 3))
 	StitchfallShop.grant(progress, StitchfallMonetize.SUPPORTER_ID, true)
-	_check("the Supporter pack turns the ads off and nothing else", StitchfallShop.ads_off(progress) and not StitchfallShop.levels_open(progress) and not StitchfallShop.has_pack(progress))
+	_check("the Supporter pack opens nothing", StitchfallShop.supporter(progress) and not StitchfallShop.levels_open(progress) and not StitchfallShop.has_pack(progress))
 	_check("once a part is owned the Complete pack is no longer offered", not StitchfallShop.offers_complete(progress))
 	StitchfallShop.grant(progress, StitchfallMonetize.SUPPORTER_ID, false)
 	StitchfallShop.grant(progress, StitchfallMonetize.LEVELS_ID, true)
@@ -207,9 +187,9 @@ func _test_products() -> void:
 	StitchfallShop.grant(progress, StitchfallMonetize.COMPLETE_ID, true)
 	var reloaded: StitchfallProgress = StitchfallProgress.new()
 	reloaded.load_saved()
-	_check("the Complete pack holds all three, and survives a reload", StitchfallShop.ads_off(reloaded) and StitchfallShop.levels_open(reloaded) and StitchfallShop.has_pack(reloaded) and StitchfallShop.is_open(StitchfallLooks.find("fabric_night"), reloaded))
+	_check("the Complete pack holds all three, and survives a reload", StitchfallShop.supporter(reloaded) and StitchfallShop.levels_open(reloaded) and StitchfallShop.has_pack(reloaded) and StitchfallShop.is_open(StitchfallLooks.find("fabric_night"), reloaded))
 	StitchfallShop.grant(progress, StitchfallMonetize.COMPLETE_ID, false)
-	_check("a refund takes it away again", not StitchfallShop.ads_off(progress) and not StitchfallShop.has_pack(progress))
+	_check("a refund takes it away again", not StitchfallShop.supporter(progress) and not StitchfallShop.has_pack(progress))
 	for id: String in StitchfallMonetize.TIP_IDS:
 		StitchfallShop.grant(progress, id, true)
 	_check("every tip counts one more, and opens nothing", progress.tips == StitchfallMonetize.TIP_IDS.size() and progress.owned.is_empty())
@@ -248,14 +228,24 @@ func _test_products() -> void:
 	progress.reset()
 
 
-# UMP consent status: 0 unknown, 1 not required, 2 required, 3 obtained. Only 1 counts, and never in a debug build.
+# Counted only where no consent is needed, and never in a debug build: the EEA, the UK and Switzerland, guessed from a
+# European clock and a locale that agrees, are never counted.
 func _test_consent_rule() -> void:
-	_check("a release build counts where no consent is needed", StitchfallAnalytics.counts(1, false))
-	_check("a debug build never counts", not StitchfallAnalytics.counts(1, true))
-	for status: int in [0, 2, 3]:
-		_check("consent status %d counts nothing" % status, not StitchfallAnalytics.counts(status, false))
+	_check("a release build counts where no consent is needed", StitchfallAnalytics.counts(false, false))
+	_check("a debug build never counts", not StitchfallAnalytics.counts(false, true))
+	_check("nothing is counted where consent is needed", not StitchfallAnalytics.counts(true, false))
+	for locale: String in ["de_DE", "en_GB", "fr_CH", "nb_NO", "sr_Latn_SI", "en_IE"]:
+		_check("a phone set to %s on Central European time needs consent" % locale, StitchfallAnalytics.consent_needed(locale, 60))
+	for locale: String in ["en_IN", "hi_IN", "en_US", "en_GB", "de_DE", "en"]:
+		_check("a phone set to %s on Indian time does not" % locale, not StitchfallAnalytics.consent_needed(locale, 330))
+	_check("a European phone set to US English needs it by its clock", StitchfallAnalytics.consent_needed("en_US", 60))
+	_check("so does one on Lisbon's winter clock", StitchfallAnalytics.consent_needed("en_US", 0))
+	_check("and one whose locale names no country", StitchfallAnalytics.consent_needed("en", 120))
+	_check("but not one on New York's", not StitchfallAnalytics.consent_needed("en_US", -300))
+	_check("nor a South African phone on the same clock as Finland", not StitchfallAnalytics.consent_needed("en_ZA", 120))
+	_check("a locale's region is read whatever its script", StitchfallAnalytics.country("sr_Latn_RS") == "RS")
+	_check("a locale with no region has none", StitchfallAnalytics.country("en") == "")
 	_check("nothing is counted off Android", not StitchfallAnalytics.counting())
-	_check("no ads start off Android", not StitchfallAds.live() and not StitchfallAds.video_ready() and not StitchfallAds.privacy_options_required())
 
 
 func _test_play_core() -> void:
@@ -681,8 +671,7 @@ func _test_play_games_backend() -> void:
 	StitchfallProgress.path = old_path
 
 
-# The Stats page offers Play Games' own pages only once Play Games is on, beside the lines and clear of the banner,
-# and the game tells Play Games of every room sewn, every skip, every pause and a Reset. A cloud save that lands on
+# The Stats page offers Play Games' own pages only once Play Games is on, beside the lines, and the game tells Play Games of every room sewn, every skip, every pause and a Reset. A cloud save that lands on
 # Home moves Play on past the rooms it brought.
 func _test_play_games_pages() -> void:
 	var game: Node2D = _game()
@@ -719,7 +708,7 @@ func _test_play_games_pages() -> void:
 	game._on_pause()
 	_check("a pause tells Play Games of the progress so far", stand_in.heard.has("progressed"))
 	stand_in.heard.clear()
-	game.room_deaths = StitchfallAdPacing.SKIP_AFTER
+	game.room_deaths = StitchfallSkip.AFTER
 	game._on_skip()
 	_check("and so does a skip", stand_in.heard.has("progressed") and game.progress.skipped.has(2))
 	game._on_home()
@@ -738,32 +727,6 @@ func _test_play_games_pages() -> void:
 	game.progress.reset()
 	game.queue_free()
 	await process_frame
-
-
-func _test_house_ads() -> void:
-	var backend: StitchfallHouseAds = StitchfallHouseAds.new()
-	root.add_child(backend)
-	_check("house ads are a banner only: nothing between rooms and nothing standing in for a video",
-		not backend.ready_to_show(StitchfallAdBackend.INTERSTITIAL) and not backend.ready_to_show(StitchfallAdBackend.REWARDED)
-		and not backend.video_ready())
-	var heights: Array[float] = []
-	backend.banner_changed.connect(func(h: float) -> void: heights.append(h))
-	backend.set_banner(true)
-	_check("the house banner takes a phone banner's height", heights.size() == 1 and heights[0] > 0.0)
-	backend.stop()
-	_check("and gives the room back when ads stop", heights.size() == 2 and is_zero_approx(heights[1]))
-	backend.free()
-	_check("every studio game has its icon", StitchfallStudio.others().all(func(game: Dictionary) -> bool: return ResourceLoader.exists(String(game["icon"]))))
-	var styled: Array[String] = []
-	for game: Dictionary in StitchfallStudio.others():
-		var name: String = game["name"]
-		var light: Dictionary = StitchfallHouseGames.style(name, false)
-		var dark: Dictionary = StitchfallHouseGames.style(name, true)
-		if StitchfallHouseGames.STYLES.has(name) and light["accent"] != dark["accent"] and not String(light["tag"]).is_empty():
-			styled.append(name)
-	_check("every studio game has a line and a light and a dark colour for the banner (%s)" % ", ".join(styled),
-		styled.size() == StitchfallStudio.others().size())
-	_check("Stitchfall's light linen shows the other games in their light colours", not StitchfallHouseBanner.DARK)
 
 
 func _test_back_gesture() -> void:
@@ -944,9 +907,7 @@ func _test_unravel_holds_the_zipper() -> void:
 	await process_frame
 
 
-# Five unravels in a room offer a skip on the pause page. It opens the next room without stars: after a video when
-# one is loaded, and free off Android, for a Supporter and whenever no video is loaded. Only a video closed early
-# leaves the room as it was.
+# Five unravels in a room offer a skip on the pause page. It opens the next room without stars, free.
 func _test_skip() -> void:
 	var game: Node2D = _game()
 	await process_frame
@@ -961,102 +922,46 @@ func _test_skip() -> void:
 	game._on_pause()
 	_check("the pause page offers a skip after 5 unravels, with Resume and Retry beside it",
 		game.hud.skip_button.visible and game.hud.resume_button.visible and game.hud.restart_button.visible)
-	_check("off Android the skip is free, and asks for no video", game.hud.pause_body.text.contains("skip this room") and not game.hud.pause_body.text.contains("video"))
+	_check("the skip is free, and asks for no video", game.hud.pause_body.text.contains("skip this room") and not game.hud.pause_body.text.contains("video"))
 	var resume_bottom: float = game.hud.resume_button.position.y + game.hud.resume_button.size.y
 	_check("the skip sits under the pause actions, clear of them", game.hud.skip_button.position.y >= resume_bottom + 20.0)
 	game._on_skip()
 	_check("a skip opens the next room without stars", game.level_index == 1 and game.playing and game.progress.skipped.has(0) and game.progress.stars(0) == 0)
 	_check("the room after a skip stays open, and Play picks up past it", game.progress.is_open(1) and game.progress.continue_room(StitchfallLevels.count()) == 1)
-	var ads: _VideoAds = _VideoAds.new()
-	StitchfallAds.use(ads)
+	var was_on_play: bool = StitchfallShop.on_play
+	StitchfallShop.on_play = true
 	game.room_deaths = 5
 	game._on_pause()
-	_check("with ads the skip names the video it costs", game.hud.pause_body.text.contains("Watch a video"))
+	_check("on Google Play the skip is free too", game.hud.pause_body.text.contains("skip this room") and not game.hud.pause_body.text.contains("video"))
 	game._on_skip()
-	await process_frame
-	await process_frame
-	_check("the video's reward opens the next room", ads.presented.size() == 1 and ads.presented[0] == StitchfallAdBackend.REWARDED and game.level_index == 2 and game.progress.skipped.has(1))
-	StitchfallShop.grant(game.progress, StitchfallMonetize.SUPPORTER_ID, true)
-	game.room_deaths = 5
-	game._on_pause()
-	_check("a Supporter skips free", game._skip_cost() == StitchfallAdPacing.Skip.FREE and not game.hud.pause_body.text.contains("video"))
-	StitchfallShop.grant(game.progress, StitchfallMonetize.SUPPORTER_ID, false)
-	var early: _VideoAds = _VideoAds.new()
-	early.earned = false
-	StitchfallAds.use(early)
-	await game._on_skip()
-	_check("a video closed early leaves the room as it was, paused", early.presented.size() == 1 and game.level_index == 2
-		and game.hud.screen == "pause" and not game.advancing)
-	var failing: _VideoAds = _VideoAds.new()
-	failing.shows = false
-	StitchfallAds.use(failing)
-	await game._on_skip()
-	await process_frame
-	_check("a video that fails to play skips anyway", game.level_index == 3 and game.progress.skipped.has(2))
-	StitchfallAds.use(_NoAds.new())
-	game.room_deaths = 5
-	game._on_pause()
-	_check("with no video loaded (house ads, offline, no fill) the skip is free and names no video",
-		game._skip_cost() == StitchfallAdPacing.Skip.FREE and game.hud.pause_body.text.contains("skip this room")
-		and not game.hud.pause_body.text.contains("video"))
-	game._on_skip()
-	await process_frame
-	_check("and skips at once", game.level_index == 4 and game.progress.skipped.has(3))
+	_check("and skips at once", game.level_index == 2 and game.progress.skipped.has(1))
+	StitchfallShop.on_play = was_on_play
 	game.room_deaths = 0
 	game._on_begin()
 	game._on_pause()
 	_check("no skip offered in a room not yet failed", not game.hud.skip_button.visible)
-	StitchfallAds.use(null)
 	game.progress.reset()
 	game.queue_free()
 	await process_frame
 
 
-# Next on the clear card brings the ad between rooms once every rule is met, then goes on to the next room, and
-# never stands beside a chapter's title card.
-func _test_next_brings_the_ad() -> void:
+# Next on the clear card goes straight on to the next room, and to a chapter's title card at a chapter's start.
+func _test_next_goes_on() -> void:
 	var game: Node2D = _game()
 	await process_frame
 	game.progress.reset()
 	for room: int in range(12):
 		game.progress.best_stars[room] = 1
-	var ads: _VideoAds = _VideoAds.new()
-	ads.interstitials = true
-	StitchfallAds.use(ads)
-	StitchfallAds.skew = 1000.0
-	for clear: int in range(3):
-		StitchfallAds.room_cleared()
 	game._load_level(1)
+	var reached: bool = true
+	for room: int in range(2, 5):
+		game.cleared = true
+		game._on_next()
+		reached = reached and game.level_index == room and game.playing and not game.advancing
+	_check("Next opens the next room at once, clear after clear", reached)
 	game.cleared = true
 	game._on_next()
-	_check("no ad after only 3 clears this session", ads.presented.is_empty() and game.level_index == 2)
-	StitchfallAds.room_cleared()
-	game.cleared = true
-	game._on_next()
-	_check("the fourth clear's Next brings the ad", ads.presented.size() == 1 and ads.presented[0] == StitchfallAdBackend.INTERSTITIAL and game.advancing)
-	game._on_next()
-	await process_frame
-	await process_frame
-	_check("a second press waits, and the room after it opens once the ad closes", ads.presented.size() == 1 and game.level_index == 3 and game.playing and not game.advancing)
-	for clear: int in range(4):
-		StitchfallAds.room_cleared()
-	game.cleared = true
-	game._on_next()
-	_check("never within 4 minutes of the last", ads.presented.size() == 1 and game.level_index == 4)
-	StitchfallAds.skew += 1000.0
-	game.cleared = true
-	game._on_next()
-	_check("never beside a chapter's title card", ads.presented.size() == 1 and game.level_index == 5 and game.hud.screen == "chapter")
-	StitchfallShop.grant(game.progress, StitchfallMonetize.SUPPORTER_ID, true)
-	StitchfallAds.skew += 1000.0
-	for clear: int in range(4):
-		StitchfallAds.room_cleared()
-	game.cleared = true
-	game._on_next()
-	_check("never for a Supporter", ads.presented.size() == 1 and game.level_index == 6)
-	StitchfallShop.grant(game.progress, StitchfallMonetize.SUPPORTER_ID, false)
-	StitchfallAds.use(null)
-	StitchfallAds.skew = 0.0
+	_check("and a chapter's title card at a chapter's start", game.level_index == 5 and game.hud.screen == "chapter")
 	game.progress.reset()
 	game.queue_free()
 	await process_frame
@@ -1162,94 +1067,6 @@ func _test_coach_steps() -> void:
 	coach.begin(true)
 	_check("with every lesson learned only the goal is left", coach.current() == "goal" and not coach.coaching())
 	coach.queue_free()
-	await process_frame
-
-
-# On every page that carries the banner, the page shrinks so its lowest button keeps BUTTON_GAP_DP above the
-# banner and its cloth stops short of it. Play never carries one, since the room is played by tapping anywhere,
-# and nor do Settings, About, the Shop and the page before a purchase.
-func _test_banner_keeps_clear() -> void:
-	var game: Node2D = _game()
-	await process_frame
-	game.progress.reset()
-	StitchfallAds.preview = true
-	game.hud.show_levels()
-	_check("no banner before 3 rooms are sewn", not StitchfallAds.banner_wanted())
-	for room: int in range(3):
-		game.progress.best_stars[room] = 1
-	var hud: StitchfallHud = game.hud
-	var pages: Dictionary = {"levels": hud.level_page, "wardrobe": hud.wardrobe_page, "credits": hud.credits_page,
-		"stats": hud.stats_page, "help": hud.help_page}
-	for name: String in pages:
-		hud.call("show_%s" % name)
-		var page: Control = pages[name]
-		var banner: Rect2 = StitchfallAds.banner_rect()
-		var clear_line: float = banner.position.y - StitchfallAds.BUTTON_GAP_DP * StitchfallAds.per_dp()
-		var lowest: float = 0.0
-		var cloth_end: float = 0.0
-		for part: Node in page.find_children("*", "Control", true, false):
-			var control: Control = part as Control
-			if not control.is_visible_in_tree() or control is StitchBorder:
-				continue
-			if control.has_meta(&"cloth"):
-				cloth_end = maxf(cloth_end, control.get_global_rect().end.y)
-			else:
-				lowest = maxf(lowest, control.get_global_rect().end.y)
-		_check("%s carries the banner once 3 rooms are sewn" % name, StitchfallAds.banner_wanted())
-		_check("%s keeps every button and line %d px clear of the banner (lowest %d, banner top %d)" % [name, roundi(StitchfallAds.BUTTON_GAP_DP * StitchfallAds.per_dp()), roundi(lowest), roundi(banner.position.y)], lowest <= clear_line + 0.5)
-		_check("%s's cloth stops above the banner" % name, cloth_end <= banner.position.y)
-		_check("%s shrinks no further than it must" % name, hud.page_fit(page) >= 0.7)
-	# Home's menu shrinks as a page does, and its lowest button keeps the same gap.
-	hud.show_home()
-	var gap: float = StitchfallAds.BUTTON_GAP_DP * StitchfallAds.per_dp()
-	var home_top: float = StitchfallAds.banner_rect().position.y
-	var home_lowest: float = 0.0
-	for part: Node in hud.home_menu.find_children("*", "StitchedButton", true, false):
-		home_lowest = maxf(home_lowest, (part as Control).get_global_rect().end.y)
-	_check("home carries the banner once 3 rooms are sewn", StitchfallAds.banner_wanted())
-	_check("home keeps its menu %d px clear of the banner (lowest %d, banner top %d)" % [roundi(gap), roundi(home_lowest), roundi(home_top)], home_lowest <= home_top - gap + 0.5)
-	for name: String in ["settings", "about"]:
-		hud.call("show_%s" % name)
-		_check("%s never carries the banner" % name, not StitchfallAds.banner_wanted())
-	# A shut room's note and its Every room offer sit low on the Levels page, and still keep clear of the banner.
-	var was_on_play: bool = StitchfallShop.on_play
-	StitchfallShop.on_play = false
-	game.progress.best_stars.clear()
-	for room: int in range(3):
-		game.progress.best_stars[room] = 1
-	hud.show_levels()
-	hud._set_level_page(0)
-	StitchfallShop.on_play = true
-	hud._select_visible_level(4)
-	var banner_top: float = StitchfallAds.banner_rect().position.y
-	var note_end: float = maxf(hud.level_note.get_global_rect().end.y, hud.level_unlock.get_global_rect().end.y)
-	_check("a shut room's note and offer keep %d px clear of the banner (end %d, banner top %d)" % [roundi(StitchfallAds.BUTTON_GAP_DP * StitchfallAds.per_dp()), roundi(note_end), roundi(banner_top)],
-		hud.level_unlock.visible and note_end <= banner_top - StitchfallAds.BUTTON_GAP_DP * StitchfallAds.per_dp() + 0.5)
-	StitchfallShop.on_play = was_on_play
-	hud.show_shop()
-	_check("the Shop never carries the banner", not StitchfallAds.banner_wanted())
-	hud.show_offer(StitchfallMonetize.SUPPORTER_ID, "levels")
-	_check("nor does the page before a purchase", not StitchfallAds.banner_wanted())
-	game._load_level(0)
-	game._on_begin()
-	_check("play never carries the banner", not StitchfallAds.banner_wanted())
-	game._on_pause()
-	var pause_lowest: float = 0.0
-	for part: Node in hud.pause_page.find_children("*", "StitchedButton", true, false):
-		var pause_button: Control = part as Control
-		if pause_button.is_visible_in_tree():
-			pause_lowest = maxf(pause_lowest, pause_button.get_global_rect().end.y)
-	_check("a paused room carries the banner, since it is not play", StitchfallAds.banner_wanted())
-	_check("the pause page keeps its buttons clear of the banner (lowest %d, banner top %d)" % [roundi(pause_lowest), roundi(StitchfallAds.banner_rect().position.y)],
-		pause_lowest <= StitchfallAds.banner_rect().position.y - gap + 0.5)
-	hud.show_settings()
-	StitchfallShop.grant(game.progress, StitchfallMonetize.SUPPORTER_ID, true)
-	_check("a Supporter never sees the banner", not StitchfallAds.banner_wanted() and is_equal_approx(hud.page_fit(hud.settings_page), 1.0))
-	StitchfallShop.grant(game.progress, StitchfallMonetize.SUPPORTER_ID, false)
-	StitchfallAds.preview = false
-	hud.show_home()
-	game.progress.reset()
-	game.queue_free()
 	await process_frame
 
 
@@ -1388,10 +1205,10 @@ func _test_shop_and_skip_entry_points() -> void:
 	_check("a line from Google Play on Home shows as a toast", hud.toast.visible and hud.toast_label.text == "Thanks for the tip!")
 	game._load_level(0)
 	game._on_begin()
-	for hit: int in range(StitchfallAdPacing.SKIP_AFTER):
+	for hit: int in range(StitchfallSkip.AFTER):
 		game.respawning = false
 		game._on_hazard_body(game.pilot)
-	_check("a skip on offer puts its hint by the pause button", hud.skip_hint.visible and game.room_deaths == StitchfallAdPacing.SKIP_AFTER)
+	_check("a skip on offer puts its hint by the pause button", hud.skip_hint.visible and game.room_deaths == StitchfallSkip.AFTER)
 	_check("and the pause page offers the skip", not game._skip_line().is_empty())
 	game._on_pause()
 	_check("the hint goes while a page is open", not hud.skip_hint.visible)
@@ -1822,30 +1639,6 @@ func _test_stitchfall_playthrough() -> void:
 	_check("the final seam ending follows the last room", game.finished)
 	game.queue_free()
 	await process_frame
-
-
-# Stands in for AdMob with a video always ready, and an ad between rooms when asked to have one. A video can be
-# closed early (not earned) or fail to play at all (not shown).
-class _VideoAds extends StitchfallAdBackend:
-	var interstitials: bool = false
-	var earned: bool = true
-	var shows: bool = true
-	var presented: Array[StringName] = []
-
-	func ready_to_show(kind: StringName) -> bool:
-		return kind == REWARDED or interstitials
-
-	func video_ready() -> bool:
-		return true
-
-	func present(kind: StringName) -> void:
-		presented.append(kind)
-		finished.emit.call_deferred(kind, shows, shows and earned)
-
-
-# Live, but with no video loaded: house ads standing in, offline or no fill.
-class _NoAds extends StitchfallAdBackend:
-	pass
 
 
 # Whether any class in an Android library's classes.jar names `text`.

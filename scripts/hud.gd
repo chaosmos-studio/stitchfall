@@ -43,8 +43,6 @@ const HOME_REVEAL_SHADER: Shader = preload("res://shaders/home_reveal.gdshader")
 const GESTURE_GUIDE: Script = preload("res://scripts/gesture_guide.gd")
 const STAR_SOUND: AudioStream = preload("res://assets/audio/sfx/star.wav")
 const STAR_MISS_SOUND: AudioStream = preload("res://assets/audio/sfx/star_miss.wav")
-# The linen kept between a menu page's cloth and the banner below it, in dp.
-const CLOTH_GAP_DP: float = 12.0
 # How long a toast (a line from Google Play on a page with no line of its own) stays before it fades.
 const TOAST_SECONDS: float = 3.5
 # Once a skip is on offer, the pause button carries this tag so a stuck player knows where the way out is.
@@ -58,8 +56,7 @@ const HUD_GAP: float = 8.0
 # How much larger the meter and its tags are drawn on a touch screen.
 const TOUCH_SCALE: float = 1.2
 # Home's pocket, in design pixels: the logo, the Play patch, and the row of tiles under it. The whole menu stays
-# inside the part of the painted pocket a 16:9 and a 20:9 screen both show, and ends a banner's clearance above
-# where the banner stands.
+# inside the part of the painted pocket a 16:9 and a 20:9 screen both show.
 const HOME_LOGO: Rect2 = Rect2(20, 110, 600, 0)
 const HOME_PLAY: Rect2 = Rect2(0, 270, 640, 186)
 # The felt patches under Play (Levels, Wardrobe and Shop): how far down, their size, the gap between them and
@@ -71,11 +68,11 @@ const HOME_PATCH_CLOTH: Color = Color("ecdfc6")
 # Each pack's one line in the Shop.
 const SHOP_LINES: Dictionary[String, String] = {
 	"complete": "All three, for less",
-	"supporter": "No ads, free skips",
+	"supporter": "Helps the next game",
 	"all_levels": "Every room, open now",
 	"wardrobe": "Every runner and fabric",
 }
-# The Wardrobe fills the screen's safe part, above the banner while one is due, instead of shrinking a fixed page,
+# The Wardrobe fills the screen's safe part, instead of shrinking a fixed page,
 # so a wide phone's width goes to bigger pieces. Three columns: the heading over the kinds, the pieces, and the
 # runner dancing over the Wardrobe pack's price. In view pixels: the cloth's margin from the screen's edge, how
 # large its painted border is drawn, how far in from the cloth's edge the parts start, and the gap between them.
@@ -114,7 +111,7 @@ const HOME_POCKET: Rect2 = Rect2(20, 80, 780, 760)
 const HOME_MENU_SHARE: float = 0.74
 const HOME_MENU_LARGEST: float = 1.25
 const HOME_MARGIN: float = 24.0
-# Where the dancing runner stands across Home, as a share of the width. Home's banner stands under it.
+# Where the dancing runner stands across Home, as a share of the width.
 const HOME_HERO_X: float = 0.735
 
 var root: Control
@@ -222,8 +219,6 @@ var update_page: Control
 var update_return: String = "home"
 var skip_button: StitchedButton
 var finish_shop: StitchedButton
-# How far down a menu page may reach while the banner is on screen, from StitchfallAds.
-var banner_limit: float = INF
 var unravel_count: int = 0
 var help_page: Control
 var about_page: Control
@@ -324,7 +319,6 @@ func _ready() -> void:
 	toast_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	toast_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	toast.visible = false
-	StitchfallAds.listen(_on_banner_limit)
 	get_viewport().size_changed.connect(_layout)
 	call_deferred("_layout")
 
@@ -336,17 +330,12 @@ func _layout() -> void:
 	var safe: Vector4 = _safe_insets()
 	_layout_home(safe)
 	for page: Control in [level_page, help_page, about_page, settings_page, pause_page, clear_page, chapter_page, stats_page, credits_page, shop_page, offer_page, update_page]:
-		var fit: float = page_fit(page)
-		page.scale = Vector2.ONE * fit
-		page.position.x = (root.size.x - 1920.0 * fit) * 0.5
-		_trim_cloth(page, fit)
+		page.position.x = (root.size.x - 1920.0) * 0.5
 	_layout_wardrobe(safe)
 
 
 # Home's menu is sized to the painted pocket as the painting covers the screen (wider screens crop its top and
-# foot), HOME_MENU_SHARE of its height, and centred in it, inside the screen's safe part. Home's banner stands
-# under the dancer, beside the menu, so the menu keeps the pocket's whole height. Only when a narrow screen puts
-# the banner under the menu too does the menu end a banner's clearance above it.
+# foot), HOME_MENU_SHARE of its height, and centred in it, inside the screen's safe part.
 func _layout_home(safe: Vector4) -> void:
 	var art: Vector2 = HOME_SCENE.get_size()
 	var cover: float = maxf(root.size.x / art.x, root.size.y / art.y)
@@ -357,9 +346,6 @@ func _layout_home(safe: Vector4) -> void:
 	var menu: Vector2 = Vector2(HOME_PLAY.size.x, home_menu_bottom - HOME_LOGO.position.y)
 	var fit: float = clampf(minf((bottom - top) * HOME_MENU_SHARE / menu.y, pocket.size.x * 0.84 / menu.x), 0.6, HOME_MENU_LARGEST)
 	var left: float = maxf(safe.x + 40.0, pocket.get_center().x - menu.x * 0.5 * fit)
-	if StitchfallAds.banner_wanted() and StitchfallAds.banner_rect(HOME_HERO_X).position.x < left + menu.x * fit:
-		bottom = minf(bottom, banner_limit)
-		fit = minf(fit, clampf((bottom - top) / menu.y, 0.6, 1.0))
 	home_menu.scale = Vector2.ONE * fit
 	home_menu.position = Vector2(left, (top + bottom - menu.y * fit) * 0.5 - HOME_LOGO.position.y * fit)
 
@@ -437,47 +423,6 @@ func _safe_insets() -> Vector4:
 		maxf(window.x - safe.end.x, 0.0) * per.x, maxf(window.y - safe.end.y, 0.0) * per.y)
 
 
-# The pages that may carry the banner: every page but play itself, Settings and About (where consent and privacy
-# live), the Shop and its offers, a chapter's short title card and the update offer.
-func _banner_page(page: Control) -> bool:
-	return [level_page, wardrobe_page, credits_page, stats_page, help_page, pause_page, clear_page].has(page)
-
-
-# A menu page that carries the banner shrinks from its top until everything on it ends BUTTON_GAP_DP above the
-# banner, so no button sits near the ad. Every other page, and every page without a banner, keeps its size.
-func page_fit(page: Control) -> float:
-	# The Wardrobe lays itself out in the room it has (_layout_wardrobe), so it never shrinks.
-	if not _banner_page(page) or page == wardrobe_page:
-		return 1.0
-	var bottom: float = 0.0
-	# The clear card slides in as one piece, so its parts are measured inside it.
-	var holder: Control = clear_card if page == clear_page else page
-	for child: Node in holder.get_children():
-		var part: Control = child as Control
-		if part != null and part.visible and not part.has_meta(&"cloth"):
-			bottom = maxf(bottom, part.position.y + part.size.y)
-	return clampf(banner_limit / bottom, 0.5, 1.0) if bottom > 0.0 else 1.0
-
-
-# The cloth behind a page ends CLOTH_GAP_DP above the banner rather than running under it, so the ad never sits
-# on the page.
-func _trim_cloth(page: Control, fit: float) -> void:
-	var end: float = INF
-	if _banner_page(page) and StitchfallAds.banner_wanted():
-		end = (StitchfallAds.banner_rect().position.y - CLOTH_GAP_DP * StitchfallAds.per_dp()) / fit
-	var holder: Control = clear_card if page == clear_page else page
-	for child: Node in holder.get_children():
-		if child.has_meta(&"cloth"):
-			var cloth: Control = child as Control
-			var rest: Rect2 = cloth.get_meta(&"cloth")
-			cloth.size.y = minf(rest.size.y, end - rest.position.y)
-
-
-func _on_banner_limit(limit: float) -> void:
-	banner_limit = limit
-	_layout()
-
-
 func _style(color: Color, border: Color, width: int) -> StyleBoxFlat:
 	var style: StyleBoxFlat = StyleBoxFlat.new()
 	style.bg_color = color
@@ -515,7 +460,6 @@ func _cloth_page(parent: Control, rect: Rect2) -> void:
 	cloth.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	cloth.position = rect.position
 	cloth.size = rect.size
-	cloth.set_meta(&"cloth", rect)
 	parent.add_child(cloth)
 
 
@@ -605,7 +549,7 @@ func _build_home() -> void:
 	var botanicals: Control = HOME_BOTANICALS.new() as Control
 	home_page.add_child(botanicals)
 	botanicals.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	# Everything in the pocket hangs from one menu, so it can shrink as a whole above a banner on a short phone.
+	# Everything in the pocket hangs from one menu, so it can shrink as a whole on a short phone.
 	home_menu = Control.new()
 	home_menu.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	home_page.add_child(home_menu)
@@ -645,7 +589,6 @@ func _build_home() -> void:
 	hero = AnimatedSprite2D.new()
 	hero.sprite_frames = _dance_frames()
 	hero.scale = Vector2.ONE * 0.92
-	# High enough that Home's banner, under it, keeps clear of its feet.
 	hero.position = Vector2(1410, 524)
 	var material: ShaderMaterial = ShaderMaterial.new()
 	material.shader = CLEANUP_SHADER
@@ -703,8 +646,7 @@ func _build_levels() -> void:
 	level_previous.pressed.connect(func() -> void: _turn_level_page(-1))
 	level_next = _tag(level_page, Rect2(1730, 410, 112, 112), "", "next", Color("e5d5bc"))
 	level_next.pressed.connect(func() -> void: _turn_level_page(1))
-	# The rooms ride in one holder so a page turn slides them together. It is as tall as the rooms, since the page
-	# shrinks above a banner by how far down its parts reach.
+	# The rooms ride in one holder so a page turn slides them together. It is as tall as the rooms.
 	level_rooms = Control.new()
 	level_rooms.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	level_rooms.size = Vector2(1920, LEVEL_TILES_Y + LEVEL_TILE_HEIGHT)
@@ -954,18 +896,12 @@ func _build_settings() -> void:
 			tag.pressed.connect(entry[4])
 			settings_tags[entry[0]] = tag
 	sound_buttons.append(settings_tags["sound"])
-	# Under the rows, a small card on the left: Fullscreen where there is a window to fill, or Privacy when
-	# Google's consent service says a player must be able to change their ad consent. A phone has no window.
+	# Under the rows, a small card on the left: Fullscreen where there is a window to fill. A phone has none.
 	var corner: Rect2 = Rect2(SETTINGS_X[0], SETTINGS_Y + 4 * SETTINGS_STEP + 30.0, 360, 96)
 	var fullscreen: StitchedButton = _tag(settings_page, corner, "FULLSCREEN", "fullscreen", Color("e4d0b1"))
 	fullscreen.caption_size = 32
 	fullscreen.pressed.connect(_toggle_fullscreen)
 	settings_tags["fullscreen"] = fullscreen
-	var privacy: StitchedButton = _tag(settings_page, corner, "PRIVACY", "lock", Color("e4d0b1"))
-	privacy.caption_size = 32
-	privacy.pressed.connect(func() -> void: StitchfallAds.open_privacy_options())
-	privacy.visible = false
-	settings_tags["privacy"] = privacy
 	# Reset asks twice and sits on its own, below the rest, so it is never a slip of the thumb.
 	var reset: StitchedButton = _tag(settings_page, Rect2(SETTINGS_X[1] + SETTINGS_ROW.x - 320.0, SETTINGS_Y + 4 * SETTINGS_STEP + 30.0, 320, 96), "RESET", "restart", Color("e9c9bd"))
 	reset.caption_size = 34
@@ -985,8 +921,7 @@ func _refresh_settings() -> void:
 	settings_tags["shake"].switch_on = 1 if progress.shake else 0
 	settings_tags["thread"].switch_on = 1 if progress.thread else 0
 	swipe_thread.visible = progress.thread
-	settings_tags["privacy"].visible = StitchfallAds.privacy_options_required()
-	settings_tags["fullscreen"].visible = not OS.has_feature("android") and not settings_tags["privacy"].visible
+	settings_tags["fullscreen"].visible = not OS.has_feature("android")
 	settings_tags["shop"].visible = StitchfallShop.on_play
 	reset_armed = false
 	settings_tags["reset"].caption = "RESET"
@@ -1254,8 +1189,7 @@ func _build_stats() -> void:
 	stats_lines.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 	stats_lines.add_theme_constant_override("line_spacing", 22)
 	# Google Play Games' own pages, beside the stitches they count, in the Android build once Stitchfall has its Play
-	# Games project. Each signs the player in first when they are not yet. Both end above the lines' foot, so the
-	# page shrinks no further for the banner.
+	# Games project. Each signs the player in first when they are not yet. Both end above the lines' foot.
 	stats_boards = _tag(stats_page, Rect2(1150, 285, 290, 280), "LEADERBOARDS", "stats", Color("efd3b8"))
 	stats_boards.pause_action = true
 	# Twelve letters in the usual hand would run past the patch's width and lose their last.
@@ -1301,8 +1235,7 @@ func _build_credits() -> void:
 	heading.add_theme_font_override("font", FONT_DISPLAY)
 	heading.text = "CREDITS"
 	_tag(credits_page, Rect2(1510, 125, 112, 105), "", "back", Color("e5d5bc")).pressed.connect(show_settings)
-	# The words scroll inside the card, so however small a phone makes the page above its banner, nothing runs
-	# out of the cloth. A finger drags them, and the bar stays hidden.
+	# The words scroll inside the card, so however small a phone makes the page, nothing runs out of the cloth. A finger drags them, and the bar stays hidden.
 	var scroll: ScrollContainer = ScrollContainer.new()
 	scroll.position = Vector2(320, 250)
 	scroll.size = Vector2(1300, 640)
@@ -1327,9 +1260,9 @@ func _build_credits() -> void:
 		"Thank you to everyone who plays, and to GitHub Game Off.",
 	])
 	if StitchfallShop.on_play and not StitchfallPlayGames.app_id().is_empty():
-		body.text += "\n\n" + "In the Android app: the Godot AdMob Plugin by Poing Studios, Godot Google Play Billing by the Godot Engine contributors, Godotx Firebase by Paulo Coutinho and GodotPlayGameServices by Jacob Ibáñez Sánchez, each under the MIT license, and Google's Mobile Ads SDK, User Messaging Platform, Play Billing Library, Play In-App Review and Updates, Play Games Services and Analytics for Firebase, under Google's terms."
+		body.text += "\n\n" + "In the Android app: Godot Google Play Billing by the Godot Engine contributors, Godotx Firebase by Paulo Coutinho and GodotPlayGameServices by Jacob Ibáñez Sánchez, each under the MIT license, and Google's Play Billing Library, Play In-App Review and Updates, Play Games Services and Analytics for Firebase, under Google's terms."
 	elif StitchfallShop.on_play:
-		body.text += "\n\n" + "In the Android app: the Godot AdMob Plugin by Poing Studios, Godot Google Play Billing by the Godot Engine contributors and Godotx Firebase by Paulo Coutinho, each under the MIT license, and Google's Mobile Ads SDK, User Messaging Platform, Play Billing Library, Play In-App Review and Updates and Analytics for Firebase, under Google's terms."
+		body.text += "\n\n" + "In the Android app: Godot Google Play Billing by the Godot Engine contributors and Godotx Firebase by Paulo Coutinho, each under the MIT license, and Google's Play Billing Library, Play In-App Review and Updates and Analytics for Firebase, under Google's terms."
 
 
 # The wardrobe: the heading over a tab per kind of piece, the pieces as tiles, and the runner dancing in what it
@@ -1380,21 +1313,15 @@ func _build_wardrobe() -> void:
 	wardrobe_shop.pressed.connect(func() -> void: show_shop("wardrobe"))
 
 
-# Places the Wardrobe's parts in the screen's safe part, above the banner while one is due (see WARDROBE_MARGIN).
+# Places the Wardrobe's parts in the screen's safe part (see WARDROBE_MARGIN).
 func _layout_wardrobe(safe: Vector4) -> void:
 	wardrobe_page.scale = Vector2.ONE
 	wardrobe_page.position = Vector2.ZERO
 	var view: Vector2 = root.size
-	var banner: bool = StitchfallAds.banner_wanted()
 	var cloth: Rect2 = Rect2(safe.x + WARDROBE_MARGIN, safe.y + WARDROBE_MARGIN, view.x - safe.x - safe.z - WARDROBE_MARGIN * 2.0, view.y - safe.y - safe.w - WARDROBE_MARGIN * 2.0)
-	if banner:
-		cloth.size.y = minf(cloth.size.y, StitchfallAds.banner_rect().position.y - CLOTH_GAP_DP * StitchfallAds.per_dp() - cloth.position.y)
 	wardrobe_cloth.position = cloth.position
 	wardrobe_cloth.size = cloth.size / WARDROBE_CLOTH_SCALE
-	wardrobe_cloth.set_meta(&"cloth", cloth)
 	var inner: Rect2 = cloth.grow_individual(-WARDROBE_INSET.x, -WARDROBE_INSET.y, -WARDROBE_INSET.x, -WARDROBE_INSET.y)
-	if banner:
-		inner.size.y = minf(inner.size.y, StitchfallAds.content_limit() - inner.position.y)
 	# The kinds' column: the heading, as large as fits, then a tab for each kind.
 	var kinds_wide: float = clampf(inner.size.x * WARDROBE_KINDS.x, WARDROBE_KINDS.y, WARDROBE_KINDS.z)
 	var heading_size: int = 77
@@ -1508,7 +1435,7 @@ func leave_shop() -> void:
 
 # The Complete pack shows only while none of it is owned, or once it is, and the cards centre on the cloth.
 func _fill_shop() -> void:
-	shop_line.text = "Thank you for supporting the next game." if StitchfallShop.ads_off(progress) else "Every room opens by playing too."
+	shop_line.text = "Thank you for supporting the next game." if StitchfallShop.supporter(progress) else "Every room opens by playing too."
 	var shown: Array[StitchedButton] = []
 	for id: String in shop_cards:
 		var card: StitchedButton = shop_cards[id]
@@ -1828,7 +1755,6 @@ func _show_screen(name: String) -> void:
 	shop_page.visible = name == "shop"
 	offer_page.visible = name == "offer"
 	update_page.visible = name == "update"
-	StitchfallAds.want_banner(name in StitchfallAds.BANNER_SCREENS, HOME_HERO_X if name == "home" else 0.5)
 	if name in ["home", "levels", "wardrobe", "shop", "help", "settings", "about", "credits", "stats"]:
 		StitchfallAnalytics.screen(name)
 	home_page.visible = name == "home"
@@ -1930,7 +1856,7 @@ func show_finish(time_text: String, shift_count: int, hit_count: int) -> void:
 	resume_button.queue_redraw()
 	restart_button.visible = false
 	pause_home_button.position.x = 1040
-	finish_shop.visible = StitchfallShop.on_play and progress != null and not StitchfallShop.ads_off(progress)
+	finish_shop.visible = StitchfallShop.on_play and progress != null and not StitchfallShop.supporter(progress)
 	# With the Shop under them, the two actions rise as they do for a skip.
 	if finish_shop.visible:
 		pause_body.position.y = 330.0
@@ -1943,7 +1869,6 @@ func show_finish(time_text: String, shift_count: int, hit_count: int) -> void:
 func hide_panel() -> void:
 	screen = "game"
 	panel.visible = false
-	StitchfallAds.want_banner(false)
 	meter.visible = true
 	pause_button.visible = true
 	room_label.visible = true

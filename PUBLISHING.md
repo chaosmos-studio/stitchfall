@@ -3,27 +3,25 @@
 Stitchfall's own values and progress. The account setup done once, and the answers shared by every Chaosmos
 game, are in `docs/STUDIO_PLAY_SETUP.md` in the Games workspace (`~/Work/Weekend-Projects/Games/`). Section
 numbers below point there. Stitchfall is not on the kit, but its Android build carries what the kit games
-carry, in its own stitched look: AdMob ads with Google's consent message, the studio's house ads under them,
-Firebase Analytics, Google Play Billing with the Supporter pack, Every room, the Wardrobe pack, the Complete pack
+carry, in its own stitched look: Firebase Analytics, Google Play Billing with the Supporter pack, Every room, the Wardrobe pack, the Complete pack
 and six tips, Play's review card and in-app updates, and Google Play Games once its project is set up (below). So
 its Play Console answers are the kit games' (2.4), except the content rating: its rooms have needles that make the
-runner come apart. The browser build has none of it.
+runner come apart. It has no ads since 1.3.0 (27 November 2026). The browser build has none of it.
 
 ## The app
 
 | | |
 | --- | --- |
 | Package | `com.shravangoswami.stitchfall` |
-| App name | Stitchfall: Turn Gravity (until 8 November 2026 "Stitchfall: Gravity Platformer", still the AdMob app's name until AdMob is linked to the listing) |
+| App name | Stitchfall: Turn Gravity (until 8 November 2026 "Stitchfall: Gravity Platformer") |
 | Play Console | https://play.google.com/console/u/0/developers/7125427200489329211/app/4976430851362506674/app-dashboard |
 | Privacy policy | https://chaosmos.studio/stitchfall/privacy/ |
 | Terms | https://chaosmos.studio/stitchfall/terms/ |
 | Website (Store settings) | https://chaosmos.studio/stitchfall/support/ |
 | Graphics | `assets/store/`, made by `tools/store_art.py` and `tools/make_icon.py` |
 | Build | `.github/workflows/release-android.yml`, named by `CHANGELOG.md` |
-| Permissions | `VIBRATE` and `INTERNET`, from the billing library `com.android.vending.BILLING`, and from the ads and Analytics libraries `ACCESS_NETWORK_STATE`, `AD_ID`, Play's install referrer and the few others they declare (the release workflow prints them all) |
-| AdMob app | `ca-app-pub-3135321730568420~7142610841`, in `scripts/monetize.gd` and the project setting `admob/general/android/app_id` |
-| AdMob units | Menu banner `ca-app-pub-3135321730568420/1826704985`, Between rooms (interstitial) `ca-app-pub-3135321730568420/5268302721`, Skip video (rewarded, reward item "Skip", amount 1) `ca-app-pub-3135321730568420/7089630792` |
+| Permissions | `VIBRATE` and `INTERNET`, from the billing library `com.android.vending.BILLING`, and from the Analytics libraries `ACCESS_NETWORK_STATE`, Play's install referrer and the few others they declare (the release workflow prints them all). `AD_ID` is removed by `addons/firebase_build`, and the release workflow fails if it comes back. |
+| Ads | None since 1.3.0. The AdMob app and units it had are retired (`docs/STUDIO_IDS.md`). |
 | Firebase app | `1:774261168232:android:094cfdd352479536db03dd` in project `chaosmos-studio`, config in `google-services.json` |
 | Upload key | `studio/release-keys/stitchfall-release.jks`, alias `stitchfall` (password in `stitchfall-key.properties`) |
 | Upload key SHA-1 | `A2:FA:E1:F5:48:EF:20:4C:6B:D2:47:8D:B2:0A:53:7E:99:62:CA:F0` |
@@ -57,15 +55,15 @@ runner come apart. The browser build has none of it.
 - [x] Release workflow dry run: signed AAB 1.0.0, code 10000, target 36
 - [x] Store settings (2.3): Game > Arcade, tags Arcade, Brain teaser, Casual, Physics-based, Platformer, contact
 - [x] App content: privacy policy, sign-in details, ads, government apps
-- [x] App content, Ads: **Yes, my app contains ads**
+- [x] App content, Ads: **Yes, my app contains ads** (until 1.3.0, below)
 - [x] App content: financial features, health, content rating, target audience, data safety, advertising ID,
   trader status ("You're all caught up", 7 November 2026)
-- [x] AdMob app and its three units (above)
-- [x] AdMob, Privacy & messaging: Stitchfall on both consent messages, with its privacy URL (1.3)
+- [x] AdMob app and its three units, retired with 1.3.0
 - [x] Firebase API keys (1.8): Stitchfall's upload SHA-1 (7 November) and its three Play signing SHA-1s (8 November)
   are on both Android keys, 20 app entries each. Builds use the Oct 10 key (`0dd826c1`), the first in
   `google-services.json`
 - [x] The privacy page at chaosmos.studio/stitchfall/privacy/ covers ads, AdMob, consent and Analytics (live 7 November)
+- [ ] The privacy page says there are no ads since 1.3.0
 - [x] Closed testing track: Google Group `chaosmos@googlegroups.com`, feedback URL, all countries
 - [x] Store listing words and graphics (2.2), saved. AI asset declaration: "Don't label assets", the owner's choice.
   The painted icon replaced the portrait one in the listing and on Play Games' properties (8 November)
@@ -77,7 +75,6 @@ runner come apart. The browser build has none of it.
   `alpha` (8 November)
 - [x] Products (2.6): the ten below, active in 174 regions, made with `play_product.py` and the `ci-uploader` key
   (the `studio-ops` key has no access to this app), each copying Pyxis's prices for the same product (8 November)
-- [ ] AdMob linked to the listing once it is public (3.1)
 - [ ] Test purchase (2.7)
 - [x] Play Games: Cloud project `chaosmos-stitchfall` and Play Games project `1647106634` made, properties saved,
   achievements, events, stats and the three leaderboards in as drafts. The OAuth consent screen is made (External,
@@ -91,23 +88,27 @@ runner come apart. The browser build has none of it.
   banner off Settings and About) went up to Closed testing from the workflow the same day. 1.1.0 (rooms fitted to the
   phone, the first room's coach, the new Home, Levels, Settings and guide, the chapter patches, and the banner on
   every page but play) went up to Closed testing from the workflow on 9 November
+- [ ] 1.3.0, ad-free, sent to Closed testing
+- [ ] App content for 1.3.0: Ads No, Advertising ID No, Data safety with no advertising purposes (`docs/STUDIO_PLAY_SETUP.md` 2.4)
+- [ ] The Supporter and Complete pack descriptions below, updated with `play_product.py` once 1.3.0 is out
+- [ ] The "No ads" lines of the listing below (short description and a bullet) entered in Play Console's main store
+  listing once 1.3.0 is out. Stitchfall has no `store/store.json`, so `play_store.py listing` cannot send them
 - [ ] 12 testers opted in for 14 days (write the date): ____
 - [ ] Applied for production (2.9)
 - [ ] Live on Play (2.10)
 
 ## App content: the owner's answers
 
-The kit games' answers (2.4), since the Android build now has their ads, consent and Analytics. Only the content
-rating differs.
+The kit games' answers for a game with no ads (2.4), since 1.3.0. Only the content rating differs.
 
 | Form | Answer |
 | --- | --- |
-| Ads | Yes, my app contains ads |
+| Ads | No, my app does not contain ads |
 | Financial features | My app doesn't provide any financial features |
 | Health apps | My app doesn't provide any health features |
-| Data safety | As 2.4: **Yes**, encrypted in transit, no account, no deletion request. Exactly the four data types there (Approximate location, App interactions, Diagnostics, Device or other IDs), each Collected and Shared, not ephemeral, required, for Advertising or marketing, Analytics, and Fraud prevention, security, and compliance. |
-| Advertising ID | Yes, for Advertising or marketing, Analytics, and Fraud prevention, security, and compliance |
-| Target audience | As 2.4: 13-15, 16-17, 18 and over, and the listing could unintentionally appeal to children: **No**. An earlier draft of this guide said Yes for the build without ads, but with ads a Yes puts the app under the Families ads rules, which the studio's AdMob setup (not child-directed) does not meet. Keep the listing's words and pictures for a teen and adult audience. |
+| Data safety | As 2.4 for a game with no ads: Firebase Analytics and Play Billing only, with no Advertising or marketing purpose |
+| Advertising ID | No |
+| Target audience | As 2.4: 13-15, 16-17, 18 and over, and the listing could unintentionally appeal to children: **No**. Keep the listing's words and pictures for a teen and adult audience. |
 | Trader status | Trader, as every Chaosmos app, with the terms URL above |
 
 **Content rating:** Start, email `hello@chaosmos.studio`, category **Game**. The one difference from the kit games
@@ -137,7 +138,7 @@ Expected result: ESRB Everyone, PEGI 3 or 7, with an "In-app purchases" notice.
 | Field | Text |
 | --- | --- |
 | App name (30) | Stitchfall: Turn Gravity |
-| Short description (80) | Turn the whole room over and sew your way past every trick. |
+| Short description (80) | Turn the whole room over and sew your way past every trick. No ads. |
 
 Full description:
 
@@ -151,6 +152,7 @@ Full description:
 > • Flowers bank the buttons you carry and become the place you come back to
 > • A Wardrobe of runners, trails, unravel styles, buttons and fabrics. Stars open the trails, unravels and buttons, and the Wardrobe pack adds every runner and fabric
 > • Textile art and music made for this game
+> • No ads
 > • Plays offline. Sign in with Play Games for achievements, leaderboards and progress that follows you to a new phone
 
 Screenshots (phone, 7-inch and 10-inch tablet, the same eight 1920 by 1080 images from `tools/store_art.py`), in
@@ -179,10 +181,10 @@ lists them (Home and the Wardrobe lead to it), and the browser build sells nothi
 
 | Product ID | Name | Price | Description |
 | --- | --- | --- | --- |
-| `supporter` | `Supporter pack` | US$2.99 | Turns off the banner and the ads between rooms in Stitchfall for good, and makes skipping a room free. One purchase, yours to keep, and it helps me make the next game. |
+| `supporter` | `Supporter pack` | US$2.99 | Stitchfall has no ads, and skipping a room is free for everyone. This pack opens nothing new: it helps me make the next game, and the Shop thanks you. Thank you for playing. |
 | `all_levels` | `Every room` | US$1.99 | Opens every room at once, so you can play them in any order. Stars are still earned by sewing each room. One purchase, yours to keep. |
 | `wardrobe` | `Wardrobe pack` | US$2.99 | Every runner and fabric in the Wardrobe: Patch, Bobbin, Tam, Moth, Fennel and Indigo, and six room fabrics. One purchase, yours to keep. |
-| `complete` | `Complete pack` | US$6.99 | The Supporter pack, Every room and the Wardrobe pack in one, for less than buying them apart: no banner or ads between rooms, free skips, every room open, every runner and fabric. |
+| `complete` | `Complete pack` | US$6.99 | The Supporter pack, Every room and the Wardrobe pack in one, for less than buying them apart: every room open, every runner and fabric. One purchase, yours to keep. |
 | `tip_1` | `Small tip` | US$0.99 | A thank-you to the maker of this game. It opens nothing, but it helps make the next game and more rooms. Tip as often as you like. |
 | `tip_2` | `Tip` | US$1.99 | A thank-you to the maker of this game. It opens nothing, but it helps make the next game and more rooms. Tip as often as you like. |
 | `tip_5` | `Big tip` | US$4.99 | A thank-you to the maker of this game. It opens nothing, but it helps make the next game and more rooms. Tip as often as you like. |
@@ -199,8 +201,7 @@ To test, after 2.7, in the game installed from Play:
 Every purchase opens its page first, and its button opens Google Play's sheet, which many phones show upright over
 the landscape game (Play's own window, which no app can turn). The game is landscape again when it closes.
 
-1. Shop > Supporter pack > Support with the test card: the banner on Levels goes, Next brings no more ads between
-   rooms, and the pause page's skip is free.
+1. Shop > Supporter pack > Support with the test card: the Shop thanks you.
 2. Shop > Every room > Buy: every locked tile on Levels opens. A shut room's Every room tag opens the same page.
 3. Wardrobe > Wardrobe pack > Buy: every runner and fabric opens.
 4. Tip twice in a row: the Shop thanks you for both.
@@ -208,21 +209,10 @@ the landscape game (Play's own window, which no app can turn). The game is lands
 6. The Complete pack shows only while none of its packs is owned, so test it on a fresh test account or after a
    refund.
 
-## Ads (AdMob, 1.2 to 1.5)
+## Ads
 
-The app and its three units are made (ids in the table at the top). Each debug build loads Google's test units
-whatever `monetize.gd` says. Until AdMob approves the account, and whenever it has no banner to give, the house
-banner stands in for another Chaosmos game. Nothing stands in for a video: with none loaded, the skip is free.
-
-- The banner: Levels, Wardrobe, Credits and Stats only (never Settings or About), once 3 rooms are sewn, a 320 dp strip
-  centred at the foot of the screen, 48 dp clear of the screen's edge. The page above it shrinks so every button
-  keeps 40 dp clear of it.
-- Between rooms: only from Next on the clear card, from 12 rooms sewn, once every 4 clears, 4 minutes after any
-  full-screen ad and 3 after launch, never when Next leads to a chapter's title card, never during play.
-- The skip video: offered on the pause page after 5 unravels in a room, for a room whose next room is still shut,
-  with a "Stuck? Pause" tag by the pause button from then on. Declining never blocks play, and with nothing to play
-  the room just stays.
-- Register your phone as a test device (1.5) before installing a release build, and never tap a real ad.
+None since 1.3.0 (27 November 2026, the studio's decision for every game). Before it, the Android build carried
+AdMob with Google's consent message and the studio's house banner. Skipping a room is free.
 
 ## Play Games
 
