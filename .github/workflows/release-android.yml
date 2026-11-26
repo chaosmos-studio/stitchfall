@@ -427,7 +427,7 @@ jobs:
           # R8 renames most classes, so the manifest's components (AdMob's AdActivity, an ads plugin's registration) are
           # the surest sign of an ad SDK, then its files and any class names R8 kept.
           components="$(manifest "/manifest/application/*/@android:name" | xargs)"
-          if grep -oiE '[^ ]*(com\.google\.android\.gms\.ads\.|com\.google\.android\.ump|admob|unity3d|levelplay|intermission|ironsource|applovin)[^ ]*' <<< "$components"; then
+          if grep -oiE '[^ ]*(com\.google\.android\.gms\.ads\.|com\.google\.android\.libraries\.ads\.|com\.google\.android\.ump|admob|unity3d|levelplay|intermission|ironsource|applovin)[^ ]*' <<< "$components"; then
             echo "::error::the bundle's manifest registers an ad SDK, but the game has no ads" >&2
             exit 1
           fi
