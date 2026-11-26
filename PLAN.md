@@ -78,7 +78,7 @@ Stitchfall needs the same discipline for movement routes, with a replayable phys
 - [x] Add a browser fullscreen action where the browser supports it.
 - [x] Replace the home dance with a front-facing, detailed loop and give menu controls textile artwork.
 - [x] Add an About page with a short studio introduction.
-- [x] Give the studio site a game page and publish the playable build at `/stitchfall/play/`.
+- [x] Give the studio site a game page and publish the playable build at `/games/stitchfall/play/`.
 - [ ] Design room families around a single movement idea: ceiling runs, cargo transport, water ascent, wind carry, canopy lift, low-gravity arcs, rain reversal, and ice braking.
 - [ ] Add setting families beyond the current route, with a visible interaction and sound identity for each.
 - [ ] Build deterministic candidate generation with protected start and exit zones, reachable collectibles, hazard clearance, and repeated-layout rejection.

@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <a href="https://chaosmos.studio/stitchfall/"><b>Play Stitchfall</b></a>
+  <a href="https://chaosmos.studio/games/stitchfall/"><b>Play Stitchfall</b></a>
 </p>
 
 <p align="center">
@@ -39,7 +39,7 @@ Every room plays one trick on you. Watch for the tell, laugh, and try again.
 ## Made by
 
 Stitchfall is made by [Shravan Goswami](https://shravangoswami.com) at [Chaosmos](https://chaosmos.studio).
-Everyone and everything it uses is in the [credits](https://chaosmos.studio/stitchfall/credits/).
+Everyone and everything it uses is in the [credits](https://chaosmos.studio/games/stitchfall/credits/).
 It is built with Godot 4.7: open the project in Godot and press Play.
 
 ## License

@@ -8,7 +8,7 @@ What matters most here:
 
 - anything that would let someone publish a build, change the website at chaosmos.studio or reach the release
   workflow's secrets;
-- anything in the Android app that sends data the privacy policy at https://chaosmos.studio/stitchfall/privacy/
+- anything in the Android app that sends data the privacy policy at https://chaosmos.studio/games/stitchfall/privacy/
   does not describe;
 - a way for the browser version to load code from anywhere other than chaosmos.studio.
 
