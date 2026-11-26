@@ -424,6 +424,13 @@ jobs:
             echo "::error::the bundle carries the AdMob app id $app_id, but the game has no ads" >&2
             exit 1
           fi
+          # R8 renames most classes, so the manifest's components (AdMob's AdActivity, an ads plugin's registration) are
+          # the surest sign of an ad SDK, then its files and any class names R8 kept.
+          components="$(manifest "/manifest/application/*/@android:name" | xargs)"
+          if grep -oiE '[^ ]*(com\.google\.android\.gms\.ads\.|com\.google\.android\.ump|admob|unity3d|levelplay|intermission|ironsource|applovin)[^ ]*' <<< "$components"; then
+            echo "::error::the bundle's manifest registers an ad SDK, but the game has no ads" >&2
+            exit 1
+          fi
           ad_sdks='META-INF/com\.google\.android\.gms_play-services-ads|META-INF/com\.google\.android\.ump_|com\.unity3d\.ads|unity-ads|ironsource|applovin|META-INF/com\.facebook\.android_audience'
           if unzip -l "$AAB" | grep -iE "$ad_sdks"; then
             echo "::error::the bundle carries an ad SDK, but the game has no ads" >&2
