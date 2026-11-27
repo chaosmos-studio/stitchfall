@@ -34,7 +34,7 @@ jobs:
   # On a push, release only when the newest version in CHANGELOG.md has no tag yet.
   decide:
     if: github.event_name == 'push'
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 5
     outputs:
       release: ${{ steps.check.outputs.release }}
@@ -59,7 +59,7 @@ jobs:
   release:
     needs: decide
     if: ${{ !cancelled() && (github.event_name == 'workflow_dispatch' || needs.decide.outputs.release == 'true') }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER_BUILD || vars.RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 60
     env:
       GODOT_RELEASE: "4.7-stable"
