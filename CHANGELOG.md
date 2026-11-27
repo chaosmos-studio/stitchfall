@@ -7,6 +7,10 @@ one line, at most 500 characters in all. The release workflow turns it into the 
 bumps the patch.
 -->
 
+## 1.3.1
+
+- Better privacy: the game's anonymous play stats stay off across Europe, now judged by your phone's time zone.
+
 ## 1.3.0
 
 - No more ads.

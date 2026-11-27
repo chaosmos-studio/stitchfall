@@ -126,7 +126,8 @@ func _test_shrink_rules() -> void:
 		kept.append(found.get_string(1))
 	var missing: Array[String] = []
 	for java: String in named:
-		var covered: bool = false
+		# Android's own classes are on the phone, not in the app's code, so R8 never touches them.
+		var covered: bool = java.begins_with("java.") or java.begins_with("android.")
 		for rule: String in kept:
 			covered = covered or rule == java or (rule.ends_with(".**") and java.begins_with(rule.trim_suffix("**")))
 		if not covered:
@@ -228,23 +229,29 @@ func _test_products() -> void:
 	progress.reset()
 
 
-# Counted only where no consent is needed, and never in a debug build: the EEA, the UK and Switzerland, guessed from a
-# European clock and a locale that agrees, are never counted.
+# Counted only where no consent is needed, and never in a debug build: a time zone of the EEA, the UK or Switzerland is
+# never counted, whatever the phone's language, and nor is a European clock whose zone cannot be read.
 func _test_consent_rule() -> void:
 	_check("a release build counts where no consent is needed", StitchfallAnalytics.counts(false, false))
 	_check("a debug build never counts", not StitchfallAnalytics.counts(false, true))
 	_check("nothing is counted where consent is needed", not StitchfallAnalytics.counts(true, false))
-	for locale: String in ["de_DE", "en_GB", "fr_CH", "nb_NO", "sr_Latn_SI", "en_IE"]:
-		_check("a phone set to %s on Central European time needs consent" % locale, StitchfallAnalytics.consent_needed(locale, 60))
-	for locale: String in ["en_IN", "hi_IN", "en_US", "en_GB", "de_DE", "en"]:
-		_check("a phone set to %s on Indian time does not" % locale, not StitchfallAnalytics.consent_needed(locale, 330))
-	_check("a European phone set to US English needs it by its clock", StitchfallAnalytics.consent_needed("en_US", 60))
-	_check("so does one on Lisbon's winter clock", StitchfallAnalytics.consent_needed("en_US", 0))
-	_check("and one whose locale names no country", StitchfallAnalytics.consent_needed("en", 120))
-	_check("but not one on New York's", not StitchfallAnalytics.consent_needed("en_US", -300))
-	_check("nor a South African phone on the same clock as Finland", not StitchfallAnalytics.consent_needed("en_ZA", 120))
-	_check("a locale's region is read whatever its script", StitchfallAnalytics.country("sr_Latn_RS") == "RS")
-	_check("a locale with no region has none", StitchfallAnalytics.country("en") == "")
+	_check("a phone in Paris needs consent, set to Canadian French or any other language",
+		StitchfallAnalytics.consent_needed("Europe/Paris", 60))
+	_check("so does one in Berlin, set to Turkish", StitchfallAnalytics.consent_needed("Europe/Berlin", 60))
+	_check("Lagos is counted, on the same clock as Paris", not StitchfallAnalytics.consent_needed("Africa/Lagos", 60))
+	_check("Kolkata is counted, set to UK English or not", not StitchfallAnalytics.consent_needed("Asia/Kolkata", 330))
+	for zone: String in ["Indian/Reunion", "Indian/Mayotte", "Atlantic/Azores", "Atlantic/Madeira", "Atlantic/Canary",
+			"Atlantic/Reykjavik", "Africa/Ceuta", "Asia/Nicosia", "Asia/Famagusta", "America/Guadeloupe",
+			"America/Martinique", "America/Cayenne", "America/Marigot", "Arctic/Longyearbyen", "Europe/Busingen",
+			"Europe/Mariehamn", "Europe/London", "Europe/Zurich", "Europe/Vaduz", "Europe/Oslo", "GB", "Eire"]:
+		_check("%s needs consent, whatever its clock" % zone, StitchfallAnalytics.consent_needed(zone, 240))
+	_check("a zone that cannot be read, on a European clock, is not counted", StitchfallAnalytics.consent_needed("", 60))
+	_check("nor on Lisbon's winter clock or Finland's summer one",
+		StitchfallAnalytics.consent_needed("", 0) and StitchfallAnalytics.consent_needed("", 180))
+	_check("an unread zone far from Europe is counted",
+		not StitchfallAnalytics.consent_needed("", 330) and not StitchfallAnalytics.consent_needed("", -300))
+	_check("a generic zone is judged by its clock alone", StitchfallAnalytics.consent_needed("UTC", 0)
+		and StitchfallAnalytics.consent_needed("Etc/GMT-1", 60) and not StitchfallAnalytics.consent_needed("Etc/GMT-9", 540))
 	_check("nothing is counted off Android", not StitchfallAnalytics.counting())
 
 
