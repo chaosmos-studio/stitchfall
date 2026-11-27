@@ -11,7 +11,9 @@ extends RefCounted
 # Firebase starts every launch with collection off and every consent signal denied (the godotx_firebase preset's
 # privacy-safe defaults), and only a phone that counts turns collection and analytics storage on. Nothing counted
 # serves ads: the ad signals stay denied, and addons/firebase_build keeps the advertising id and its permission out
-# of the build. Debug builds never count.
+# of the build. Debug builds never count. Firebase keeps the last launch's choice, so a phone that counted last time
+# logs Firebase's own launch events (session_start, app_update) for a moment before this launch decides again: one
+# launch's automatic events from a phone that has just come into Europe.
 
 const FIREBASE_CORE: String = "GodotxFirebaseCore"
 const FIREBASE: String = "GodotxFirebaseAnalytics"
