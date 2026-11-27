@@ -444,7 +444,8 @@ jobs:
           # Firebase starts with collection off and never reads the advertising id or the device id, and every ad
           # signal stays denied. The game's Analytics turns collection on only where no consent is needed.
           if grep -q '^firebase/enable_analytics=true$' export_presets.cfg; then
-            for key in firebase_analytics_collection_enabled google_analytics_default_allow_ad_storage \
+            for key in firebase_analytics_collection_enabled google_analytics_default_allow_analytics_storage \
+                google_analytics_default_allow_ad_storage \
                 google_analytics_default_allow_ad_user_data google_analytics_default_allow_ad_personalization_signals \
                 google_analytics_adid_collection_enabled google_analytics_ssaid_collection_enabled; do
               value="$(manifest "/manifest/application/meta-data[@android:name='$key']/@android:value")"
