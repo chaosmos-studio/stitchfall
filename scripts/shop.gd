@@ -15,9 +15,9 @@ extends RefCounted
 # which calls `grant()` when Play confirms a purchase. Until it exists, buying says Play cannot be reached.
 
 const SPONSOR: String = "https://github.com/sponsors/shravanngoswamii"
-const WEBSITE: String = "https://chaosmos.studio/stitchfall/"
-const SUPPORT: String = "https://chaosmos.studio/stitchfall/support/"
-const PRIVACY: String = "https://chaosmos.studio/stitchfall/privacy/"
+const WEBSITE: String = "https://chaosmos.studio/games/stitchfall/"
+const SUPPORT: String = "https://chaosmos.studio/games/stitchfall/support/"
+const PRIVACY: String = "https://chaosmos.studio/games/stitchfall/privacy/"
 const MORE_GAMES: String = "https://chaosmos.studio/games/"
 const STORE: String = "https://play.google.com/store/apps/details?id=com.shravangoswami.stitchfall"
 const UNREACHABLE: String = "Google Play is not reachable right now."

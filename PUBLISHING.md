@@ -15,9 +15,9 @@ runner come apart. It has no ads since 1.3.0 (27 November 2026). The browser bui
 | Package | `com.shravangoswami.stitchfall` |
 | App name | Stitchfall: Turn Gravity (until 8 November 2026 "Stitchfall: Gravity Platformer") |
 | Play Console | https://play.google.com/console/u/0/developers/7125427200489329211/app/4976430851362506674/app-dashboard |
-| Privacy policy | https://chaosmos.studio/stitchfall/privacy/ |
-| Terms | https://chaosmos.studio/stitchfall/terms/ |
-| Website (Store settings) | https://chaosmos.studio/stitchfall/support/ |
+| Privacy policy | https://chaosmos.studio/games/stitchfall/privacy/ |
+| Terms | https://chaosmos.studio/games/stitchfall/terms/ |
+| Website (Store settings) | https://chaosmos.studio/games/stitchfall/support/ |
 | Graphics | `assets/store/`, made by `tools/store_art.py` and `tools/make_icon.py` |
 | Build | `.github/workflows/release-android.yml`, named by `CHANGELOG.md` |
 | Permissions | `VIBRATE` and `INTERNET`, from the billing library `com.android.vending.BILLING`, and from the Analytics libraries `ACCESS_NETWORK_STATE`, Play's install referrer and the few others they declare (the release workflow prints them all). `AD_ID` is removed by `addons/firebase_build`, and the release workflow fails if it comes back. |
@@ -31,11 +31,13 @@ runner come apart. It has no ads since 1.3.0 (27 November 2026). The browser bui
 | Other Play signing SHA-1s | `46:CB:4E:76:A2:B2:57:91:46:54:CE:06:92:F1:91:30:08:9F:B8:D9` and `1E:27:B3:78:C2:68:F8:2C:6E:0B:AF:0F:B2:E5:04:D4:1E:B4:12:5E`, the two more that App signing's Copy all certificate fingerprints lists (one is the "Quantum-ready" previous key) |
 | What makes it unique (2.9) | You turn gravity a quarter turn at a time, and every small cloth room plays a trick that the turn gets you out of. |
 
+Play Console, and the OAuth consent screen on `chaosmos-stitchfall` (step 6 under "Setting it up in Play Console"), still hold the old addresses under `chaosmos.studio/stitchfall/` until they are changed there by hand after the site moves to `/games/`, and the old ones redirect to these meanwhile.
+
 ## Builds and releases
 
 - **CI** (`.github/workflows/ci.yml`), on every push and pull request: the tests (run with `--fixed-fps 60`, about
   a minute) and the browser build with its phone check (`tools/check_web.cjs`) side by side. A push to `main` that
-  passes both publishes the browser build to `chaosmos.studio/stitchfall/play/`, from its own Cloudflare Worker
+  passes both publishes the browser build to `chaosmos.studio/games/stitchfall/play/`, from its own Cloudflare Worker
   (`stitchfall-play`) through the studio's `deploy-web` action with the `CLOUDFLARE_API_TOKEN` secret, as every
   other game does.
 - **Android** (`.github/workflows/release-android.yml`): a new version at the top of `CHANGELOG.md` pushed to
@@ -62,7 +64,7 @@ runner come apart. It has no ads since 1.3.0 (27 November 2026). The browser bui
 - [x] Firebase API keys (1.8): Stitchfall's upload SHA-1 (7 November) and its three Play signing SHA-1s (8 November)
   are on both Android keys, 20 app entries each. Builds use the Oct 10 key (`0dd826c1`), the first in
   `google-services.json`
-- [x] The privacy page at chaosmos.studio/stitchfall/privacy/ covers ads, AdMob, consent and Analytics (live 7 November)
+- [x] The privacy page at chaosmos.studio/games/stitchfall/privacy/ covers ads, AdMob, consent and Analytics (live 7 November)
 - [ ] The privacy page says there are no ads since 1.3.0
 - [x] Closed testing track: Google Group `chaosmos@googlegroups.com`, feedback URL, all countries
 - [x] Store listing words and graphics (2.2), saved. AI asset declaration: "Don't label assets", the owner's choice.
@@ -320,8 +322,8 @@ All signed in as the studio account, in Play Console and Google Cloud (never gcl
    `python3 tools/play_games_ids.py build/play_games/games-ids.xml`, which writes `play_games.json` and stops if
    any name in the catalog is missing from the XML.
 6. **The OAuth consent screen** on `chaosmos-stitchfall`: External, app name Stitchfall, support email
-   `hello@chaosmos.studio`, home page https://chaosmos.studio/stitchfall/, privacy policy
-   https://chaosmos.studio/stitchfall/privacy/, authorized domain `chaosmos.studio`, no logo (a logo needs
+   `hello@chaosmos.studio`, home page https://chaosmos.studio/games/stitchfall/, privacy policy
+   https://chaosmos.studio/games/stitchfall/privacy/, authorized domain `chaosmos.studio`, no logo (a logo needs
    Google's verification), then Publish app.
 7. **Android OAuth clients** on `chaosmos-stitchfall`, package `com.shravangoswami.stitchfall`, one per
    certificate Play could sign with: the app signing key (its SHA-1 on Play Console's App signing page), any
@@ -340,7 +342,7 @@ All signed in as the studio account, in Play Console and Google Cloud (never gcl
   aggregation, direction, format and unit. Then Review and publish the Play Games project as the release goes
   out. Publishing also needs the category and the feature graphic on Properties: the publishing page names what is
   missing.
-- **Before that release goes live**: the privacy page at chaosmos.studio/stitchfall/privacy/ says what the kit
+- **Before that release goes live**: the privacy page at chaosmos.studio/games/stitchfall/privacy/ says what the kit
   games' page says about Google Play Games (the `playGames` list in the studio site's
-  `src/pages/[game]/privacy.astro`), in Stitchfall's terms: the three boards, the achievements, the room events
+  `src/pages/games/[game]/privacy.astro`), in Stitchfall's terms: the three boards, the achievements, the room events
   and the cloud save. The store listing's last bullet names Play Games, as Pyxis's does. Both done for 1.0.1.
